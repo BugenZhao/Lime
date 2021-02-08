@@ -25,24 +25,28 @@ pub enum Expr {
 #[derive(Debug)]
 pub enum Stmt {
     Expr(Expr),
+    VarDecl(Box<Expr>, Box<Expr>),
 }
 
 peg::parser! {
     grammar my_parser() for str {
+        // Lexical
         rule _() = quiet!{ [' ' | '\t' | '\r' | '\n']* }
+        rule semi() = (";" _)
+        rule digit() = ['0'..='9']
+        rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
+        rule aldig() = alpha() / digit()
 
-        rule semi()
-            = (";" _)
 
+        // Primary
         rule integer() -> Expr
-            = quiet!{ n:$(['0'..='9']+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
+            = quiet!{ n:$(digit()+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
             / expected!("integer")
 
-        rule number() -> Expr
-            = integer()
+        rule number() -> Expr = integer()
 
         rule ident() -> Expr
-            = quiet!{ i:$(['a'..='z' | 'A'..='Z'] ['a'..='z' | 'A'..='Z' | '0'..='9']*) { Expr::Variable(i.into()) } }
+            = quiet!{ i:$(alpha() aldig()*) { Expr::Variable(i.into()) } }
             / expected!("identifier")
 
         rule primary() -> Expr
@@ -50,7 +54,9 @@ peg::parser! {
             / number()
             / "(" _ e:expr() _ ")" { e }
 
-        rule arithmetic() -> Expr = precedence!{
+
+        // Expr
+        rule expr_binary() -> Expr = precedence!{
             x:(@) _ "+" _ y:@ { Expr::Binary(box x, Op::Add, box y) }
             x:(@) _ "-" _ y:@ { Expr::Binary(box x, Op::Sub, box y) }
             --
@@ -62,15 +68,29 @@ peg::parser! {
             p:primary() { p }
         }
 
-        rule expr() -> Expr
+        rule expr_assign() -> Expr
             = i:ident() _ "=" _ e:expr() { Expr::Assign(box i, box e) }
-            / a:arithmetic() { a }
+
+        rule expr() -> Expr
+            = expr_assign()
+            / expr_binary()
+
+
+        // Stmt
+        rule stmt_expr() -> Stmt
+            = e:expr() _ semi()+ { Stmt::Expr(e) }
+
+        rule stmt_var_decl() -> Stmt
+            = "var" _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
 
         rule stmt() -> Stmt
-            = _ e:expr() _ semi()+ { Stmt::Expr(e) }
+            = stmt_var_decl()
+            / stmt_expr()
+
+        rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
         pub rule stmts() -> Vec<Stmt>
-            = _ ss:(stmt())* semi()? ![_] { ss }
+            = ss:(raw_stmt())* semi()? ![_] { ss }
     }
 }
 
@@ -87,8 +107,10 @@ mod test {
     #[test]
     fn test() {
         let text = r#"
-        b = 1 + (2+3) * 5 ^ 2 ^ 2 + 6 * a; 
-        c = 6; 
+            b = 1 + (2+3) 
+                * 5 ^ 2 ^ 2 + 6 * a; 
+        ;
+        var c = 6;;  ; ;
         "#;
         let r = my_parser::stmts(text);
         println!("{:#?}", r);

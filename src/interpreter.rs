@@ -16,7 +16,6 @@ impl Interpreter {
     }
 }
 
-#[allow(unreachable_patterns)]
 impl Interpreter {
     pub fn eval(&self, text: &str) -> Result<Option<Value>> {
         let stmts = parser::parse(text)?;
@@ -46,7 +45,15 @@ impl Interpreter {
                 Ok(v) => Ok(Some(v)),
                 Err(e) => Err(e),
             },
-            _ => Ok(None),
+            Stmt::VarDecl(var, val) => {
+                if let Expr::Variable(name) = var.as_ref() {
+                    let val = self.eval_expr(val)?;
+                    self.vars.lock().unwrap().insert(name.clone(), val.clone());
+                    Ok(None)
+                } else {
+                    Err(Error::InvalidLhsAssignment(format!("{:?}", var)))
+                }
+            }
         }
     }
 
@@ -69,10 +76,14 @@ impl Interpreter {
             Expr::Assign(var, val) => {
                 if let Expr::Variable(name) = var.as_ref() {
                     let val = self.eval_expr(val)?;
-                    self.vars.lock().unwrap().insert(name.clone(), val.clone());
-                    Ok(val)
+                    if let Some(v) = self.vars.lock().unwrap().get_mut(name) {
+                        *v = val.clone();
+                        Ok(val)
+                    } else {
+                        Err(Error::CannotFindValue(name.to_owned()))
+                    }
                 } else {
-                    panic!()
+                    Err(Error::InvalidLhsAssignment(format!("{:?}", var)))
                 }
             }
         }
@@ -86,7 +97,7 @@ mod test {
     #[test]
     fn test() {
         let intp = Interpreter::new();
-        let _ = intp.eval("a = 1 + 2 * 3;");
+        let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
         assert_eq!(intp.vars.lock().unwrap().get("a").unwrap(), &Value::Int(7));
     }
 }

@@ -5,6 +5,8 @@ pub enum Error {
 
     #[error("Cannot find value `{0}` in this scope")]
     CannotFindValue(String),
+    #[error("invalid left-hand side `{0}` of assignment")]
+    InvalidLhsAssignment(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
