@@ -31,11 +31,18 @@ pub enum Stmt {
 peg::parser! {
     grammar my_parser() for str {
         // Lexical
-        rule _() = quiet!{ [' ' | '\t' | '\r' | '\n']* }
+        rule ws() = [' ' | '\t' | '\r' | '\n']
+        rule comment() = "//" (!"\n" [_])* / "/*" (!"*/" [_])* "*/"
+        rule _() = quiet!{ (ws() / comment())* }
+
         rule semi() = (";" _)
         rule digit() = ['0'..='9']
         rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
-        rule aldig() = alpha() / digit()
+
+
+        // Keywords
+        rule kw_var() = "var"
+        rule kw() = kw_var()
 
 
         // Primary
@@ -46,7 +53,7 @@ peg::parser! {
         rule number() -> Expr = integer()
 
         rule ident() -> Expr
-            = quiet!{ i:$(alpha() aldig()*) { Expr::Variable(i.into()) } }
+            = quiet!{ i:$(!kw() (alpha() (alpha() / digit())*)) { Expr::Variable(i.into()) } }
             / expected!("identifier")
 
         rule primary() -> Expr
@@ -81,7 +88,7 @@ peg::parser! {
             = e:expr() _ semi()+ { Stmt::Expr(e) }
 
         rule stmt_var_decl() -> Stmt
-            = "var" _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
+            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
@@ -110,7 +117,7 @@ mod test {
             b = 1 + (2+3) 
                 * 5 ^ 2 ^ 2 + 6 * a; 
         ;
-        var c = 6;;  ; ;
+        var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         "#;
         let r = my_parser::stmts(text);
         println!("{:#?}", r);
