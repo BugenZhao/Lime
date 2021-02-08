@@ -7,10 +7,15 @@ pub enum Op {
     Pow,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Value {
+    Int(i64),
+}
+
 #[derive(Debug)]
 pub enum Expr {
     Variable(String),
-    Integer(i64),
+    Literal(Value),
     Binary(Box<Expr>, Op, Box<Expr>),
     Assign(Box<Expr>, Box<Expr>),
 }
@@ -24,7 +29,7 @@ peg::parser! {
         rule _() = quiet!{ [' ' | '\t' | '\r' | '\n']* }
 
         rule integer() -> Expr
-            = quiet!{ n:$(['0'..='9']+) { Expr::Integer(n.parse().unwrap()) } }
+            = quiet!{ n:$(['0'..='9']+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
             / expected!("integer")
 
         rule number() -> Expr
@@ -61,6 +66,11 @@ peg::parser! {
         pub rule stmts() -> Vec<Stmt>
             = _ ss:(stmt())* _ ![_] { ss }
     }
+}
+
+#[inline]
+pub fn parse(text: &str) -> Vec<Stmt> {
+    my_parser::stmts(text).unwrap()
 }
 
 #[cfg(test)]
