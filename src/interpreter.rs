@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use crate::peg_test::{self, Expr, Op, Stmt, Value};
+use crate::parser::{self, Expr, Op, Stmt, Value};
 
 struct Interpreter {
     vars: Mutex<HashMap<String, Value>>,
@@ -17,7 +17,7 @@ impl Interpreter {
 #[allow(unreachable_patterns)]
 impl Interpreter {
     pub fn eval(&self, text: &str) -> Option<Value> {
-        let stmts = peg_test::parse(text);
+        let stmts = parser::parse(text);
         self.eval_stmts(&stmts)
     }
 
