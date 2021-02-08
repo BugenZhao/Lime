@@ -1,4 +1,5 @@
 use crate::interpreter::Interpreter;
+use colored::*;
 use rustyline::{error::ReadlineError, Editor};
 
 pub fn repl() {
@@ -14,19 +15,14 @@ pub fn repl() {
                 match intp.eval(&line) {
                     Ok(Some(val)) => println!("{:?}", val),
                     Ok(None) => {}
-                    Err(err) => println!("{}", err),
+                    Err(err) => println!("{}", err.to_string().red()),
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
-                break;
-            }
-            Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
                 break;
             }
             Err(err) => {
-                println!("Error: {}", err);
+                println!("Readline error: {}", err.to_string().red());
                 break;
             }
         }

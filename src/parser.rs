@@ -26,6 +26,7 @@ pub enum Expr {
 pub enum Stmt {
     Expr(Expr),
     VarDecl(Box<Expr>, Box<Expr>),
+    Print(Box<Expr>),
 }
 
 peg::parser! {
@@ -42,7 +43,8 @@ peg::parser! {
 
         // Keywords
         rule kw_var() = "var"
-        rule kw() = kw_var()
+        rule kw_print() = "print"
+        rule kw() = kw_var() / kw_print()
 
 
         // Primary
@@ -84,15 +86,19 @@ peg::parser! {
 
 
         // Stmt
+        rule stmt_var_decl() -> Stmt
+            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
+
         rule stmt_expr() -> Stmt
             = e:expr() _ semi()+ { Stmt::Expr(e) }
 
-        rule stmt_var_decl() -> Stmt
-            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
+        rule stmt_print() -> Stmt
+            = kw_print() _ e:expr() _ semi()+ { Stmt::Print(box e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
+            / stmt_print()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
@@ -118,6 +124,7 @@ mod test {
                 * 5 ^ 2 ^ 2 + 6 * a; 
         ;
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
+        print c + 3;
         "#;
         let r = my_parser::stmts(text);
         println!("{:#?}", r);

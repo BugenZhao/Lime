@@ -54,6 +54,13 @@ impl Interpreter {
                     Err(Error::InvalidLhsAssignment(format!("{:?}", var)))
                 }
             }
+            Stmt::Print(expr) => match self.eval_expr(expr) {
+                Ok(v) => {
+                    println!("{:?}", v);
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            },
         }
     }
 
