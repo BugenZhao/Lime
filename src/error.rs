@@ -1,5 +1,10 @@
+use std::io;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("I/O error")]
+    IoError(#[from] io::Error),
+
     #[error("Parse error: expect {} at {}", .0.expected, .0.location)]
     ParseError(peg::error::ParseError<peg::str::LineCol>),
 
