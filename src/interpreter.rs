@@ -1,8 +1,10 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use anyhow::Result;
+
 use crate::parser::{self, Expr, Op, Stmt, Value};
 
-struct Interpreter {
+pub struct Interpreter {
     vars: Mutex<HashMap<String, Value>>,
 }
 
@@ -16,9 +18,9 @@ impl Interpreter {
 
 #[allow(unreachable_patterns)]
 impl Interpreter {
-    pub fn eval(&self, text: &str) -> Option<Value> {
-        let stmts = parser::parse(text);
-        self.eval_stmts(&stmts)
+    pub fn eval(&self, text: &str) -> Result<Option<Value>> {
+        let stmts = parser::parse(text)?;
+        Ok(self.eval_stmts(&stmts))
     }
 
     fn eval_stmts(&self, stmts: &[Stmt]) -> Option<Value> {
@@ -68,7 +70,7 @@ mod test {
     #[test]
     fn test() {
         let intp = Interpreter::new();
-        intp.eval("a = 1 + 2 * 3;");
+        let _ = intp.eval("a = 1 + 2 * 3;");
         assert_eq!(intp.vars.lock().unwrap().get("a").unwrap(), &Value::Int(7));
     }
 }

@@ -1,9 +1,12 @@
 #![allow(dead_code)]
 #![feature(box_syntax)]
 
-mod parser;
+use repl::repl;
+
 mod interpreter;
+mod parser;
+mod repl;
 
 fn main() {
-    
+    repl();
 }

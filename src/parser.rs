@@ -1,3 +1,6 @@
+use anyhow::Result;
+use peg::str::LineCol;
+
 #[derive(Debug)]
 pub enum Op {
     Add,
@@ -27,6 +30,9 @@ pub enum Stmt {
 peg::parser! {
     grammar my_parser() for str {
         rule _() = quiet!{ [' ' | '\t' | '\r' | '\n']* }
+
+        rule semi()
+            = (";" _)
 
         rule integer() -> Expr
             = quiet!{ n:$(['0'..='9']+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
@@ -61,16 +67,24 @@ peg::parser! {
             / a:arithmetic() { a }
 
         rule stmt() -> Stmt
-            = _ e:expr() _ ";" _ { Stmt::Expr(e) }
+            = _ e:expr() _ semi()+ { Stmt::Expr(e) }
 
         pub rule stmts() -> Vec<Stmt>
-            = _ ss:(stmt())* _ ![_] { ss }
+            = _ ss:(stmt())* semi()? ![_] { ss }
     }
 }
 
 #[inline]
-pub fn parse(text: &str) -> Vec<Stmt> {
-    my_parser::stmts(text).unwrap()
+pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+    let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
+        my_parser::stmts(text);
+    result.or_else(|err| {
+        Err(anyhow::anyhow!(
+            "Expect {} at {}",
+            err.expected,
+            err.location
+        ))
+    })
 }
 
 #[cfg(test)]
