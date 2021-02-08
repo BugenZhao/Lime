@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::error::{Error, Result};
 use peg::str::LineCol;
 
@@ -13,6 +15,14 @@ pub enum Op {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Int(i64),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(i) => write!(f, "{}", i),
+        }
+    }
 }
 
 #[derive(Debug)]

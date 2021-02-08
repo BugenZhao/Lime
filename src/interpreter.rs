@@ -56,7 +56,7 @@ impl Interpreter {
             }
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
-                    println!("{:?}", v);
+                    println!("{}", v);
                     Ok(None)
                 }
                 Err(e) => Err(e),
