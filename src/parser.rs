@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::error::{Error, Result};
 use peg::str::LineCol;
 
 #[derive(Debug)]
@@ -78,13 +78,7 @@ peg::parser! {
 pub fn parse(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
         my_parser::stmts(text);
-    result.or_else(|err| {
-        Err(anyhow::anyhow!(
-            "Expect {} at {}",
-            err.expected,
-            err.location
-        ))
-    })
+    result.or_else(|err| Err(Error::ParseError(err)))
 }
 
 #[cfg(test)]
@@ -96,7 +90,7 @@ mod test {
         b = 1 + (2+3) * 5 ^ 2 ^ 2 + 6 * a; 
         c = 6; 
         "#;
-        let r: Result<Vec<Stmt>, _> = my_parser::stmts(text);
+        let r = my_parser::stmts(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }

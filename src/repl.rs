@@ -14,7 +14,7 @@ pub fn repl() {
                 match intp.eval(&line) {
                     Ok(Some(val)) => println!("{:?}", val),
                     Ok(None) => {}
-                    Err(err) => println!("Error: {:?}", err),
+                    Err(err) => println!("{}", err),
                 }
             }
             Err(ReadlineError::Interrupted) => {
@@ -26,7 +26,7 @@ pub fn repl() {
                 break;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {}", err);
                 break;
             }
         }

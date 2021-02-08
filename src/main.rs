@@ -6,6 +6,7 @@ use repl::repl;
 mod interpreter;
 mod parser;
 mod repl;
+mod error;
 
 fn main() {
     repl();
