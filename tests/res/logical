@@ -1,0 +1,14 @@
+var a = 1;
+var b = false;
+
+var b1 = true or (a = 2);
+assert a == 1;
+assert b1;
+
+var b2 = false or (b = true);
+assert b;
+assert b2;
+
+var b3 = true and (b = false);
+assert !b;
+assert !b3;

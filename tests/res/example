@@ -3,4 +3,5 @@ var b = (19.19 / (8 + -10) as Float) as Int;
 print "The values of a, b are " + a as String + " and " + b as String;
 
 var bool = true;
-print "It's " + bool as String + " that it is not " + !bool as String;
+var philosophy = "It's " + bool as String + " that it is not " + !bool as String;
+print philosophy;
