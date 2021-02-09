@@ -36,6 +36,7 @@ pub enum Expr {
     Literal(Value),
     Binary(Box<Expr>, Op, Box<Expr>),
     Assign(Ident, Box<Expr>),
+    Cast(Box<Expr>, Ident),
 }
 #[derive(Debug)]
 pub enum Stmt {
@@ -62,7 +63,10 @@ peg::parser! {
         rule kw_as() = "as"
         rule kw_int() = "Int"
         rule kw_float() = "Float"
-        rule kw() = kw_var() / kw_print() / kw_as() / kw_int() / kw_float()
+
+        rule kw_TYPE() = kw_int() / kw_float()
+        rule kw_NORMAL() = kw_var() / kw_print() / kw_as()
+        rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 
         // Primary
@@ -77,13 +81,20 @@ peg::parser! {
         rule number() -> Expr = float() / integer()
 
         rule ident() -> Ident
-            = quiet!{ i:$(!kw() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
-            / expected!("identifier")
+            = quiet!{ i:$(!kw_ALL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
+            / expected!("name identifier")
+
+        rule ident_type() -> Ident
+            = quiet!{ i:$(!kw_NORMAL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
+            / expected!("type identifier")
 
         rule primary() -> Expr
             = i:ident() { Expr::Variable(i) }
             / number()
             / "(" _ e:expr() _ ")" { e }
+
+        rule cast() -> Expr
+            = p:primary() _ kw_as() _ i:ident_type() { Expr::Cast(box p, i) }
 
 
         // Expr
@@ -95,6 +106,8 @@ peg::parser! {
             x:(@) _ "/" _ y:@ { Expr::Binary(box x, Op::Div, box y) }
             --
             x:@ _ "^" _ y:(@) { Expr::Binary(box x, Op::Pow, box y) }
+            --
+            c:cast() { c }
             --
             p:primary() { p }
         }

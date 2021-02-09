@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![feature(box_syntax)]
 
 use std::{fs::read_to_string, path::PathBuf};

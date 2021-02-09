@@ -12,10 +12,12 @@ pub enum Error {
 
     #[error("Cannot find value `{0}` in this scope")]
     CannotFindValue(String),
-    // #[error("Invalid left-hand side `{0}` of assignment")]
-    // InvalidLhsAssignment(String),
-    #[error("Cannot apply binary operation `{0:?}` on `{1:?}` and `{2:?}` ")]
+    #[error("Invalid left-hand side `{0}` of assignment")]
+    _InvalidLhsAssignment(String),
+    #[error("Cannot apply binary operation `{0:?}` on `{1:?}` and `{2:?}`")]
     CannotApplyBinaryOp(Op, Value, Value),
+    #[error("Cannot cast `{0:?}` to type `{1}`")]
+    CannotCast(Value, String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -97,6 +97,20 @@ impl Interpreter {
                     Err(Error::CannotFindValue(ident.0.to_owned()))
                 }
             }
+            Expr::Cast(val, ident) => {
+                let val = self.eval_expr(val)?;
+                match ident.0.as_str() {
+                    "Int" => match val {
+                        v @ Value::Int(_) => Ok(v),
+                        Value::Float(f) => Ok(Value::Int(f as i64)),
+                    },
+                    "Float" => match val {
+                        Value::Int(i) => Ok(Value::Float(i as f64)),
+                        v @ Value::Float(_) => Ok(v),
+                    },
+                    tp @ _ => Err(Error::CannotCast(val, tp.to_owned())),
+                }
+            }
         }
     }
 }
