@@ -5,16 +5,25 @@ use rustyline::{error::ReadlineError, Editor};
 pub fn repl(mut intp: Interpreter) {
     let mut rl = Editor::<()>::new();
 
+    let mut ml_buf = String::new();
     loop {
-        let readline = rl.readline(">> ");
+        let readline = rl.readline(if ml_buf.is_empty() { ">> " } else { ".. " });
         match readline {
-            Ok(mut line) => {
+            Ok(line) => {
                 rl.add_history_entry(&line);
-                line.push(';');
-                match intp.eval(&line) {
-                    Ok(Some(val)) => println!("{:?}", val),
-                    Ok(None) => {}
-                    Err(err) => println!("{}", err.to_string().red()),
+
+                if let Some(stripped) = line.trim_end().strip_suffix("\\") {
+                    ml_buf.push_str(stripped);
+                    ml_buf.push('\n');
+                } else {
+                    ml_buf.push_str(&line);
+                    ml_buf.push(';');
+                    match intp.eval(&ml_buf) {
+                        Ok(Some(val)) => println!("{:?}", val),
+                        Ok(None) => {}
+                        Err(err) => println!("{}", err.to_string().red()),
+                    }
+                    ml_buf.drain(..);
                 }
             }
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
