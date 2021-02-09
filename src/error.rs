@@ -22,6 +22,8 @@ pub enum Error {
     CannotApplyUnaryOp(UnaryOp, Value),
     #[error("Cannot cast `{0:?}` to type `{1}`")]
     CannotCast(Value, String),
+    #[error("Assertion failed: `{0}` is `{1:?}`, while `{2:?}` expected")]
+    AssertionFailed(String, Value, Value),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -67,6 +67,7 @@ pub enum Stmt {
     Expr(Expr),
     VarDecl(Ident, Box<Expr>),
     Print(Box<Expr>),
+    Assert(usize, usize, Box<Expr>),
 }
 
 peg::parser! {
@@ -85,6 +86,7 @@ peg::parser! {
         // Keywords
         rule kw_var() = "var"
         rule kw_print() = "print"
+        rule kw_assert() = "assert"
         rule kw_as() = "as"
         rule kw_true() = "true"
         rule kw_false() = "false"
@@ -96,7 +98,7 @@ peg::parser! {
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
 
-        rule kw_NORMAL() = kw_var() / kw_print() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
+        rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -195,10 +197,14 @@ peg::parser! {
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(box e) }
 
+        rule stmt_assert() -> Stmt
+            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, box e) }
+
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
             / stmt_print()
+            / stmt_assert()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 

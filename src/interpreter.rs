@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, str::Chars, sync::Mutex};
 
 use crate::{
     error::{Error, Result},
@@ -22,14 +22,14 @@ impl Interpreter {
 impl Interpreter {
     pub fn eval(&self, text: &str) -> Result<Option<Value>> {
         let stmts = parser::parse(text)?;
-        self.eval_stmts(&stmts)
+        self.eval_stmts(&stmts, &text.chars().to_owned())
     }
 
-    fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Option<Value>> {
+    fn eval_stmts(&self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
         let mut ret = None;
 
         for stmt in stmts.iter() {
-            match self.eval_stmt(stmt) {
+            match self.eval_stmt(stmt, text) {
                 Ok(ov) => {
                     ret = ov;
                 }
@@ -42,7 +42,7 @@ impl Interpreter {
         Ok(ret)
     }
 
-    fn eval_stmt(&self, stmt: &Stmt) -> Result<Option<Value>> {
+    fn eval_stmt(&self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
         match stmt {
             Stmt::Expr(expr) => match self.eval_expr(expr) {
                 Ok(v) => Ok(Some(v)),
@@ -60,6 +60,18 @@ impl Interpreter {
                 }
                 Err(e) => Err(e),
             },
+            Stmt::Assert(start, end, expr) => {
+                let val = self.eval_expr(expr)?;
+                if val != Value::Bool(true) {
+                    Err(Error::AssertionFailed(
+                        text.to_owned().skip(*start).take(*end - *start).collect(),
+                        val,
+                        Value::Bool(true),
+                    ))
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 
