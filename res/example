@@ -1,2 +1,3 @@
 var a = 11 ^ 4 - 5 * (1 + 4);
-print a;
+var b = (19.19 / (8 - 10) as Float) as Int;
+print "The values of a, b are " + a as String + " and " + b as String;

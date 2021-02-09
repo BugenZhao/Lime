@@ -93,10 +93,15 @@ peg::parser! {
             / kw_false() { Value::Bool(false) }
 
         rule string() -> Value
-            = s:$("\"" ("\\\"" / !"\"" [_])* "\"") { Value::String(snailquote::unescape(s).unwrap()) }
+            = quiet!{ s:$("\"" ("\\\"" / !"\"" [_])* "\"") { Value::String(snailquote::unescape(s).unwrap()) } }
+            / expected!("string")
 
         rule literal() -> Expr
-            = v:(integer() / float() / true_false() / string()) { Expr::Literal(v) }
+            = v:( float() // float first
+                / integer()
+                / true_false()
+                / string()
+            ) { Expr::Literal(v) }
 
         rule ident() -> Ident
             = quiet!{ i:$(!kw_ALL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
