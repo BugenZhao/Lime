@@ -5,12 +5,12 @@ mod common;
 
 #[test]
 fn test_example() -> Result<()> {
-    eval!("tests/res/example")?;
+    eval_file!("tests/res/example")?;
     Ok(())
 }
 
 #[test]
 fn test_logical() -> Result<()> {
-    eval!("tests/res/logical")?;
+    eval_file!("tests/res/logical")?;
     Ok(())
 }
