@@ -1,0 +1,29 @@
+var vol = 12;
+print vol;
+
+vol = 0;
+print vol;
+
+{
+    print vol;
+    assert vol == 0;
+
+    vol = 6;
+    print vol;
+    assert vol == 6;
+
+    var vol = 3 * 4 * 5;
+    print vol;
+    assert vol == 60;
+
+    vol = 2 * 3 * 4;
+    print vol;
+    assert vol == 24;
+}
+
+print vol;
+assert vol == 6;
+
+vol = 5;
+print vol;
+assert vol == 5;
