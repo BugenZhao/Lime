@@ -86,6 +86,7 @@ impl Interpreter {
                     Op::Pow => a.powf(b),
                 })),
                 (Value::Float(a), Value::Int(b), Op::Pow) => Ok(Value::Float(a.powi(b as i32))),
+                (Value::String(a), Value::String(b), Op::Add) => Ok(Value::String(a + &b)),
                 (l, r, op) => Err(Error::CannotApplyBinaryOp(op.clone(), l, r)),
             },
             Expr::Assign(ident, val) => {
@@ -99,17 +100,25 @@ impl Interpreter {
             }
             Expr::Cast(val, ident) => {
                 let val = self.eval_expr(val)?;
-                match ident.0.as_str() {
+                let tp = ident.0.as_str();
+                match tp {
                     "Int" => match val {
-                        v @ Value::Int(_) => Ok(v),
-                        Value::Float(f) => Ok(Value::Int(f as i64)),
+                        Value::Int(x) => Some(Value::Int(x as i64)),
+                        Value::Float(x) => Some(Value::Int(x as i64)),
+                        Value::Bool(x) => Some(Value::Int(x as i64)),
+                        Value::String(_) => None,
                     },
                     "Float" => match val {
-                        Value::Int(i) => Ok(Value::Float(i as f64)),
-                        v @ Value::Float(_) => Ok(v),
+                        Value::Int(x) => Some(Value::Float(x as f64)),
+                        Value::Float(x) => Some(Value::Float(x as f64)),
+                        Value::Bool(_) => None,
+                        Value::String(_) => None,
                     },
-                    tp @ _ => Err(Error::CannotCast(val, tp.to_owned())),
+                    "Bool" => None,
+                    "String" => Some(Value::String(format!("{}", val))),
+                    _ => None,
                 }
+                .ok_or(Error::CannotCast(val, tp.to_owned()))
             }
         }
     }

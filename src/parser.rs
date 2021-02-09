@@ -16,6 +16,8 @@ pub enum Op {
 pub enum Value {
     Int(i64),
     Float(f64),
+    Bool(bool),
+    String(String),
 }
 
 impl Display for Value {
@@ -23,6 +25,8 @@ impl Display for Value {
         match self {
             Value::Int(v) => write!(f, "{}", v),
             Value::Float(v) => write!(f, "{}", v),
+            Value::Bool(v) => write!(f, "{}", v),
+            Value::String(v) => write!(f, "{}", v),
         }
     }
 }
@@ -51,6 +55,7 @@ peg::parser! {
         rule ws() = [' ' | '\t' | '\r' | '\n']
         rule comment() = "//" (!"\n" [_])* / "/*" (!"*/" [_])* "*/"
         rule _() = quiet!{ (ws() / comment())* }
+        rule __() = quiet!{ (ws() / comment())+ }
 
         rule semi() = (";" _)
         rule digit() = ['0'..='9']
@@ -61,24 +66,37 @@ peg::parser! {
         rule kw_var() = "var"
         rule kw_print() = "print"
         rule kw_as() = "as"
+        rule kw_true() = "true"
+        rule kw_false() = "false"
+
         rule kw_int() = "Int"
         rule kw_float() = "Float"
+        rule kw_bool() = "Bool"
+        rule kw_string() = "String"
 
-        rule kw_TYPE() = kw_int() / kw_float()
-        rule kw_NORMAL() = kw_var() / kw_print() / kw_as()
+        rule kw_NORMAL() = kw_var() / kw_print() / kw_as() / kw_true() / kw_false()
+        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 
         // Primary
-        rule integer() -> Expr
-            = quiet!{ n:$(digit()+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
+        rule integer() -> Value
+            = quiet!{ n:$(digit()+) { Value::Int(n.parse().unwrap()) } }
             / expected!("integer")
 
-        rule float() -> Expr
-            = quiet!{ n:$(digit()+ "." digit()+) { Expr::Literal(Value::Float(n.parse().unwrap())) } }
+        rule float() -> Value
+            = quiet!{ n:$(digit()+ "." digit()+) { Value::Float(n.parse().unwrap()) } }
             / expected!("float")
 
-        rule number() -> Expr = float() / integer()
+        rule true_false() -> Value
+            = kw_true()  { Value::Bool(true)  }
+            / kw_false() { Value::Bool(false) }
+
+        rule string() -> Value
+            = s:$("\"" ("\\\"" / !"\"" [_])* "\"") { Value::String(snailquote::unescape(s).unwrap()) }
+
+        rule literal() -> Expr
+            = v:(integer() / float() / true_false() / string()) { Expr::Literal(v) }
 
         rule ident() -> Ident
             = quiet!{ i:$(!kw_ALL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
@@ -90,11 +108,11 @@ peg::parser! {
 
         rule primary() -> Expr
             = i:ident() { Expr::Variable(i) }
-            / number()
+            / literal()
             / "(" _ e:expr() _ ")" { e }
 
         rule cast() -> Expr
-            = p:primary() _ kw_as() _ i:ident_type() { Expr::Cast(box p, i) }
+            = p:primary() __ kw_as() __ i:ident_type() { Expr::Cast(box p, i) }
 
 
         // Expr
@@ -122,13 +140,13 @@ peg::parser! {
 
         // Stmt
         rule stmt_var_decl() -> Stmt
-            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, box e) }
+            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, box e) }
 
         rule stmt_expr() -> Stmt
             = e:expr() _ semi()+ { Stmt::Expr(e) }
 
         rule stmt_print() -> Stmt
-            = kw_print() _ e:expr() _ semi()+ { Stmt::Print(box e) }
+            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(box e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
