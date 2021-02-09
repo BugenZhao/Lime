@@ -1,5 +1,5 @@
 [package]
-name = "peg-playground"
+name = "lime"
 version = "0.1.0"
 authors = ["Bugen Zhao <i@bugenzhao.com>"]
 edition = "2018"

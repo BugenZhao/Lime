@@ -67,6 +67,8 @@ pub enum Stmt {
     Expr(Expr),
     VarDecl(Ident, Box<Expr>),
     Print(Box<Expr>),
+    Assert(usize, usize, Box<Expr>),
+    Block(Vec<Stmt>),
 }
 
 peg::parser! {
@@ -85,6 +87,7 @@ peg::parser! {
         // Keywords
         rule kw_var() = "var"
         rule kw_print() = "print"
+        rule kw_assert() = "assert"
         rule kw_as() = "as"
         rule kw_true() = "true"
         rule kw_false() = "false"
@@ -96,7 +99,7 @@ peg::parser! {
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
 
-        rule kw_NORMAL() = kw_var() / kw_print() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
+        rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -195,14 +198,22 @@ peg::parser! {
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(box e) }
 
+        rule stmt_assert() -> Stmt
+            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, box e) }
+
+        rule block() -> Stmt
+            = "{" _ ss:stmt()* _ "}" { Stmt::Block(ss) }
+
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
             / stmt_print()
+            / stmt_assert()
+            / block()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
-        pub rule stmts() -> Vec<Stmt>
+        pub rule program() -> Vec<Stmt>
             = ss:(raw_stmt())* semi()? ![_] { ss }
     }
 }
@@ -210,7 +221,7 @@ peg::parser! {
 #[inline]
 pub fn parse(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
-        my_parser::stmts(text);
+        my_parser::program(text);
     result.or_else(|err| Err(Error::ParseError(err)))
 }
 
@@ -226,7 +237,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         print c + 3;
         "#;
-        let r = my_parser::stmts(text);
+        let r = parse(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }
