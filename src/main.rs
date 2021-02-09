@@ -1,18 +1,9 @@
-#![feature(box_syntax)]
-
 use std::path::PathBuf;
 
 use colored::*;
-use interpreter::Interpreter;
-use repl::repl;
 use structopt::StructOpt;
 
-use error::Result;
-
-mod error;
-mod interpreter;
-mod parser;
-mod repl;
+use peg_playground::{repl, Interpreter, Result};
 
 #[derive(Debug, structopt::StructOpt)]
 struct Opt {
