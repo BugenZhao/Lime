@@ -16,20 +16,25 @@ mod repl;
 
 #[derive(Debug, structopt::StructOpt)]
 struct Opt {
-    #[structopt(parse(from_os_str))]
+    #[structopt(parse(from_os_str), help = "Program file")]
     input: Option<PathBuf>,
+    #[structopt(short = "c", long = "continue", help = "Continue after program exited")]
+    cont: bool,
 }
 
 fn main() -> Result<()> {
-    match Opt::from_args().input {
-        Some(path) => {
-            if let Err(e) = Interpreter::new().eval(&read_to_string(path)?) {
-                println!("{}", e.to_string().red());
-            }
+    let intp = Interpreter::new();
+    let opt = Opt::from_args();
+    if let Some(path) = opt.input {
+        if let Err(e) = intp.eval(&read_to_string(path)?) {
+            println!("{}", e.to_string().red());
         }
-        None => {
-            repl();
+        if opt.cont {
+            repl(intp);
         }
+    } else {
+        repl(intp);
     }
+
     Ok(())
 }
