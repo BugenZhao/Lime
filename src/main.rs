@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use colored::*;
 use structopt::StructOpt;
 
-use peg_playground::{repl, Interpreter, Result};
+use lime::{repl, Interpreter, Result};
 
 #[derive(Debug, structopt::StructOpt)]
 struct Opt {

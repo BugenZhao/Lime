@@ -137,6 +137,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ccac4b00700875e6a07c6cde370d44d32fa01c5a65cdd2fca6858c479d28bb3"
 
 [[package]]
+name = "lime"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "peg",
+ "rustyline",
+ "snailquote",
+ "structopt",
+ "thiserror",
+]
+
+[[package]]
 name = "log"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,18 +194,6 @@ dependencies = [
  "peg-runtime",
  "proc-macro2",
  "quote",
-]
-
-[[package]]
-name = "peg-playground"
-version = "0.1.0"
-dependencies = [
- "colored",
- "peg",
- "rustyline",
- "snailquote",
- "structopt",
- "thiserror",
 ]
 
 [[package]]

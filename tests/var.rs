@@ -1,4 +1,4 @@
-use peg_playground::*;
+use lime::*;
 
 #[macro_use]
 mod common;
