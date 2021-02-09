@@ -4,12 +4,18 @@ use crate::error::{Error, Result};
 use peg::str::LineCol;
 
 #[derive(Debug, Clone)]
-pub enum Op {
+pub enum BinaryOp {
     Add,
     Sub,
     Mul,
     Div,
     Pow,
+}
+
+#[derive(Debug, Clone)]
+pub enum UnaryOp {
+    Not,
+    Neg,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,7 +44,8 @@ pub struct Ident(pub String);
 pub enum Expr {
     Variable(Ident),
     Literal(Value),
-    Binary(Box<Expr>, Op, Box<Expr>),
+    Binary(Box<Expr>, BinaryOp, Box<Expr>),
+    Unary(UnaryOp, Box<Expr>),
     Assign(Ident, Box<Expr>),
     Cast(Box<Expr>, Ident),
 }
@@ -82,7 +89,7 @@ peg::parser! {
         // Primary
         rule integer() -> Value
             = quiet!{ n:$(digit()+) { Value::Int(n.parse().unwrap()) } }
-            / expected!("integer")
+            / expected!("int")
 
         rule float() -> Value
             = quiet!{ n:$(digit()+ "." digit()+) { Value::Float(n.parse().unwrap()) } }
@@ -116,23 +123,30 @@ peg::parser! {
             / literal()
             / "(" _ e:expr() _ ")" { e }
 
-        rule cast() -> Expr
-            = p:primary() __ kw_as() __ i:ident_type() { Expr::Cast(box p, i) }
-
 
         // Expr
-        rule expr_binary() -> Expr = precedence!{
-            x:(@) _ "+" _ y:@ { Expr::Binary(box x, Op::Add, box y) }
-            x:(@) _ "-" _ y:@ { Expr::Binary(box x, Op::Sub, box y) }
-            --
-            x:(@) _ "*" _ y:@ { Expr::Binary(box x, Op::Mul, box y) }
-            x:(@) _ "/" _ y:@ { Expr::Binary(box x, Op::Div, box y) }
-            --
-            x:@ _ "^" _ y:(@) { Expr::Binary(box x, Op::Pow, box y) }
-            --
-            c:cast() { c }
+        rule expr_unary() -> Expr = precedence!{
+            "!" _ x:@ { Expr::Unary(UnaryOp::Not, box x) }
+            "-" _ x:@ { Expr::Unary(UnaryOp::Neg, box x) }
             --
             p:primary() { p }
+        }
+
+        rule expr_cast() -> Expr // TODO: type
+            = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned())) }
+
+        rule expr_binary() -> Expr = precedence!{
+            x:(@) _ "+" _ y:@ { Expr::Binary(box x, BinaryOp::Add, box y) }
+            x:(@) _ "-" _ y:@ { Expr::Binary(box x, BinaryOp::Sub, box y) }
+            --
+            x:(@) _ "*" _ y:@ { Expr::Binary(box x, BinaryOp::Mul, box y) }
+            x:(@) _ "/" _ y:@ { Expr::Binary(box x, BinaryOp::Div, box y) }
+            --
+            x:@ _ "^" _ y:(@) { Expr::Binary(box x, BinaryOp::Pow, box y) }
+            --
+            c:expr_cast() { c }
+            --
+            u:expr_unary() { u }
         }
 
         rule expr_assign() -> Expr

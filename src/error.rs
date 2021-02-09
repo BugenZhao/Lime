@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::parser::{Op, Value};
+use crate::parser::{BinaryOp, UnaryOp, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -15,7 +15,9 @@ pub enum Error {
     #[error("Invalid left-hand side `{0}` of assignment")]
     _InvalidLhsAssignment(String),
     #[error("Cannot apply binary operation `{0:?}` on `{1:?}` and `{2:?}`")]
-    CannotApplyBinaryOp(Op, Value, Value),
+    CannotApplyBinaryOp(BinaryOp, Value, Value),
+    #[error("Cannot apply unary operation `{0:?}` on `{1:?}`")]
+    CannotApplyUnaryOp(UnaryOp, Value),
     #[error("Cannot cast `{0:?}` to type `{1}`")]
     CannotCast(Value, String),
 }

@@ -5,7 +5,7 @@ use crate::{
     parser::Ident,
 };
 
-use crate::parser::{self, Expr, Op, Stmt, Value};
+use crate::parser::{self, BinaryOp, Expr, Stmt, Value};
 
 pub struct Interpreter {
     vars: Mutex<HashMap<Ident, Value>>,
@@ -72,22 +72,30 @@ impl Interpreter {
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Binary(lhs, op, rhs) => match (self.eval_expr(lhs)?, self.eval_expr(rhs)?, op) {
                 (Value::Int(a), Value::Int(b), op) => Ok(Value::Int(match op {
-                    Op::Add => a + b,
-                    Op::Sub => a - b,
-                    Op::Mul => a * b,
-                    Op::Div => a / b,
-                    Op::Pow => a.pow(b as u32),
+                    BinaryOp::Add => a + b,
+                    BinaryOp::Sub => a - b,
+                    BinaryOp::Mul => a * b,
+                    BinaryOp::Div => a / b,
+                    BinaryOp::Pow => a.pow(b as u32),
                 })),
                 (Value::Float(a), Value::Float(b), op) => Ok(Value::Float(match op {
-                    Op::Add => a + b,
-                    Op::Sub => a - b,
-                    Op::Mul => a * b,
-                    Op::Div => a / b,
-                    Op::Pow => a.powf(b),
+                    BinaryOp::Add => a + b,
+                    BinaryOp::Sub => a - b,
+                    BinaryOp::Mul => a * b,
+                    BinaryOp::Div => a / b,
+                    BinaryOp::Pow => a.powf(b),
                 })),
-                (Value::Float(a), Value::Int(b), Op::Pow) => Ok(Value::Float(a.powi(b as i32))),
-                (Value::String(a), Value::String(b), Op::Add) => Ok(Value::String(a + &b)),
+                (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
+                    Ok(Value::Float(a.powi(b as i32)))
+                }
+                (Value::String(a), Value::String(b), BinaryOp::Add) => Ok(Value::String(a + &b)),
                 (l, r, op) => Err(Error::CannotApplyBinaryOp(op.clone(), l, r)),
+            },
+            Expr::Unary(op, val) => match (self.eval_expr(val)?, op) {
+                (Value::Int(x), parser::UnaryOp::Neg) => Ok(Value::Int(-x)),
+                (Value::Float(x), parser::UnaryOp::Neg) => Ok(Value::Float(-x)),
+                (Value::Bool(x), parser::UnaryOp::Not) => Ok(Value::Bool(!x)),
+                (v, op) => Err(Error::CannotApplyUnaryOp(op.clone(), v)),
             },
             Expr::Assign(ident, val) => {
                 let val = self.eval_expr(val)?;
