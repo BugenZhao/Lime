@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::Chars, sync::Mutex};
+use std::{collections::HashMap, fs::read_to_string, path::Path, str::Chars, sync::Mutex};
 
 use crate::{
     error::{Error, Result},
@@ -20,6 +20,10 @@ impl Interpreter {
 }
 
 impl Interpreter {
+    pub fn eval_file<P: AsRef<Path>>(&self, path: P) -> Result<Option<Value>> {
+        self.eval(&read_to_string(path)?)
+    }
+
     pub fn eval(&self, text: &str) -> Result<Option<Value>> {
         let stmts = parser::parse(text)?;
         self.eval_stmts(&stmts, &text.chars().to_owned())

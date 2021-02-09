@@ -1,6 +1,6 @@
 #![feature(box_syntax)]
 
-use std::{fs::read_to_string, path::PathBuf};
+use std::path::PathBuf;
 
 use colored::*;
 use interpreter::Interpreter;
@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let intp = Interpreter::new();
     let opt = Opt::from_args();
     if let Some(path) = opt.input {
-        if let Err(e) = intp.eval(&read_to_string(path)?) {
+        if let Err(e) = intp.eval_file(path) {
             println!("{}", e.to_string().red());
         }
         if opt.cont {
