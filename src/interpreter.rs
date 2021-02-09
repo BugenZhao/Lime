@@ -64,33 +64,101 @@ impl Interpreter {
     }
 
     fn eval_expr(&self, expr: &Expr) -> Result<Value> {
+        macro_rules! int {
+            ($v:expr) => {
+                Some(Value::Int($v))
+            };
+        }
+        macro_rules! float {
+            ($v:expr) => {
+                Some(Value::Float($v))
+            };
+        }
+        macro_rules! bool {
+            ($v:expr) => {
+                Some(Value::Bool($v))
+            };
+        }
+        macro_rules! string {
+            ($v:expr) => {
+                Some(Value::String($v))
+            };
+        }
+
         match expr {
             Expr::Variable(ident) => match self.vars.lock().unwrap().get(ident) {
                 Some(value) => Ok(value.clone()),
                 None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
             Expr::Literal(value) => Ok(value.clone()),
-            Expr::Binary(lhs, op, rhs) => match (self.eval_expr(lhs)?, self.eval_expr(rhs)?, op) {
-                (Value::Int(a), Value::Int(b), op) => Ok(Value::Int(match op {
-                    BinaryOp::Add => a + b,
-                    BinaryOp::Sub => a - b,
-                    BinaryOp::Mul => a * b,
-                    BinaryOp::Div => a / b,
-                    BinaryOp::Pow => a.pow(b as u32),
-                })),
-                (Value::Float(a), Value::Float(b), op) => Ok(Value::Float(match op {
-                    BinaryOp::Add => a + b,
-                    BinaryOp::Sub => a - b,
-                    BinaryOp::Mul => a * b,
-                    BinaryOp::Div => a / b,
-                    BinaryOp::Pow => a.powf(b),
-                })),
-                (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
-                    Ok(Value::Float(a.powi(b as i32)))
+            Expr::Binary(lhs, op @ BinaryOp::Or, rhs) => {
+                let l = self.eval_expr(lhs)?;
+                match l {
+                    Value::Bool(true) => Ok(Value::Bool(true)),
+                    Value::Bool(false) => {
+                        let r = self.eval_expr(rhs)?;
+                        match r {
+                            Value::Bool(b) => Ok(Value::Bool(b)),
+                            _ => Err(Error::CannotApplyBinaryOp(op.clone(), l, r)),
+                        }
+                    }
+                    _ => Err(Error::CannotApplyBinaryOpSc(op.clone(), l)),
                 }
-                (Value::String(a), Value::String(b), BinaryOp::Add) => Ok(Value::String(a + &b)),
-                (l, r, op) => Err(Error::CannotApplyBinaryOp(op.clone(), l, r)),
-            },
+            }
+            Expr::Binary(lhs, op, rhs) => {
+                assert_ne!(*op, BinaryOp::Or);
+                let (l, r) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
+
+                match (l.clone(), r.clone(), op) {
+                    (Value::Int(a), Value::Int(b), op) => match op {
+                        BinaryOp::Add => int!(a + b),
+                        BinaryOp::Sub => int!(a - b),
+                        BinaryOp::Mul => int!(a * b),
+                        BinaryOp::Div => int!(a / b),
+                        BinaryOp::Pow => int!(a.pow(b as u32)),
+
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
+                        BinaryOp::And => None,
+                        BinaryOp::Or => unreachable!(),
+                    },
+                    (Value::Float(a), Value::Float(b), op) => match op {
+                        BinaryOp::Add => float!(a + b),
+                        BinaryOp::Sub => float!(a - b),
+                        BinaryOp::Mul => float!(a * b),
+                        BinaryOp::Div => float!(a / b),
+                        BinaryOp::Pow => float!(a.powf(b)),
+
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
+                        BinaryOp::And => None,
+                        BinaryOp::Or => unreachable!(),
+                    },
+                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
+                        float!(a.powi(b as i32))
+                    }
+                    (Value::Bool(a), Value::Bool(b), op) => match op {
+                        BinaryOp::And => bool!(a && b),
+                        BinaryOp::Or => unreachable!(),
+                        _ => None,
+                    },
+                    (Value::String(a), Value::String(b), BinaryOp::Add) => {
+                        string!(a + &b)
+                    }
+                    (_, _, _) => None,
+                }
+                .ok_or(Error::CannotApplyBinaryOp(op.clone(), l, r))
+            }
             Expr::Unary(op, val) => match (self.eval_expr(val)?, op) {
                 (Value::Int(x), parser::UnaryOp::Neg) => Ok(Value::Int(-x)),
                 (Value::Float(x), parser::UnaryOp::Neg) => Ok(Value::Float(-x)),

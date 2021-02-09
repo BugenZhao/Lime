@@ -16,6 +16,8 @@ pub enum Error {
     _InvalidLhsAssignment(String),
     #[error("Cannot apply binary operation `{0:?}` on `{1:?}` and `{2:?}`")]
     CannotApplyBinaryOp(BinaryOp, Value, Value),
+    #[error("Cannot apply binary operation `{0:?}` on `{1:?}` and `<short-circuited>`")]
+    CannotApplyBinaryOpSc(BinaryOp, Value),
     #[error("Cannot apply unary operation `{0:?}` on `{1:?}`")]
     CannotApplyUnaryOp(UnaryOp, Value),
     #[error("Cannot cast `{0:?}` to type `{1}`")]

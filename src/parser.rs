@@ -3,13 +3,26 @@ use std::fmt::Display;
 use crate::error::{Error, Result};
 use peg::str::LineCol;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
+    // Arithmetic
     Add,
     Sub,
     Mul,
     Div,
     Pow,
+
+    // Comparison
+    Eq,
+    Ne,
+    Gt,
+    Ge,
+    Lt,
+    Le,
+
+    // Logical
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone)]
@@ -75,13 +88,15 @@ peg::parser! {
         rule kw_as() = "as"
         rule kw_true() = "true"
         rule kw_false() = "false"
+        rule kw_or() = "or"
+        rule kw_and() = "and"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
 
-        rule kw_NORMAL() = kw_var() / kw_print() / kw_as() / kw_true() / kw_false()
+        rule kw_NORMAL() = kw_var() / kw_print() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -136,6 +151,19 @@ peg::parser! {
             = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned())) }
 
         rule expr_binary() -> Expr = precedence!{
+            x:(@) _ kw_or() _ y:@ { Expr::Binary(box x, BinaryOp::Or, box y) }
+            --
+            x:(@) _ kw_and() _ y:@ { Expr::Binary(box x, BinaryOp::And, box y) }
+            --
+            x:(@) _ "==" _ y:@ { Expr::Binary(box x, BinaryOp::Eq, box y) }
+            x:(@) _ "!=" _ y:@ { Expr::Binary(box x, BinaryOp::Ne, box y) }
+            --
+            x:(@) _ "<=" _ y:@ { Expr::Binary(box x, BinaryOp::Le, box y) }
+            x:(@) _ ">=" _ y:@ { Expr::Binary(box x, BinaryOp::Ge, box y) }
+            --
+            x:(@) _ "<" _ y:@ { Expr::Binary(box x, BinaryOp::Lt, box y) }
+            x:(@) _ ">" _ y:@ { Expr::Binary(box x, BinaryOp::Gt, box y) }
+            --
             x:(@) _ "+" _ y:@ { Expr::Binary(box x, BinaryOp::Add, box y) }
             x:(@) _ "-" _ y:@ { Expr::Binary(box x, BinaryOp::Sub, box y) }
             --
