@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::error::{Error, Result};
 use peg::str::LineCol;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Op {
     Add,
     Sub,
@@ -12,30 +12,35 @@ pub enum Op {
     Pow,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
+    Float(f64),
 }
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Int(i) => write!(f, "{}", i),
+            Value::Int(v) => write!(f, "{}", v),
+            Value::Float(v) => write!(f, "{}", v),
         }
     }
 }
 
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Ident(pub String);
+
 #[derive(Debug)]
 pub enum Expr {
-    Variable(String),
+    Variable(Ident),
     Literal(Value),
     Binary(Box<Expr>, Op, Box<Expr>),
-    Assign(Box<Expr>, Box<Expr>),
+    Assign(Ident, Box<Expr>),
 }
 #[derive(Debug)]
 pub enum Stmt {
     Expr(Expr),
-    VarDecl(Box<Expr>, Box<Expr>),
+    VarDecl(Ident, Box<Expr>),
     Print(Box<Expr>),
 }
 
@@ -54,7 +59,10 @@ peg::parser! {
         // Keywords
         rule kw_var() = "var"
         rule kw_print() = "print"
-        rule kw() = kw_var() / kw_print()
+        rule kw_as() = "as"
+        rule kw_int() = "Int"
+        rule kw_float() = "Float"
+        rule kw() = kw_var() / kw_print() / kw_as() / kw_int() / kw_float()
 
 
         // Primary
@@ -62,14 +70,18 @@ peg::parser! {
             = quiet!{ n:$(digit()+) { Expr::Literal(Value::Int(n.parse().unwrap())) } }
             / expected!("integer")
 
-        rule number() -> Expr = integer()
+        rule float() -> Expr
+            = quiet!{ n:$(digit()+ "." digit()+) { Expr::Literal(Value::Float(n.parse().unwrap())) } }
+            / expected!("float")
 
-        rule ident() -> Expr
-            = quiet!{ i:$(!kw() (alpha() (alpha() / digit())*)) { Expr::Variable(i.into()) } }
+        rule number() -> Expr = float() / integer()
+
+        rule ident() -> Ident
+            = quiet!{ i:$(!kw() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
             / expected!("identifier")
 
         rule primary() -> Expr
-            = ident()
+            = i:ident() { Expr::Variable(i) }
             / number()
             / "(" _ e:expr() _ ")" { e }
 
@@ -88,7 +100,7 @@ peg::parser! {
         }
 
         rule expr_assign() -> Expr
-            = i:ident() _ "=" _ e:expr() { Expr::Assign(box i, box e) }
+            = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule expr() -> Expr
             = expr_assign()
@@ -97,7 +109,7 @@ peg::parser! {
 
         // Stmt
         rule stmt_var_decl() -> Stmt
-            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(box i, box e) }
+            = kw_var() _ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, box e) }
 
         rule stmt_expr() -> Stmt
             = e:expr() _ semi()+ { Stmt::Expr(e) }

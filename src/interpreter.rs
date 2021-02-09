@@ -1,11 +1,14 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    parser::Ident,
+};
 
 use crate::parser::{self, Expr, Op, Stmt, Value};
 
 pub struct Interpreter {
-    vars: Mutex<HashMap<String, Value>>,
+    vars: Mutex<HashMap<Ident, Value>>,
 }
 
 impl Interpreter {
@@ -45,14 +48,10 @@ impl Interpreter {
                 Ok(v) => Ok(Some(v)),
                 Err(e) => Err(e),
             },
-            Stmt::VarDecl(var, val) => {
-                if let Expr::Variable(name) = var.as_ref() {
-                    let val = self.eval_expr(val)?;
-                    self.vars.lock().unwrap().insert(name.clone(), val.clone());
-                    Ok(None)
-                } else {
-                    Err(Error::InvalidLhsAssignment(format!("{:?}", var)))
-                }
+            Stmt::VarDecl(ident, val) => {
+                let val = self.eval_expr(val)?;
+                self.vars.lock().unwrap().insert(ident.clone(), val.clone());
+                Ok(None)
             }
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
@@ -66,31 +65,36 @@ impl Interpreter {
 
     fn eval_expr(&self, expr: &Expr) -> Result<Value> {
         match expr {
-            Expr::Variable(name) => match self.vars.lock().unwrap().get(name) {
+            Expr::Variable(ident) => match self.vars.lock().unwrap().get(ident) {
                 Some(value) => Ok(value.clone()),
-                None => Err(Error::CannotFindValue(name.to_owned())),
+                None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
             Expr::Literal(value) => Ok(value.clone()),
-            Expr::Binary(lhs, op, rhs) => match (self.eval_expr(lhs)?, self.eval_expr(rhs)?) {
-                (Value::Int(a), Value::Int(b)) => Ok(Value::Int(match op {
+            Expr::Binary(lhs, op, rhs) => match (self.eval_expr(lhs)?, self.eval_expr(rhs)?, op) {
+                (Value::Int(a), Value::Int(b), op) => Ok(Value::Int(match op {
                     Op::Add => a + b,
                     Op::Sub => a - b,
                     Op::Mul => a * b,
-                    Op::Div => a - b,
+                    Op::Div => a / b,
                     Op::Pow => a.pow(b as u32),
                 })),
+                (Value::Float(a), Value::Float(b), op) => Ok(Value::Float(match op {
+                    Op::Add => a + b,
+                    Op::Sub => a - b,
+                    Op::Mul => a * b,
+                    Op::Div => a / b,
+                    Op::Pow => a.powf(b),
+                })),
+                (Value::Float(a), Value::Int(b), Op::Pow) => Ok(Value::Float(a.powi(b as i32))),
+                (l, r, op) => Err(Error::CannotApplyBinaryOp(op.clone(), l, r)),
             },
-            Expr::Assign(var, val) => {
-                if let Expr::Variable(name) = var.as_ref() {
-                    let val = self.eval_expr(val)?;
-                    if let Some(v) = self.vars.lock().unwrap().get_mut(name) {
-                        *v = val.clone();
-                        Ok(val)
-                    } else {
-                        Err(Error::CannotFindValue(name.to_owned()))
-                    }
+            Expr::Assign(ident, val) => {
+                let val = self.eval_expr(val)?;
+                if let Some(v) = self.vars.lock().unwrap().get_mut(ident) {
+                    *v = val.clone();
+                    Ok(val)
                 } else {
-                    Err(Error::InvalidLhsAssignment(format!("{:?}", var)))
+                    Err(Error::CannotFindValue(ident.0.to_owned()))
                 }
             }
         }
@@ -105,6 +109,13 @@ mod test {
     fn test() {
         let intp = Interpreter::new();
         let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
-        assert_eq!(intp.vars.lock().unwrap().get("a").unwrap(), &Value::Int(7));
+        assert_eq!(
+            intp.vars
+                .lock()
+                .unwrap()
+                .get(&Ident("a".to_owned()))
+                .unwrap(),
+            &Value::Int(7)
+        );
     }
 }
