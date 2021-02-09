@@ -68,6 +68,7 @@ pub enum Stmt {
     VarDecl(Ident, Box<Expr>),
     Print(Box<Expr>),
     Assert(usize, usize, Box<Expr>),
+    Block(Vec<Stmt>),
 }
 
 peg::parser! {
@@ -200,15 +201,19 @@ peg::parser! {
         rule stmt_assert() -> Stmt
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, box e) }
 
+        rule block() -> Stmt
+            = "{" _ ss:stmt()* _ "}" { Stmt::Block(ss) }
+
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
             / stmt_print()
             / stmt_assert()
+            / block()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
-        pub rule stmts() -> Vec<Stmt>
+        pub rule program() -> Vec<Stmt>
             = ss:(raw_stmt())* semi()? ![_] { ss }
     }
 }
@@ -216,7 +221,7 @@ peg::parser! {
 #[inline]
 pub fn parse(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
-        my_parser::stmts(text);
+        my_parser::program(text);
     result.or_else(|err| Err(Error::ParseError(err)))
 }
 
@@ -232,7 +237,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         print c + 3;
         "#;
-        let r = my_parser::stmts(text);
+        let r = parse(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }

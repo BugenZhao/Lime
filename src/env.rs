@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use parser::UnaryOp;
 
@@ -9,37 +9,56 @@ use crate::{
 
 use std::str::Chars;
 
-pub struct Env {
-    vars: HashMap<Ident, Value>,
+pub struct Env<'a> {
+    vars: RefCell<HashMap<Ident, Value>>,
+    enclosing: Option<&'a Self>,
 }
 
-impl Env {
-    pub fn new() -> Self {
+impl<'a> Env<'a> {
+    pub fn new_global() -> Self {
         Self {
-            vars: HashMap::new(),
+            vars: RefCell::new(HashMap::new()),
+            enclosing: None,
         }
     }
 
-    pub fn get(&self, ident: &Ident) -> Option<&Value> {
-        self.vars.get(ident)
+    pub fn new(enclosing: &'a Self) -> Self {
+        Self {
+            vars: RefCell::new(HashMap::new()),
+            enclosing: Some(enclosing),
+        }
     }
 
-    pub fn decl(&mut self, ident: Ident, val: Value) {
-        self.vars.insert(ident, val);
+    pub fn get(&self, ident: &Ident) -> Option<Value> {
+        let r = self.vars.borrow().get(ident).cloned();
+
+        if r.is_some() {
+            r
+        } else if let Some(enclosing) = self.enclosing {
+            enclosing.get(ident)
+        } else {
+            None
+        }
     }
 
-    pub fn assign(&mut self, ident: &Ident, val: Value) -> Result<()> {
-        if let Some(v) = self.vars.get_mut(ident) {
+    pub fn decl(&self, ident: Ident, val: Value) {
+        self.vars.borrow_mut().insert(ident, val);
+    }
+
+    pub fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
+        if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
             *v = val.clone();
             Ok(())
+        } else if let Some(enclosing) = self.enclosing {
+            enclosing.assign(ident, val)
         } else {
             Err(Error::CannotFindValue(ident.0.to_owned()))
         }
     }
 }
 
-impl Env {
-    pub fn eval_stmts(&mut self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
+impl<'a> Env<'a> {
+    pub fn eval_stmts(&self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
         let mut ret = None;
 
         for stmt in stmts.iter() {
@@ -56,7 +75,7 @@ impl Env {
         Ok(ret)
     }
 
-    fn eval_stmt(&mut self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
+    fn eval_stmt(&self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
         match stmt {
             Stmt::Expr(expr) => match self.eval_expr(expr) {
                 Ok(v) => Ok(Some(v)),
@@ -86,10 +105,14 @@ impl Env {
                     Ok(None)
                 }
             }
+            Stmt::Block(stmts) => {
+                let new_env = Env::new(self);
+                new_env.eval_stmts(stmts, text)
+            }
         }
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> Result<Value> {
+    fn eval_expr(&self, expr: &Expr) -> Result<Value> {
         macro_rules! int {
             ($v:expr) => {
                 Some(Value::Int($v))
