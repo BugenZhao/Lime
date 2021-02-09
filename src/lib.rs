@@ -1,5 +1,6 @@
 #![feature(box_syntax)]
 
+mod env;
 mod error;
 mod interpreter;
 mod parser;

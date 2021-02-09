@@ -1,20 +1,20 @@
-use std::{collections::HashMap, fs::read_to_string, path::Path, str::Chars, sync::Mutex};
+use std::{fs::read_to_string, path::Path, str::Chars, sync::Mutex};
 
 use crate::{
+    env::Env,
     error::{Error, Result},
-    parser::Ident,
 };
 
 use crate::parser::{self, BinaryOp, Expr, Stmt, Value};
 
 pub struct Interpreter {
-    vars: Mutex<HashMap<Ident, Value>>,
+    env: Mutex<Env>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            vars: Mutex::new(HashMap::new()),
+            env: Mutex::new(Env::new()),
         }
     }
 }
@@ -54,7 +54,7 @@ impl Interpreter {
             },
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
-                self.vars.lock().unwrap().insert(ident.clone(), val.clone());
+                self.env.lock().unwrap().decl(ident.clone(), val.clone());
                 Ok(None)
             }
             Stmt::Print(expr) => match self.eval_expr(expr) {
@@ -102,7 +102,7 @@ impl Interpreter {
         }
 
         match expr {
-            Expr::Variable(ident) => match self.vars.lock().unwrap().get(ident) {
+            Expr::Variable(ident) => match self.env.lock().unwrap().get(ident) {
                 Some(value) => Ok(value.clone()),
                 None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
@@ -183,12 +183,11 @@ impl Interpreter {
             },
             Expr::Assign(ident, val) => {
                 let val = self.eval_expr(val)?;
-                if let Some(v) = self.vars.lock().unwrap().get_mut(ident) {
-                    *v = val.clone();
-                    Ok(val)
-                } else {
-                    Err(Error::CannotFindValue(ident.0.to_owned()))
-                }
+                self.env
+                    .lock()
+                    .unwrap()
+                    .assign(ident, val.clone())
+                    .map(|_| val)
             }
             Expr::Cast(val, ident) => {
                 let val = self.eval_expr(val)?;
@@ -218,6 +217,8 @@ impl Interpreter {
 
 #[cfg(test)]
 mod test {
+    use crate::parser::Ident;
+
     use super::*;
 
     #[test]
@@ -225,7 +226,7 @@ mod test {
         let intp = Interpreter::new();
         let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
         assert_eq!(
-            intp.vars
+            intp.env
                 .lock()
                 .unwrap()
                 .get(&Ident("a".to_owned()))
