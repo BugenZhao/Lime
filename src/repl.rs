@@ -2,7 +2,7 @@ use crate::interpreter::Interpreter;
 use colored::*;
 use rustyline::{error::ReadlineError, Editor};
 
-pub fn repl(intp: Interpreter) {
+pub fn repl(mut intp: Interpreter) {
     let mut rl = Editor::<()>::new();
 
     loop {
