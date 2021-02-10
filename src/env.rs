@@ -4,7 +4,7 @@ use parser::UnaryOp;
 
 use crate::{
     error::{Error, Result},
-    parser::{self, BinaryOp, Expr, Ident, Stmt, Value},
+    parser::{self, BinaryOp, Expr, Func, Ident, Stmt, Value},
 };
 
 pub struct Env<'a> {
@@ -270,15 +270,13 @@ impl<'a> Env<'a> {
                         Value::Int(x) => Some(Value::Int(x as i64)),
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
-                        Value::String(_) => None,
-                        Value::Nil => None,
+                        Value::String(_) | Value::Nil | Value::Func(..) => None,
                     },
                     "Float" => match val {
                         Value::Int(x) => Some(Value::Float(x as f64)),
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
-                        Value::String(_) => None,
-                        Value::Nil => None,
+                        Value::String(_) | Value::Nil | Value::Func(..) => None,
                     },
                     "Bool" => None,
                     "String" => Some(Value::String(format!("{}", val))),
@@ -325,9 +323,28 @@ impl<'a> Env<'a> {
                     Ok(Value::Nil)
                 }
             }
-            Expr::Call(_, _) => {
-                todo!()
-            }
+            Expr::Call(callee, arg_exprs) => match self.eval_expr(callee)? {
+                Value::Func(lime_f, arity) => {
+                    if arg_exprs.len() != arity {
+                        return Err(Error::WrongArguments {
+                            f: lime_f,
+                            take: arity,
+                            supp: arg_exprs.len(),
+                        });
+                    }
+
+                    match lime_f {
+                        Func::RustFn(f) => {
+                            let mut args = vec![];
+                            for arg_expr in arg_exprs.iter() {
+                                args.push(self.eval_expr(arg_expr)?);
+                            }
+                            Ok(f(args))
+                        }
+                    }
+                }
+                v @ _ => Err(Error::NotCallable(v)),
+            },
         }
     }
 }

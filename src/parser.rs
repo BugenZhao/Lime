@@ -31,11 +31,17 @@ pub enum UnaryOp {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum Func {
+    RustFn(fn(args: Vec<Value>) -> Value),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
+    Func(Func, usize),
     Nil,
 }
 
@@ -46,6 +52,7 @@ impl Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
+            Value::Func(..) => write!(f, "<some func>"), // TODO: display
             Value::Nil => write!(f, "nil"),
         }
     }

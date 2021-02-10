@@ -1,4 +1,4 @@
-use crate::parser::{BinaryOp, UnaryOp, Value};
+use crate::parser::{BinaryOp, Func, UnaryOp, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -33,6 +33,10 @@ pub enum Error {
     AssertionFailed(String, Value, Value),
     #[error("Variable `{0}` cannot have the value `{1:?}`")]
     CannotHaveValue(String, Value),
+    #[error("`{0}` is not callable")]
+    NotCallable(Value),
+    #[error("Function `{f:?}` takes {take} argument(s) but {supp} were supplied")]
+    WrongArguments { f: Func, take: usize, supp: usize },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
