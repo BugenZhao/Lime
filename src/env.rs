@@ -6,7 +6,7 @@ use crate::{
     error::{Error, Result},
     lime_std::define_std,
     parser::{self, BinaryOp, Expr, Ident, Stmt},
-    Func, Value,
+    Value,
 };
 
 pub struct Env<'a> {

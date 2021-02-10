@@ -30,7 +30,7 @@ pub struct RustFn(pub Arc<dyn Fn(Vec<Value>) -> Value>);
 
 impl std::fmt::Debug for RustFn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Pointer::fmt(&self, f)
+        std::fmt::Pointer::fmt(&self.0, f)
     }
 }
 
