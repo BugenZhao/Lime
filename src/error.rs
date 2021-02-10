@@ -22,6 +22,10 @@ pub enum Error {
     CannotApplyUnaryOp(UnaryOp, Value),
     #[error("Cannot cast `{0:?}` to type `{1}`")]
     CannotCast(Value, String),
+    #[error("Mismatched type: expected `{expected}`, found `{found}`")]
+    MismatchedTypes { expected: String, found: String },
+    #[error("`{0:?}` cannot be a condition")]
+    CannotBeCondition(Value),
     #[error("Assertion failed: `{0}` is `{1:?}`, while `{2:?}` expected")]
     AssertionFailed(String, Value, Value),
 }

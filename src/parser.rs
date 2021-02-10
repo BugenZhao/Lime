@@ -64,10 +64,11 @@ pub enum Expr {
 }
 #[derive(Debug)]
 pub enum Stmt {
+    VarDecl(Ident, Expr),
     Expr(Expr),
-    VarDecl(Ident, Box<Expr>),
-    Print(Box<Expr>),
-    Assert(usize, usize, Box<Expr>),
+    If(Expr, Box<Stmt>, Box<Option<Stmt>>),
+    Print(Expr),
+    Assert(usize, usize, Expr),
     Block(Vec<Stmt>),
 }
 
@@ -93,6 +94,8 @@ peg::parser! {
         rule kw_false() = "false"
         rule kw_or() = "or"
         rule kw_and() = "and"
+        rule kw_if() = "if"
+        rule kw_else() = "else"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -100,6 +103,7 @@ peg::parser! {
         rule kw_string() = "String"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
+                           kw_if() / kw_else()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -190,16 +194,21 @@ peg::parser! {
 
         // Stmt
         rule stmt_var_decl() -> Stmt
-            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, box e) }
+            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, e) }
 
         rule stmt_expr() -> Stmt
             = e:expr() _ semi()+ { Stmt::Expr(e) }
 
+        rule else_helper() -> Stmt
+            = kw_else() _ else_:(stmt_if() / block()) { else_ }
+        rule stmt_if() -> Stmt
+            = kw_if() __ cond:expr() _ then:block() _ else_:else_helper()? { Stmt::If(cond, box then, box else_) }
+
         rule stmt_print() -> Stmt
-            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(box e) }
+            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
 
         rule stmt_assert() -> Stmt
-            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, box e) }
+            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, e) }
 
         rule block() -> Stmt
             = "{" _ ss:stmt()* _ "}" { Stmt::Block(ss) }
@@ -207,6 +216,7 @@ peg::parser! {
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
+            / stmt_if()
             / stmt_print()
             / stmt_assert()
             / block()

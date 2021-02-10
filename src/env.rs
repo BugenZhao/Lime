@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, ops::Deref};
 
 use parser::UnaryOp;
 
@@ -77,15 +77,15 @@ impl<'a> Env<'a> {
 
     fn eval_stmt(&self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
         match stmt {
-            Stmt::Expr(expr) => match self.eval_expr(expr) {
-                Ok(v) => Ok(Some(v)),
-                Err(e) => Err(e),
-            },
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
                 self.decl(ident.clone(), val.clone());
                 Ok(None)
             }
+            Stmt::Expr(expr) => match self.eval_expr(expr) {
+                Ok(v) => Ok(Some(v)),
+                Err(e) => Err(e),
+            },
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
@@ -109,6 +109,17 @@ impl<'a> Env<'a> {
                 let new_env = Env::new(self);
                 new_env.eval_stmts(stmts, text)
             }
+            Stmt::If(cond, then, else_) => match self.eval_expr(cond)? {
+                Value::Bool(true) => self.eval_stmt(then, text),
+                Value::Bool(false) => {
+                    if let Some(else_) = else_.deref() {
+                        self.eval_stmt(else_, text)
+                    } else {
+                        Ok(None)
+                    }
+                }
+                v @ _ => Err(Error::CannotBeCondition(v)),
+            },
         }
     }
 
