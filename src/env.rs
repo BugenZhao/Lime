@@ -5,7 +5,8 @@ use parser::UnaryOp;
 use crate::{
     error::{Error, Result},
     lime_std::define_std,
-    parser::{self, BinaryOp, Expr, Func, Ident, Stmt, Value},
+    parser::{self, BinaryOp, Expr, Ident, Stmt},
+    Func, Value,
 };
 
 pub struct Env<'a> {
@@ -337,12 +338,12 @@ impl<'a> Env<'a> {
                     }
 
                     match lime_f {
-                        Func::RustFn(f) => {
+                        Func::BuiltIn(f, _) => {
                             let mut args = vec![];
                             for arg_expr in arg_exprs.iter() {
                                 args.push(self.eval_expr(arg_expr)?);
                             }
-                            Ok(f(args))
+                            Ok((f.0)(args))
                         }
                     }
                 }

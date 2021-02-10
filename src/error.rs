@@ -1,4 +1,7 @@
-use crate::parser::{BinaryOp, Func, UnaryOp, Value};
+use crate::{
+    parser::{BinaryOp, UnaryOp},
+    Func, Value,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

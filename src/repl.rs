@@ -1,4 +1,4 @@
-use crate::{interpreter::Interpreter, parser::Value};
+use crate::{interpreter::Interpreter, Value};
 use colored::*;
 use rustyline::{error::ReadlineError, Editor};
 

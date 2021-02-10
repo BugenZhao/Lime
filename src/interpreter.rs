@@ -1,7 +1,7 @@
 use std::{fs::read_to_string, path::Path};
 
-use crate::parser::{self, Value};
 use crate::{env::Env, error::Result};
+use crate::{parser, Value};
 
 pub struct Interpreter {
     env: Env<'static>,

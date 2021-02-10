@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use crate::error::{Error, Result};
+use crate::value::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -28,34 +27,6 @@ pub enum BinaryOp {
 pub enum UnaryOp {
     Not,
     Neg,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Func {
-    RustFn(fn(args: Vec<Value>) -> Value),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Value {
-    Int(i64),
-    Float(f64),
-    Bool(bool),
-    String(String),
-    Func(Func, usize),
-    Nil,
-}
-
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Int(v) => write!(f, "{}", v),
-            Value::Float(v) => write!(f, "{}", v),
-            Value::Bool(v) => write!(f, "{}", v),
-            Value::String(v) => write!(f, "{}", v),
-            Value::Func(..) => write!(f, "<some func>"), // TODO: display
-            Value::Nil => write!(f, "nil"),
-        }
-    }
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]

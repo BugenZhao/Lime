@@ -1,17 +1,25 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use crate::{
-    env::Env,
-    parser::{Func, Ident},
-    Value,
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
 };
+
+use crate::{env::Env, parser::Ident, value::RustFn, Func, Value};
+
+macro_rules! built_in_fn {
+    ($func:expr, $name:expr, $arity:expr) => {
+        Value::Func(
+            Func::BuiltIn(RustFn(Arc::new($func)), $name.to_owned()),
+            $arity,
+        )
+    };
+}
 
 fn print_rs(args: Vec<Value>) -> Value {
     println!("{}", args[0]);
     Value::Nil
 }
 
-fn time(_: Vec<Value>) -> Value {
+fn time(_args: Vec<Value>) -> Value {
     Value::Float(
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -20,13 +28,27 @@ fn time(_: Vec<Value>) -> Value {
     )
 }
 
+fn count_gen() -> Value {
+    static mut V: i64 = 0;
+    built_in_fn!(
+        |_| unsafe {
+            V += 1;
+            Value::Int(V)
+        },
+        "count",
+        0
+    )
+}
+
 pub fn define_std(env: &mut Env) {
     env.decl(
         Ident("print_rs".to_owned()),
-        Value::Func(Func::RustFn(print_rs), 1),
+        built_in_fn!(print_rs, "print_rs", 1),
     )
     .unwrap();
 
-    env.decl(Ident("time".to_owned()), Value::Func(Func::RustFn(time), 0))
+    env.decl(Ident("time".to_owned()), built_in_fn!(time, "time", 0))
         .unwrap();
+
+    env.decl(Ident("count".to_owned()), count_gen()).unwrap();
 }
