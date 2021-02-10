@@ -16,13 +16,13 @@ impl Interpreter {
 }
 
 impl Interpreter {
-    pub fn eval_file<P: AsRef<Path>>(&mut self, path: P) -> Result<Option<Value>> {
+    pub fn eval_file<P: AsRef<Path>>(&mut self, path: P) -> Result<Value> {
         self.eval(&read_to_string(path)?)
     }
 
-    pub fn eval(&mut self, text: &str) -> Result<Option<Value>> {
+    pub fn eval(&mut self, text: &str) -> Result<Value> {
         let stmts = parser::parse(text)?;
-        self.env.eval_stmts(&stmts, &text.chars().to_owned())
+        self.env.eval_stmts(&stmts)
     }
 }
 

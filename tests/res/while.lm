@@ -1,0 +1,14 @@
+var fibonacci = {
+    var a = 1;
+    var b = 1;
+
+    while b < 100 {
+        var tmp = a;
+        a = b;
+        b = tmp + b;
+        a;;;;
+    };;;;;;
+};
+
+print fibonacci;
+assert fibonacci == 89;

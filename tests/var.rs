@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_assign() {
-    let _r = eval!("var a = 10; a = 5;").unwrap();
+    eval!("var a = 10; a = 5;").unwrap();
 }
 
 #[test]

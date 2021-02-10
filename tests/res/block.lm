@@ -4,7 +4,7 @@ print vol;
 vol = 0;
 print vol;
 
-{
+var block_ret = {
     print vol;
     assert vol == 0;
 
@@ -19,7 +19,12 @@ print vol;
     vol = 2 * 3 * 4;
     print vol;
     assert vol == 24;
-}
+
+    vol;
+};
+
+print block_ret;
+assert block_ret == 24;
 
 print vol;
 assert vol == 6;

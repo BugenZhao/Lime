@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use crate::error::{Error, Result};
-use peg::str::LineCol;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -37,6 +36,7 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
+    Nil,
 }
 
 impl Display for Value {
@@ -46,6 +46,7 @@ impl Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -61,14 +62,16 @@ pub enum Expr {
     Unary(UnaryOp, Box<Expr>),
     Assign(Ident, Box<Expr>),
     Cast(Box<Expr>, Ident),
+    Block(Vec<Stmt>),
+    If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
+    While(Box<Expr>, Box<Expr>),
 }
 #[derive(Debug)]
 pub enum Stmt {
+    VarDecl(Ident, Expr),
     Expr(Expr),
-    VarDecl(Ident, Box<Expr>),
-    Print(Box<Expr>),
-    Assert(usize, usize, Box<Expr>),
-    Block(Vec<Stmt>),
+    Print(Expr),
+    Assert(usize, usize, String, Expr),
 }
 
 peg::parser! {
@@ -93,14 +96,19 @@ peg::parser! {
         rule kw_false() = "false"
         rule kw_or() = "or"
         rule kw_and() = "and"
+        rule kw_if() = "if"
+        rule kw_else() = "else"
+        rule kw_while() = "while"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
+        rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
-        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
+                           kw_if() / kw_else() / kw_while()
+        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 
@@ -183,46 +191,87 @@ peg::parser! {
         rule expr_assign() -> Expr
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
-        rule expr() -> Expr
+        rule block() -> Expr
+            = "{" _ ss:stmt()* _ "}" { Expr::Block(ss) }
+
+        rule else_helper() -> Expr
+            = kw_else() _ else_:(expr_if() / block()) { else_ }
+        rule expr_if() -> Expr
+            = kw_if() __ cond:expr() _ then:block() _ else_:else_helper()? { Expr::If(box cond, box then, box else_) }
+
+        rule expr_while() -> Expr
+            = kw_while() __ cond:expr() _ body:block() { Expr::While(box cond, box body) }
+
+        rule expr_NORMAL() -> Expr
             = expr_assign()
             / expr_binary()
 
+        rule expr_BLOCK() -> Expr
+            = block()
+            / expr_if()
+            / expr_while()
+
+        // TODO: check the order, must it be `call / block / normal / if / loop`?
+        rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()
 
         // Stmt
         rule stmt_var_decl() -> Stmt
-            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, box e) }
+            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, e) }
 
         rule stmt_expr() -> Stmt
-            = e:expr() _ semi()+ { Stmt::Expr(e) }
+            = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
+            / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
 
         rule stmt_print() -> Stmt
-            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(box e) }
+            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
 
         rule stmt_assert() -> Stmt
-            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, box e) }
-
-        rule block() -> Stmt
-            = "{" _ ss:stmt()* _ "}" { Stmt::Block(ss) }
+            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
             / stmt_print()
             / stmt_assert()
-            / block()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
         pub rule program() -> Vec<Stmt>
-            = ss:(raw_stmt())* semi()? ![_] { ss }
+            = _ semi()* ss:(raw_stmt())* semi()* ![_] { ss }
+    }
+}
+
+struct Preprocessor<'a> {
+    text: &'a str,
+}
+
+impl<'a> Preprocessor<'a> {
+    fn new(text: &'a str) -> Self {
+        Self { text }
+    }
+
+    fn pp_stmts(&self, stmts: &mut Vec<Stmt>) {
+        stmts.iter_mut().for_each(|s| self.pp_stmt(s))
+    }
+
+    fn pp_stmt(&self, stmt: &mut Stmt) {
+        match stmt {
+            Stmt::VarDecl(_, _) => {}
+            Stmt::Expr(_) => {}
+            Stmt::Print(_) => {}
+            Stmt::Assert(s, e, text, _) => {
+                *text = self.text.chars().skip(*s).take(*e - *s).collect();
+            }
+        }
     }
 }
 
 #[inline]
 pub fn parse(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
-        my_parser::program(text);
-    result.or_else(|err| Err(Error::ParseError(err)))
+    let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
+    let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
+    Preprocessor::new(text).pp_stmts(&mut stmts);
+    Ok(stmts)
 }
 
 #[cfg(test)]

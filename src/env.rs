@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, ops::Deref};
 
 use parser::UnaryOp;
 
@@ -6,8 +6,6 @@ use crate::{
     error::{Error, Result},
     parser::{self, BinaryOp, Expr, Ident, Stmt, Value},
 };
-
-use std::str::Chars;
 
 pub struct Env<'a> {
     vars: RefCell<HashMap<Ident, Value>>,
@@ -41,11 +39,18 @@ impl<'a> Env<'a> {
         }
     }
 
-    pub fn decl(&self, ident: Ident, val: Value) {
+    pub fn decl(&self, ident: Ident, val: Value) -> Result<()> {
+        if let Value::Nil = val {
+            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        }
         self.vars.borrow_mut().insert(ident, val);
+        Ok(())
     }
 
     pub fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
+        if let Value::Nil = val {
+            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        }
         if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
             *v = val.clone();
             Ok(())
@@ -58,11 +63,21 @@ impl<'a> Env<'a> {
 }
 
 impl<'a> Env<'a> {
-    pub fn eval_stmts(&self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
-        let mut ret = None;
+    fn is_truthy(&self, expr: &Expr) -> Result<bool> {
+        match self.eval_expr(expr)? {
+            Value::Bool(true) => Ok(true),
+            Value::Bool(false) => Ok(false),
+            v @ _ => Err(Error::CannotBeCondition(v)),
+        }
+    }
+}
+
+impl<'a> Env<'a> {
+    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
+        let mut ret = Value::Nil;
 
         for stmt in stmts.iter() {
-            match self.eval_stmt(stmt, text) {
+            match self.eval_stmt(stmt) {
                 Ok(ov) => {
                     ret = ov;
                 }
@@ -75,39 +90,35 @@ impl<'a> Env<'a> {
         Ok(ret)
     }
 
-    fn eval_stmt(&self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
+    fn eval_stmt(&self, stmt: &Stmt) -> Result<Value> {
         match stmt {
-            Stmt::Expr(expr) => match self.eval_expr(expr) {
-                Ok(v) => Ok(Some(v)),
-                Err(e) => Err(e),
-            },
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
-                self.decl(ident.clone(), val.clone());
-                Ok(None)
+                self.decl(ident.clone(), val.clone())?;
+                Ok(Value::Nil)
             }
+            Stmt::Expr(expr) => match self.eval_expr(expr) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(e),
+            },
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
-                    Ok(None)
+                    Ok(Value::Nil)
                 }
                 Err(e) => Err(e),
             },
-            Stmt::Assert(start, end, expr) => {
+            Stmt::Assert(_, _, text, expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
                     Err(Error::AssertionFailed(
-                        text.to_owned().skip(*start).take(*end - *start).collect(),
+                        text.to_owned(),
                         val,
                         Value::Bool(true),
                     ))
                 } else {
-                    Ok(None)
+                    Ok(Value::Nil)
                 }
-            }
-            Stmt::Block(stmts) => {
-                let new_env = Env::new(self);
-                new_env.eval_stmts(stmts, text)
             }
         }
     }
@@ -193,16 +204,33 @@ impl<'a> Env<'a> {
                         BinaryOp::And => None,
                         BinaryOp::Or => unreachable!(),
                     },
-                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
-                        float!(a.powi(b as i32))
-                    }
                     (Value::Bool(a), Value::Bool(b), op) => match op {
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
                         BinaryOp::And => bool!(a && b),
                         BinaryOp::Or => unreachable!(),
+
                         _ => None,
                     },
-                    (Value::String(a), Value::String(b), BinaryOp::Add) => {
-                        string!(a + &b)
+                    (Value::String(a), Value::String(b), op) => match op {
+                        BinaryOp::Add => string!(a + &b),
+
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
+                        _ => None,
+                    },
+                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
+                        float!(a.powi(b as i32))
                     }
                     (_, _, _) => None,
                 }
@@ -227,18 +255,40 @@ impl<'a> Env<'a> {
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
                         Value::String(_) => None,
+                        Value::Nil => None,
                     },
                     "Float" => match val {
                         Value::Int(x) => Some(Value::Float(x as f64)),
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
                         Value::String(_) => None,
+                        Value::Nil => None,
                     },
                     "Bool" => None,
                     "String" => Some(Value::String(format!("{}", val))),
                     _ => None,
                 }
                 .ok_or(Error::CannotCast(val, tp.to_owned()))
+            }
+            Expr::Block(stmts) => {
+                let new_env = Env::new(self);
+                new_env.eval_stmts(stmts)
+            }
+            Expr::If(cond, then, else_) => {
+                if self.is_truthy(cond)? {
+                    self.eval_expr(then)
+                } else if let Some(else_) = else_.deref() {
+                    self.eval_expr(else_)
+                } else {
+                    Ok(Value::Nil)
+                }
+            }
+            Expr::While(cond, body) => {
+                let mut ret = Value::Nil;
+                while self.is_truthy(cond)? {
+                    ret = self.eval_expr(body)?;
+                }
+                Ok(ret)
             }
         }
     }
