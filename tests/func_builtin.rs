@@ -4,6 +4,6 @@ use lime::*;
 mod common;
 
 #[test]
-fn test_if() {
+fn test_builtin() {
     eval_file!("tests/res/func_builtin.lm").unwrap();
 }

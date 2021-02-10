@@ -1,9 +1,6 @@
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Arc;
 
-use crate::{env::Env, parser::Ident, value::RustFn, Func, Value};
+use crate::{env::Env, parser::Ident, value::RustFn, value::N_MAX_ARGS, Func, Value};
 
 macro_rules! built_in_fn {
     ($func:expr, $name:expr, $arity:expr) => {
@@ -15,11 +12,19 @@ macro_rules! built_in_fn {
 }
 
 fn print(args: Vec<Value>) -> Value {
-    println!("{}", args[0]);
+    println!(
+        "{}",
+        args.iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
     Value::Nil
 }
 
 fn time(_args: Vec<Value>) -> Value {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     Value::Float(
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -29,12 +34,11 @@ fn time(_args: Vec<Value>) -> Value {
 }
 
 fn count_gen() -> Value {
-    static mut V: i64 = 0;
+    use std::sync::atomic::{AtomicI64, Ordering};
+
+    let v = AtomicI64::new(1);
     built_in_fn!(
-        |_| unsafe {
-            V += 1;
-            Value::Int(V)
-        },
+        move |_| { Value::Int(v.fetch_add(1, Ordering::SeqCst)) },
         "count",
         (0, 0)
     )
@@ -43,7 +47,7 @@ fn count_gen() -> Value {
 pub fn define_std(env: &mut Env) {
     env.decl(
         Ident("print".to_owned()),
-        built_in_fn!(print, "print", (1, 1)),
+        built_in_fn!(print, "print", (0, N_MAX_ARGS)),
     )
     .unwrap();
 
