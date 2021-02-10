@@ -22,7 +22,7 @@ impl Interpreter {
 
     pub fn eval(&mut self, text: &str) -> Result<Option<Value>> {
         let stmts = parser::parse(text)?;
-        self.env.eval_stmts(&stmts, &text.chars().to_owned())
+        self.env.eval_stmts(&stmts)
     }
 }
 

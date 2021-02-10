@@ -68,11 +68,11 @@ impl<'a> Env<'a> {
 }
 
 impl<'a> Env<'a> {
-    pub fn eval_stmts(&self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
+    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Option<Value>> {
         let mut ret = None;
 
         for stmt in stmts.iter() {
-            match self.eval_stmt(stmt, text) {
+            match self.eval_stmt(stmt) {
                 Ok(ov) => {
                     ret = ov;
                 }
@@ -85,7 +85,7 @@ impl<'a> Env<'a> {
         Ok(ret)
     }
 
-    fn eval_stmt(&self, stmt: &Stmt, text: &Chars) -> Result<Option<Value>> {
+    fn eval_stmt(&self, stmt: &Stmt) -> Result<Option<Value>> {
         match stmt {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
@@ -103,11 +103,11 @@ impl<'a> Env<'a> {
                 }
                 Err(e) => Err(e),
             },
-            Stmt::Assert(start, end, expr) => {
+            Stmt::Assert(_, _, text, expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
                     Err(Error::AssertionFailed(
-                        text.to_owned().skip(*start).take(*end - *start).collect(),
+                        text.to_owned(),
                         val,
                         Value::Bool(true),
                     ))
@@ -116,13 +116,13 @@ impl<'a> Env<'a> {
                 }
             } // Stmt::Block(stmts) => {
               //     let new_env = Env::new(self);
-              //     new_env.eval_stmts(stmts, text)
+              //     new_env.eval_stmts(stmts)
               // }
               // Stmt::If(cond, then, else_) => {
               //     if self.is_truthy(cond)? {
-              //         self.eval_stmt(then, text)
+              //         self.eval_stmt(then)
               //     } else if let Some(else_) = else_.deref() {
-              //         self.eval_stmt(else_, text)
+              //         self.eval_stmt(else_)
               //     } else {
               //         Ok(None)
               //     }
@@ -130,7 +130,7 @@ impl<'a> Env<'a> {
               // Stmt::While(cond, body) => {
               //     let mut ret = None;
               //     while self.is_truthy(cond)? {
-              //         ret = self.eval_stmt(body, text)?;
+              //         ret = self.eval_stmt(body)?;
               //     }
               //     Ok(ret)
               // }
@@ -267,7 +267,7 @@ impl<'a> Env<'a> {
             }
             Expr::Block(stmts) => {
                 let new_env = Env::new(self);
-                // new_env.eval_stmts(stmts, text)
+                // new_env.eval_stmts(stmts)
                 Ok(Value::Bool(true))
             }
             Expr::If(_, _, _) => Ok(Value::Bool(true)),

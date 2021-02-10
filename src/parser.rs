@@ -70,7 +70,7 @@ pub enum Stmt {
     VarDecl(Ident, Expr),
     Expr(Expr),
     Print(Expr),
-    Assert(usize, usize, Expr),
+    Assert(usize, usize, String, Expr),
 }
 
 peg::parser! {
@@ -203,7 +203,7 @@ peg::parser! {
         rule expr_NORMAL() -> Expr
             = expr_assign()
             / expr_binary()
-        
+
         rule expr_BLOCK() -> Expr
             = block()
             / expr_if()
@@ -223,7 +223,7 @@ peg::parser! {
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
 
         rule stmt_assert() -> Stmt
-            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, e) }
+            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
@@ -238,11 +238,37 @@ peg::parser! {
     }
 }
 
+struct Preprocessor<'a> {
+    text: &'a str,
+}
+
+impl<'a> Preprocessor<'a> {
+    fn new(text: &'a str) -> Self {
+        Self { text }
+    }
+
+    fn pp_stmts(&self, stmts: &mut Vec<Stmt>) {
+        stmts.iter_mut().for_each(|s| self.pp_stmt(s))
+    }
+
+    fn pp_stmt(&self, stmt: &mut Stmt) {
+        match stmt {
+            Stmt::VarDecl(_, _) => {}
+            Stmt::Expr(_) => {}
+            Stmt::Print(_) => {}
+            Stmt::Assert(s, e, text, _) => {
+                *text = self.text.chars().skip(*s).take(*e - *s).collect();
+            }
+        }
+    }
+}
+
 #[inline]
 pub fn parse(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<Stmt>, peg::error::ParseError<LineCol>> =
-        my_parser::program(text);
-    result.or_else(|err| Err(Error::ParseError(err)))
+    let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
+    let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
+    Preprocessor::new(text).pp_stmts(&mut stmts);
+    Ok(stmts)
 }
 
 #[cfg(test)]
