@@ -204,16 +204,33 @@ impl<'a> Env<'a> {
                         BinaryOp::And => None,
                         BinaryOp::Or => unreachable!(),
                     },
-                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
-                        float!(a.powi(b as i32))
-                    }
                     (Value::Bool(a), Value::Bool(b), op) => match op {
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
                         BinaryOp::And => bool!(a && b),
                         BinaryOp::Or => unreachable!(),
+
                         _ => None,
                     },
-                    (Value::String(a), Value::String(b), BinaryOp::Add) => {
-                        string!(a + &b)
+                    (Value::String(a), Value::String(b), op) => match op {
+                        BinaryOp::Add => string!(a + &b),
+
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Gt => bool!(a > b),
+                        BinaryOp::Ge => bool!(a >= b),
+                        BinaryOp::Lt => bool!(a < b),
+                        BinaryOp::Le => bool!(a <= b),
+
+                        _ => None,
+                    },
+                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
+                        float!(a.powi(b as i32))
                     }
                     (_, _, _) => None,
                 }
