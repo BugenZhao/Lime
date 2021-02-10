@@ -252,6 +252,7 @@ impl<'a> Env<'a> {
                     (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
                         float!(a.powi(b as i32))
                     }
+                    // TODO: func comparison
                     (_, _, _) => None,
                 }
                 .ok_or(Error::CannotApplyBinaryOp(op.clone(), l, r))
