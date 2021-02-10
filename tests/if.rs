@@ -10,19 +10,19 @@ fn test_if() {
 
 #[test]
 fn test_not_bool() {
-    let r = eval!("if \"not a bool\" { print \"oh no\"; }").unwrap_err();
+    let r = eval!("if \"not a bool\" { _print \"oh no\"; }").unwrap_err();
     assert!(matches!(r, Error::CannotBeCondition(..)));
 }
 
 #[test]
 fn test_bad_syntax_1() {
-    let r = eval!("if true print 233;").unwrap_err();
+    let r = eval!("if true _print 233;").unwrap_err();
     assert!(matches!(r, Error::ParseError(..)));
 }
 
 #[test]
 fn test_bad_syntax_2() {
-    let r = eval!("if true { print 233; } else print 233;").unwrap_err();
+    let r = eval!("if true { _print 233; } else _print 233;").unwrap_err();
     assert!(matches!(r, Error::ParseError(..)));
 }
 

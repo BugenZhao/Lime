@@ -14,7 +14,7 @@ macro_rules! built_in_fn {
     };
 }
 
-fn print_rs(args: Vec<Value>) -> Value {
+fn print(args: Vec<Value>) -> Value {
     println!("{}", args[0]);
     Value::Nil
 }
@@ -41,11 +41,8 @@ fn count_gen() -> Value {
 }
 
 pub fn define_std(env: &mut Env) {
-    env.decl(
-        Ident("print_rs".to_owned()),
-        built_in_fn!(print_rs, "print_rs", 1),
-    )
-    .unwrap();
+    env.decl(Ident("print".to_owned()), built_in_fn!(print, "print", 1))
+        .unwrap();
 
     env.decl(Ident("time".to_owned()), built_in_fn!(time, "time", 0))
         .unwrap();

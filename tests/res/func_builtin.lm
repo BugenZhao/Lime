@@ -1,5 +1,5 @@
 var begin = time();
-print_rs("Hello from native world");
+print("Hello from native world");
 
 var my_count = count;
 assert count() == 1;
@@ -7,4 +7,4 @@ assert my_count() == 2;
 assert count() == 3;
 
 var end = time();
-print_rs("Took " + ((end - begin) * 1000.0) as String + " ms");
+print("Took " + ((end - begin) * 1000.0) as String + " ms");

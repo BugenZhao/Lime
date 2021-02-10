@@ -31,7 +31,7 @@ fn test_default() {
         "
     var a = 0;
     var res = while (a = a - 1) >= 0 {
-        print \"looped\";
+        _print \"looped\";
         42;
     } default 18;
     assert res == 18;
@@ -46,7 +46,7 @@ fn test_default_looped_but_nil() {
         "
     var a = 1;
     var res = while (a = a - 1) >= 0 {
-        print \"looped\";
+        _print \"looped\";
         {}
     } default 42;
     "

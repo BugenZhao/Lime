@@ -71,7 +71,7 @@ peg::parser! {
 
         // Keywords
         rule kw_var() = "var"
-        rule kw_print() = "print"
+        rule kw_print() = "_print"
         rule kw_assert() = "assert"
         rule kw_as() = "as"
         rule kw_true() = "true"
@@ -226,6 +226,7 @@ peg::parser! {
 
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
+            / kw_print() _ "(" _ e:expr() _ ")" _ semi()+ { Stmt::Print(e) }
 
         rule stmt_assert() -> Stmt
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
@@ -297,7 +298,7 @@ mod test {
                 * 5 ^ 2 ^ 2 + 6 * a; 
         ;
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
-        print c + 3;
+        _print c + 3;
         "#;
         let r = parse(text);
         println!("{:#?}", r);

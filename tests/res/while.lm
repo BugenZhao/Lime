@@ -11,7 +11,7 @@
         };;;;;;
     };
 
-    print fibonacci;
+    _print fibonacci;
     assert fibonacci == 89;
 }
 
@@ -22,7 +22,7 @@
         if true { "ii"; } else { "umai"; }
     };
 
-    print tenki;
+    _print tenki;
     assert tenki == "ii";
 }
 
@@ -53,7 +53,7 @@
         }
     };
 
-    print fibonacci_2;
+    _print fibonacci_2;
     assert fibonacci_2 == 89;
 }
 
@@ -64,6 +64,6 @@
         continue 42;
     };
 
-    print ans;
+    _print ans;
     assert ans == 42;
 }
