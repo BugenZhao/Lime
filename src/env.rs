@@ -4,6 +4,7 @@ use parser::UnaryOp;
 
 use crate::{
     error::{Error, Result},
+    lime_std::define_std,
     parser::{self, BinaryOp, Expr, Func, Ident, Stmt, Value},
 };
 
@@ -14,10 +15,12 @@ pub struct Env<'a> {
 
 impl<'a> Env<'a> {
     pub fn new_global() -> Self {
-        Self {
+        let mut env = Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
-        }
+        };
+        define_std(&mut env);
+        env
     }
 
     pub fn new(enclosing: &'a Self) -> Self {

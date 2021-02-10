@@ -3,6 +3,7 @@
 mod env;
 mod error;
 mod interpreter;
+mod lime_std;
 mod parser;
 mod repl;
 
