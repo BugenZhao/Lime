@@ -52,3 +52,12 @@ impl Display for Func {
         }
     }
 }
+
+impl Func {
+    #[inline]
+    pub fn call(&self, args: Vec<Value>) -> Value {
+        match self {
+            Func::BuiltIn(f, _) => (f.0)(args),
+        }
+    }
+}

@@ -348,15 +348,12 @@ impl<'a> Env<'a> {
                         });
                     }
 
-                    match lime_f {
-                        Func::BuiltIn(f, _) => {
-                            let mut args = vec![];
-                            for arg_expr in arg_exprs.iter() {
-                                args.push(self.eval_expr(arg_expr)?);
-                            }
-                            Ok((f.0)(args))
-                        }
+                    let mut args = vec![];
+                    for arg_expr in arg_exprs.iter() {
+                        args.push(self.eval_expr(arg_expr)?);
                     }
+
+                    Ok(lime_f.call(args))
                 }
                 v @ _ => Err(Error::NotCallable(v)),
             },
