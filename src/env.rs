@@ -119,26 +119,7 @@ impl<'a> Env<'a> {
                 } else {
                     Ok(Value::Nil)
                 }
-            } // Stmt::Block(stmts) => {
-              //     let new_env = Env::new(self);
-              //     new_env.eval_stmts(stmts)
-              // }
-              // Stmt::If(cond, then, else_) => {
-              //     if self.is_truthy(cond)? {
-              //         self.eval_stmt(then)
-              //     } else if let Some(else_) = else_.deref() {
-              //         self.eval_stmt(else_)
-              //     } else {
-              //         Ok(None)
-              //     }
-              // }
-              // Stmt::While(cond, body) => {
-              //     let mut ret = None;
-              //     while self.is_truthy(cond)? {
-              //         ret = self.eval_stmt(body)?;
-              //     }
-              //     Ok(ret)
-              // }
+            }
         }
     }
 
@@ -276,8 +257,22 @@ impl<'a> Env<'a> {
                 let new_env = Env::new(self);
                 new_env.eval_stmts(stmts)
             }
-            Expr::If(_, _, _) => Ok(Value::Bool(true)),
-            Expr::While(_, _) => Ok(Value::Bool(true)),
+            Expr::If(cond, then, else_) => {
+                if self.is_truthy(cond)? {
+                    self.eval_expr(then)
+                } else if let Some(else_) = else_.deref() {
+                    self.eval_expr(else_)
+                } else {
+                    Ok(Value::Nil)
+                }
+            }
+            Expr::While(cond, body) => {
+                let mut ret = Value::Nil;
+                while self.is_truthy(cond)? {
+                    ret = self.eval_expr(body)?;
+                }
+                Ok(ret)
+            }
         }
     }
 }

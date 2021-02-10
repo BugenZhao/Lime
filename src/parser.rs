@@ -211,7 +211,8 @@ peg::parser! {
             / expr_if()
             / expr_while()
 
-        rule expr() -> Expr = expr_NORMAL() / expr_BLOCK()
+        // TODO: check the order, must it be `call / block / normal / if / loop`?
+        rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()
 
         // Stmt
         rule stmt_var_decl() -> Stmt
@@ -236,7 +237,7 @@ peg::parser! {
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
         pub rule program() -> Vec<Stmt>
-            = semi()* ss:(raw_stmt())* semi()* ![_] { ss }
+            = _ semi()* ss:(raw_stmt())* semi()* ![_] { ss }
     }
 }
 
