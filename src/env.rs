@@ -249,10 +249,19 @@ impl<'a> Env<'a> {
 
                         _ => None,
                     },
+                    (Value::Func(a, _), Value::Func(b, _), op) => match op {
+                        BinaryOp::Mul => todo!(),
+
+                        // FIXME: arity not considered
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+
+                        _ => None,
+                    },
                     (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
                         float!(a.powi(b as i32))
                     }
-                    // TODO: func comparison
+
                     (_, _, _) => None,
                 }
                 .ok_or(Error::CannotApplyBinaryOp(op.clone(), l, r))
