@@ -4,7 +4,6 @@ use lime::*;
 mod common;
 
 #[test]
-fn test_example() -> Result<()> {
-    eval_file!("tests/res/example.lm")?;
-    Ok(())
+fn test_example() {
+    eval_file!("tests/res/example.lm").unwrap();
 }

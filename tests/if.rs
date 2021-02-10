@@ -4,9 +4,8 @@ use lime::*;
 mod common;
 
 #[test]
-fn test_if() -> Result<()> {
-    eval_file!("tests/res/if.lm")?;
-    Ok(())
+fn test_if() {
+    eval_file!("tests/res/if.lm").unwrap();
 }
 
 #[test]
@@ -37,4 +36,16 @@ fn test_bad_syntax_3() {
 fn test_bad_syntax_4() {
     let r = eval!("if true {} else if {}").unwrap_err();
     assert!(matches!(r, Error::ParseError(..)));
+}
+
+#[test]
+fn test_nil_1() {
+    let r = eval!("var a = if true and true {};").unwrap_err();
+    assert!(matches!(r, Error::CannotHaveValue(..)));
+}
+
+#[test]
+fn test_nil_2() {
+    let r = eval!("var a = if false { 3; };").unwrap_err();
+    assert!(matches!(r, Error::CannotHaveValue(..)));
 }

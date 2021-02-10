@@ -4,7 +4,6 @@ use lime::*;
 mod common;
 
 #[test]
-fn test_logical() -> Result<()> {
-    eval_file!("tests/res/logical.lm")?;
-    Ok(())
+fn test_logical() {
+    eval_file!("tests/res/logical.lm").unwrap();
 }
