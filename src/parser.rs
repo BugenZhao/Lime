@@ -68,6 +68,7 @@ pub enum Stmt {
     Expr(Expr),
     If(Expr, Box<Stmt>, Box<Option<Stmt>>),
     Print(Expr),
+    While(Expr, Box<Stmt>),
     Assert(usize, usize, Expr),
     Block(Vec<Stmt>),
 }
@@ -96,6 +97,7 @@ peg::parser! {
         rule kw_and() = "and"
         rule kw_if() = "if"
         rule kw_else() = "else"
+        rule kw_while() = "while"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -103,7 +105,7 @@ peg::parser! {
         rule kw_string() = "String"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
-                           kw_if() / kw_else()
+                           kw_if() / kw_else() / kw_while()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -207,6 +209,9 @@ peg::parser! {
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
 
+        rule stmt_while() -> Stmt
+            = kw_while() __ cond:expr() _ body:block() { Stmt::While(cond, box body) }
+
         rule stmt_assert() -> Stmt
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, e) }
 
@@ -218,6 +223,7 @@ peg::parser! {
             / stmt_expr()
             / stmt_if()
             / stmt_print()
+            / stmt_while()
             / stmt_assert()
             / block()
 

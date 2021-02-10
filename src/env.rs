@@ -58,6 +58,16 @@ impl<'a> Env<'a> {
 }
 
 impl<'a> Env<'a> {
+    fn is_truthy(&self, expr: &Expr) -> Result<bool> {
+        match self.eval_expr(expr)? {
+            Value::Bool(true) => Ok(true),
+            Value::Bool(false) => Ok(false),
+            v @ _ => Err(Error::CannotBeCondition(v)),
+        }
+    }
+}
+
+impl<'a> Env<'a> {
     pub fn eval_stmts(&self, stmts: &[Stmt], text: &Chars) -> Result<Option<Value>> {
         let mut ret = None;
 
@@ -109,17 +119,22 @@ impl<'a> Env<'a> {
                 let new_env = Env::new(self);
                 new_env.eval_stmts(stmts, text)
             }
-            Stmt::If(cond, then, else_) => match self.eval_expr(cond)? {
-                Value::Bool(true) => self.eval_stmt(then, text),
-                Value::Bool(false) => {
-                    if let Some(else_) = else_.deref() {
-                        self.eval_stmt(else_, text)
-                    } else {
-                        Ok(None)
-                    }
+            Stmt::If(cond, then, else_) => {
+                if self.is_truthy(cond)? {
+                    self.eval_stmt(then, text)
+                } else if let Some(else_) = else_.deref() {
+                    self.eval_stmt(else_, text)
+                } else {
+                    Ok(None)
                 }
-                v @ _ => Err(Error::CannotBeCondition(v)),
-            },
+            }
+            Stmt::While(cond, body) => {
+                let mut ret = None;
+                while self.is_truthy(cond)? {
+                    ret = self.eval_stmt(body, text)?;
+                }
+                Ok(ret)
+            }
         }
     }
 
