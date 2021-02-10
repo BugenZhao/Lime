@@ -64,7 +64,7 @@ pub enum Expr {
     Cast(Box<Expr>, Ident),
     Block(Vec<Stmt>),
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
-    While(Box<Expr>, Box<Expr>),
+    While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
 }
 #[derive(Debug)]
 pub enum Stmt {
@@ -99,6 +99,7 @@ peg::parser! {
         rule kw_if() = "if"
         rule kw_else() = "else"
         rule kw_while() = "while"
+        rule kw_default() = "default"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -107,7 +108,7 @@ peg::parser! {
         rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
-                           kw_if() / kw_else() / kw_while()
+                           kw_if() / kw_else() / kw_while() / kw_default()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -194,13 +195,16 @@ peg::parser! {
         rule block() -> Expr
             = "{" _ ss:stmt()* _ "}" { Expr::Block(ss) }
 
-        rule else_helper() -> Expr
-            = kw_else() _ else_:(expr_if() / block()) { else_ }
+        rule if_else() -> Expr
+            = _ kw_else() _ else_:(expr_if() / block()) { else_ }
         rule expr_if() -> Expr
-            = kw_if() __ cond:expr() _ then:block() _ else_:else_helper()? { Expr::If(box cond, box then, box else_) }
+            = kw_if() __ cond:expr() _ then:block() else_:if_else()? { Expr::If(box cond, box then, box else_) }
 
+        rule while_default() -> Expr
+            = _ kw_default() _ default:(expr_NORMAL() / block()) { default }
+        // TODO: default
         rule expr_while() -> Expr
-            = kw_while() __ cond:expr() _ body:block() { Expr::While(box cond, box body) }
+            = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
 
         rule expr_NORMAL() -> Expr
             = expr_assign()

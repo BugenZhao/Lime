@@ -283,12 +283,21 @@ impl<'a> Env<'a> {
                     Ok(Value::Nil)
                 }
             }
-            Expr::While(cond, body) => {
+            Expr::While(cond, body, default) => {
                 let mut ret = Value::Nil;
+                let mut looped = false;
                 while self.is_truthy(cond)? {
+                    looped = true;
                     ret = self.eval_expr(body)?;
                 }
-                Ok(ret)
+
+                if looped {
+                    Ok(ret)
+                } else if let Some(default) = default.deref() {
+                    self.eval_expr(default)
+                } else {
+                    Ok(Value::Nil)
+                }
             }
         }
     }

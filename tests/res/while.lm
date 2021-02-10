@@ -12,3 +12,12 @@ var fibonacci = {
 
 print fibonacci;
 assert fibonacci == 89;
+
+var tenki = while false {
+    "ayashii";
+} default {
+    if true { "ii"; } else { "umai"; }
+};
+
+print tenki;
+assert tenki == "ii";
