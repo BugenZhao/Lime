@@ -36,15 +36,18 @@ fn count_gen() -> Value {
             Value::Int(V)
         },
         "count",
-        0
+        (0, 0)
     )
 }
 
 pub fn define_std(env: &mut Env) {
-    env.decl(Ident("print".to_owned()), built_in_fn!(print, "print", 1))
-        .unwrap();
+    env.decl(
+        Ident("print".to_owned()),
+        built_in_fn!(print, "print", (1, 1)),
+    )
+    .unwrap();
 
-    env.decl(Ident("time".to_owned()), built_in_fn!(time, "time", 0))
+    env.decl(Ident("time".to_owned()), built_in_fn!(time, "time", (0, 0)))
         .unwrap();
 
     env.decl(Ident("count".to_owned()), count_gen()).unwrap();

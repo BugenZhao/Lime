@@ -1,12 +1,14 @@
 use std::{fmt::Display, sync::Arc};
 
+pub const N_MAX_ARGS: usize = 255;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
-    Func(Func, usize),
+    Func(Func, (usize, usize)),
     Nil,
 }
 

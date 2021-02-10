@@ -38,8 +38,13 @@ pub enum Error {
     CannotHaveValue(String, Value),
     #[error("`{0}` is not callable")]
     NotCallable(Value),
-    #[error("Function `{f:?}` takes {take} argument(s) but {supp} were supplied")]
-    WrongArguments { f: Func, take: usize, supp: usize },
+    #[error("Function `{f:?}` takes {} argument(s) but {supp} were supplied",
+            if take.0 == take.1 { format!("{}", take.0) } else { format!("{} to {}", take.0, take.1) })]
+    WrongArguments {
+        f: Func,
+        take: (usize, usize),
+        supp: usize,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

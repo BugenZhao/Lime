@@ -138,7 +138,7 @@ peg::parser! {
         // Expr
         rule para_list() -> Vec<Expr>
             = "(" _ args:(expr() ** (_ "," _)) _ ")" {?
-                if args.len() <= 255 { Ok(args) } else { Err("fewer parameters") }
+                if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer parameters") }
             }
 
         // TODO: check this

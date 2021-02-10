@@ -330,11 +330,12 @@ impl<'a> Env<'a> {
             }
             Expr::Call(callee, arg_exprs) => match self.eval_expr(callee)? {
                 Value::Func(lime_f, arity) => {
-                    if arg_exprs.len() != arity {
+                    let n_arg = arg_exprs.len();
+                    if n_arg < arity.0 || n_arg > arity.1 {
                         return Err(Error::WrongArguments {
                             f: lime_f,
                             take: arity,
-                            supp: arg_exprs.len(),
+                            supp: n_arg,
                         });
                     }
 
