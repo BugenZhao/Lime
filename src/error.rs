@@ -28,6 +28,8 @@ pub enum Error {
     CannotBeCondition(Value),
     #[error("Assertion failed: `{0}` is `{1:?}`, while `{2:?}` expected")]
     AssertionFailed(String, Value, Value),
+    #[error("Variable `{0}` cannot have the value `{1:?}`")]
+    CannotHaveValue(String, Value),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use crate::error::{Error, Result};
-use peg::str::LineCol;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -37,6 +36,7 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
+    Nil,
 }
 
 impl Display for Value {
@@ -46,6 +46,7 @@ impl Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -103,10 +104,11 @@ peg::parser! {
         rule kw_float() = "Float"
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
+        rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                            kw_if() / kw_else() / kw_while()
-        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string()
+        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 

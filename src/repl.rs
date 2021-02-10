@@ -1,4 +1,4 @@
-use crate::interpreter::Interpreter;
+use crate::{interpreter::Interpreter, parser::Value};
 use colored::*;
 use rustyline::{error::ReadlineError, Editor};
 
@@ -19,8 +19,8 @@ pub fn repl(mut intp: Interpreter) {
                     ml_buf.push_str(&line);
                     ml_buf.push(';');
                     match intp.eval(&ml_buf) {
-                        Ok(Some(val)) => println!("{:?}", val),
-                        Ok(None) => {}
+                        Ok(Value::Nil) => {}
+                        Ok(val) => println!("{:?}", val),
                         Err(err) => println!("{}", err.to_string().red()),
                     }
                     ml_buf.drain(..);

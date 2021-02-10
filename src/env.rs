@@ -7,8 +7,6 @@ use crate::{
     parser::{self, BinaryOp, Expr, Ident, Stmt, Value},
 };
 
-use std::str::Chars;
-
 pub struct Env<'a> {
     vars: RefCell<HashMap<Ident, Value>>,
     enclosing: Option<&'a Self>,
@@ -41,11 +39,18 @@ impl<'a> Env<'a> {
         }
     }
 
-    pub fn decl(&self, ident: Ident, val: Value) {
+    pub fn decl(&self, ident: Ident, val: Value) -> Result<()> {
+        if let Value::Nil = val {
+            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        }
         self.vars.borrow_mut().insert(ident, val);
+        Ok(())
     }
 
     pub fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
+        if let Value::Nil = val {
+            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        }
         if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
             *v = val.clone();
             Ok(())
@@ -68,8 +73,8 @@ impl<'a> Env<'a> {
 }
 
 impl<'a> Env<'a> {
-    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Option<Value>> {
-        let mut ret = None;
+    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
+        let mut ret = Value::Nil;
 
         for stmt in stmts.iter() {
             match self.eval_stmt(stmt) {
@@ -85,21 +90,21 @@ impl<'a> Env<'a> {
         Ok(ret)
     }
 
-    fn eval_stmt(&self, stmt: &Stmt) -> Result<Option<Value>> {
+    fn eval_stmt(&self, stmt: &Stmt) -> Result<Value> {
         match stmt {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
-                self.decl(ident.clone(), val.clone());
-                Ok(None)
+                self.decl(ident.clone(), val.clone())?;
+                Ok(Value::Nil)
             }
             Stmt::Expr(expr) => match self.eval_expr(expr) {
-                Ok(v) => Ok(Some(v)),
+                Ok(v) => Ok(v),
                 Err(e) => Err(e),
             },
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
-                    Ok(None)
+                    Ok(Value::Nil)
                 }
                 Err(e) => Err(e),
             },
@@ -112,7 +117,7 @@ impl<'a> Env<'a> {
                         Value::Bool(true),
                     ))
                 } else {
-                    Ok(None)
+                    Ok(Value::Nil)
                 }
             } // Stmt::Block(stmts) => {
               //     let new_env = Env::new(self);
@@ -252,12 +257,14 @@ impl<'a> Env<'a> {
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
                         Value::String(_) => None,
+                        Value::Nil => None,
                     },
                     "Float" => match val {
                         Value::Int(x) => Some(Value::Float(x as f64)),
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
                         Value::String(_) => None,
+                        Value::Nil => None,
                     },
                     "Bool" => None,
                     "String" => Some(Value::String(format!("{}", val))),
@@ -267,8 +274,7 @@ impl<'a> Env<'a> {
             }
             Expr::Block(stmts) => {
                 let new_env = Env::new(self);
-                // new_env.eval_stmts(stmts)
-                Ok(Value::Bool(true))
+                new_env.eval_stmts(stmts)
             }
             Expr::If(_, _, _) => Ok(Value::Bool(true)),
             Expr::While(_, _) => Ok(Value::Bool(true)),
