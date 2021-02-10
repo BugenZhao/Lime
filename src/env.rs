@@ -325,6 +325,9 @@ impl<'a> Env<'a> {
                     Ok(Value::Nil)
                 }
             }
+            Expr::Call(_, _) => {
+                todo!()
+            }
         }
     }
 }

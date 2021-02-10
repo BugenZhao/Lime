@@ -1,11 +1,9 @@
-use std::io;
-
 use crate::parser::{BinaryOp, UnaryOp, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    IoError(#[from] io::Error),
+    IoError(#[from] std::io::Error),
 
     #[error("Parse error: expect {} at {}", .0.expected, .0.location)]
     ParseError(peg::error::ParseError<peg::str::LineCol>),
