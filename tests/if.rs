@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_if() -> Result<()> {
-    eval_file!("tests/res/if")?;
+    eval_file!("tests/res/if.lm")?;
     Ok(())
 }
 

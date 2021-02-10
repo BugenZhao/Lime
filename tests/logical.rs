@@ -5,6 +5,6 @@ mod common;
 
 #[test]
 fn test_logical() -> Result<()> {
-    eval_file!("tests/res/logical")?;
+    eval_file!("tests/res/logical.lm")?;
     Ok(())
 }
