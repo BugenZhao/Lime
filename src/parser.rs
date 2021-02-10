@@ -95,6 +95,7 @@ peg::parser! {
         rule semi() = (";" _)
         rule digit() = ['0'..='9']
         rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
+        rule aldig() = alpha() / digit()
 
 
         // Keywords
@@ -149,12 +150,12 @@ peg::parser! {
                 / string()
             ) { Expr::Literal(v) }
 
-        rule ident() -> Ident
-            = quiet!{ i:$(!kw_ALL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
+        rule ident() -> Ident // TODO: more elegant
+            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
             / expected!("name identifier")
 
         rule ident_type() -> Ident
-            = quiet!{ i:$(!kw_NORMAL() (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
             / expected!("type identifier")
 
         rule primary() -> Expr
