@@ -10,6 +10,11 @@ pub enum Error {
     #[error("Parse error: expect {} at {}", .0.expected, .0.location)]
     ParseError(peg::error::ParseError<peg::str::LineCol>),
 
+    #[error("Break outside of a loop")]
+    Break(Value),
+    #[error("Continue outside of a loop")]
+    Continue(Value),
+
     #[error("Cannot find value `{0}` in this scope")]
     CannotFindValue(String),
     #[error("Invalid left-hand side `{0}` of assignment")]

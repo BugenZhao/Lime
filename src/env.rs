@@ -120,6 +120,22 @@ impl<'a> Env<'a> {
                     Ok(Value::Nil)
                 }
             }
+            Stmt::Break(expr) => {
+                let val = if let Some(e) = expr {
+                    self.eval_expr(e)?
+                } else {
+                    Value::Nil
+                };
+                Err(Error::Break(val))
+            }
+            Stmt::Continue(expr) => {
+                let val = if let Some(e) = expr {
+                    self.eval_expr(e)?
+                } else {
+                    Value::Nil
+                };
+                Err(Error::Continue(val))
+            }
         }
     }
 
@@ -286,9 +302,19 @@ impl<'a> Env<'a> {
             Expr::While(cond, body, default) => {
                 let mut ret = Value::Nil;
                 let mut looped = false;
+
                 while self.is_truthy(cond)? {
                     looped = true;
-                    ret = self.eval_expr(body)?;
+                    match self.eval_expr(body) {
+                        Ok(v) | Err(Error::Continue(v)) => ret = v,
+                        Err(Error::Break(v)) => {
+                            ret = v;
+                            break;
+                        }
+                        err @ Err(_) => {
+                            return err;
+                        }
+                    }
                 }
 
                 if looped {

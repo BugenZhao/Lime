@@ -1,23 +1,69 @@
-var fibonacci = {
-    var a = 1;
-    var b = 1;
+{
+    var fibonacci = {
+        var a = 1;
+        var b = 1;
 
-    while b < 100 {
-        var tmp = a;
-        a = b;
-        b = tmp + b;
-        a;;;;
-    };;;;;;
-};
+        while b < 100 {
+            var tmp = a;
+            a = b;
+            b = tmp + b;
+            a;;;;
+        };;;;;;
+    };
 
-print fibonacci;
-assert fibonacci == 89;
+    print fibonacci;
+    assert fibonacci == 89;
+}
 
-var tenki = while false {
-    "ayashii";
-} default {
-    if true { "ii"; } else { "umai"; }
-};
+{
+    var tenki = while false {
+        "ayashii";
+    } default {
+        if true { "ii"; } else { "umai"; }
+    };
 
-print tenki;
-assert tenki == "ii";
+    print tenki;
+    assert tenki == "ii";
+}
+
+{
+    var i = 0;
+    while i < 100000000 {
+        i = i + 1;
+        if i == 10 { continue; }
+        if i == 42 { break; }
+        if i == 9999 { assert false; }
+    }
+}
+
+{
+    var fibonacci_2 = {
+        var a = 1;
+        var b = 1;
+
+        while true {
+            var tmp = a;
+            a = b;
+            b = tmp + b;
+
+            if b >= 100 {
+                break a;
+                a = a * 100;
+            }
+        }
+    };
+
+    print fibonacci_2;
+    assert fibonacci_2 == 89;
+}
+
+{
+    var flag = true;
+    var ans = while flag {
+        flag = false;
+        continue 42;
+    };
+
+    print ans;
+    assert ans == 42;
+}
