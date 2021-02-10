@@ -114,27 +114,26 @@ impl<'a> Env<'a> {
                 } else {
                     Ok(None)
                 }
-            }
-            Stmt::Block(stmts) => {
-                let new_env = Env::new(self);
-                new_env.eval_stmts(stmts, text)
-            }
-            Stmt::If(cond, then, else_) => {
-                if self.is_truthy(cond)? {
-                    self.eval_stmt(then, text)
-                } else if let Some(else_) = else_.deref() {
-                    self.eval_stmt(else_, text)
-                } else {
-                    Ok(None)
-                }
-            }
-            Stmt::While(cond, body) => {
-                let mut ret = None;
-                while self.is_truthy(cond)? {
-                    ret = self.eval_stmt(body, text)?;
-                }
-                Ok(ret)
-            }
+            } // Stmt::Block(stmts) => {
+              //     let new_env = Env::new(self);
+              //     new_env.eval_stmts(stmts, text)
+              // }
+              // Stmt::If(cond, then, else_) => {
+              //     if self.is_truthy(cond)? {
+              //         self.eval_stmt(then, text)
+              //     } else if let Some(else_) = else_.deref() {
+              //         self.eval_stmt(else_, text)
+              //     } else {
+              //         Ok(None)
+              //     }
+              // }
+              // Stmt::While(cond, body) => {
+              //     let mut ret = None;
+              //     while self.is_truthy(cond)? {
+              //         ret = self.eval_stmt(body, text)?;
+              //     }
+              //     Ok(ret)
+              // }
         }
     }
 
@@ -266,6 +265,13 @@ impl<'a> Env<'a> {
                 }
                 .ok_or(Error::CannotCast(val, tp.to_owned()))
             }
+            Expr::Block(stmts) => {
+                let new_env = Env::new(self);
+                // new_env.eval_stmts(stmts, text)
+                Ok(Value::Bool(true))
+            }
+            Expr::If(_, _, _) => Ok(Value::Bool(true)),
+            Expr::While(_, _) => Ok(Value::Bool(true)),
         }
     }
 }

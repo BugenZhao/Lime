@@ -61,16 +61,16 @@ pub enum Expr {
     Unary(UnaryOp, Box<Expr>),
     Assign(Ident, Box<Expr>),
     Cast(Box<Expr>, Ident),
+    Block(Vec<Stmt>),
+    If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
+    While(Box<Expr>, Box<Expr>),
 }
 #[derive(Debug)]
 pub enum Stmt {
     VarDecl(Ident, Expr),
     Expr(Expr),
-    If(Expr, Box<Stmt>, Box<Option<Stmt>>),
     Print(Expr),
-    While(Expr, Box<Stmt>),
     Assert(usize, usize, Expr),
-    Block(Vec<Stmt>),
 }
 
 peg::parser! {
@@ -189,48 +189,52 @@ peg::parser! {
         rule expr_assign() -> Expr
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
-        rule expr() -> Expr
+        rule block() -> Expr
+            = "{" _ ss:stmt()* _ "}" { Expr::Block(ss) }
+
+        rule else_helper() -> Expr
+            = kw_else() _ else_:(expr_if() / block()) { else_ }
+        rule expr_if() -> Expr
+            = kw_if() __ cond:expr() _ then:block() _ else_:else_helper()? { Expr::If(box cond, box then, box else_) }
+
+        rule expr_while() -> Expr
+            = kw_while() __ cond:expr() _ body:block() { Expr::While(box cond, box body) }
+
+        rule expr_NORMAL() -> Expr
             = expr_assign()
             / expr_binary()
+        
+        rule expr_BLOCK() -> Expr
+            = block()
+            / expr_if()
+            / expr_while()
 
+        rule expr() -> Expr = expr_NORMAL() / expr_BLOCK()
 
         // Stmt
         rule stmt_var_decl() -> Stmt
             = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, e) }
 
         rule stmt_expr() -> Stmt
-            = e:expr() _ semi()+ { Stmt::Expr(e) }
-
-        rule else_helper() -> Stmt
-            = kw_else() _ else_:(stmt_if() / block()) { else_ }
-        rule stmt_if() -> Stmt
-            = kw_if() __ cond:expr() _ then:block() _ else_:else_helper()? { Stmt::If(cond, box then, box else_) }
+            = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
+            / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
 
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
 
-        rule stmt_while() -> Stmt
-            = kw_while() __ cond:expr() _ body:block() { Stmt::While(cond, box body) }
-
         rule stmt_assert() -> Stmt
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, e) }
-
-        rule block() -> Stmt
-            = "{" _ ss:stmt()* _ "}" { Stmt::Block(ss) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_expr()
-            / stmt_if()
             / stmt_print()
-            / stmt_while()
             / stmt_assert()
-            / block()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
 
         pub rule program() -> Vec<Stmt>
-            = ss:(raw_stmt())* semi()? ![_] { ss }
+            = semi()* ss:(raw_stmt())* semi()* ![_] { ss }
     }
 }
 
