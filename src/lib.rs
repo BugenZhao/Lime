@@ -8,7 +8,7 @@ mod parser;
 mod repl;
 mod value;
 
-pub use error::{Error, Result};
+pub use error::{Error, LimeError, Result};
 pub use interpreter::Interpreter;
 pub use repl::repl;
 pub use value::{Func, Value};

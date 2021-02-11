@@ -5,7 +5,9 @@ use crate::{
     env::Env,
     parser::Ident,
     value::{FuncType, RustFn, N_MAX_ARGS},
-    Error, Func, Result, Value,
+    Error, Func,
+    LimeError::*,
+    Result, Value,
 };
 
 fn print(args: Vec<Value>) -> Result<Value> {
@@ -31,12 +33,12 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 }
 
 fn panic(args: Vec<Value>) -> Result<Value> {
-    Err(Error::LimePanic(
+    Err(Error::Lime(Panic(
         args.iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>()
             .join(" "),
-    ))
+    )))
 }
 
 pub fn define_std(env: &Rc<Env>) {

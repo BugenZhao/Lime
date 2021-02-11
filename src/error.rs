@@ -47,8 +47,14 @@ pub enum Error {
         supp: usize,
     },
 
-    #[error("Lime panic: {0}")]
-    LimePanic(String),
+    #[error(transparent)]
+    Lime(#[from] LimeError),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum LimeError {
+    #[error("Panic: {0}")]
+    Panic(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
