@@ -178,8 +178,8 @@ peg::parser! {
             x:(@) _ "+" _ y:@ { Expr::Binary(box x, BinaryOp::Add, box y) }
             x:(@) _ "-" _ y:@ { Expr::Binary(box x, BinaryOp::Sub, box y) }
             --
-            x:@ _ "*" _ y:(@) { Expr::Binary(box x, BinaryOp::Mul, box y) }  // !
-            x:@ _ "/" _ y:(@) { Expr::Binary(box x, BinaryOp::Div, box y) }
+            x:(@) _ "*" _ y:@ { Expr::Binary(box x, BinaryOp::Mul, box y) }
+            x:(@) _ "/" _ y:@ { Expr::Binary(box x, BinaryOp::Div, box y) }
             --
             x:@ _ "^" _ y:(@) { Expr::Binary(box x, BinaryOp::Pow, box y) }
             --

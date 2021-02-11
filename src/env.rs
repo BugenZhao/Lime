@@ -266,9 +266,9 @@ impl Env {
                         _ => None,
                     },
                     (Value::Func(a), Value::Func(b), op) => match op {
-                        BinaryOp::Mul => Some(Value::Func(Func::compose(a, b)?)),
+                        // TODO: composed func
+                        BinaryOp::Mul => todo!("func composition"),
 
-                        // FIXME: arity not considered
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
 
