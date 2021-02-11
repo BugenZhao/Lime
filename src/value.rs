@@ -1,6 +1,9 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::{Error, Result};
+use crate::{
+    parser::{Ident, Stmt},
+    Error, Result,
+};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -46,6 +49,7 @@ impl PartialEq for RustFn {
 pub enum FuncType {
     BuiltIn(RustFn, String),
     Composed(Box<Func>, Box<Func>),
+    Lime(Vec<Ident>, Vec<Stmt>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,16 +63,24 @@ impl Display for Func {
         match &self.tp {
             FuncType::BuiltIn(_, name) => write!(f, "<built-in func `{}`>", name),
             FuncType::Composed(..) => write!(f, "<composed func>"),
+            FuncType::Lime(_, _) => write!(f, "<func>"),
         }
     }
 }
 
 impl Func {
     #[inline]
-    pub fn call(&self, args: Vec<Value>) -> Value {
+    pub fn call(&self, args: Vec<Value>) -> Result<Value> {
         match &self.tp {
-            FuncType::BuiltIn(f, _) => (f.0)(args),
-            FuncType::Composed(f, g) => f.call(vec![g.call(args)]),
+            FuncType::BuiltIn(f, _) => Ok((f.0)(args)),
+            FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
+            FuncType::Lime(params, body) => {
+                let env = crate::env::Env::new_standalone();
+                for (param, arg) in params.clone().into_iter().zip(args) {
+                    env.decl(param, arg)?;
+                }
+                env.eval_stmts(body)
+            }
         }
     }
 

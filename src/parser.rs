@@ -44,6 +44,7 @@ pub enum Expr {
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
+    Func(Vec<Ident>, Vec<Stmt>),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
@@ -136,14 +137,14 @@ peg::parser! {
 
 
         // Expr
-        rule para_list() -> Vec<Expr>
-            = "(" _ args:(expr() ** (_ "," _)) _ ")" {?
-                if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer parameters") }
+        rule arg_list() -> Vec<Expr>
+            = args:(expr() ** (_ "," _)) {?
+                if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer arguments") }
             }
 
         // TODO: check this
         rule expr_call() -> Expr = precedence!{
-            f:(@) _ args:para_list() { Expr::Call(box f, args) }
+            f:(@) _ "(" _ args:arg_list() _ ")" { Expr::Call(box f, args) }
             --
             p:primary() { p }
         }
@@ -202,12 +203,21 @@ peg::parser! {
         rule expr_while() -> Expr
             = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
 
+        rule param_list() -> Vec<Ident>
+            = params:(ident() ** (_ "," _)) {?
+                if params.len() <= N_MAX_ARGS { Ok(params) } else { Err("fewer parameters") }
+            }
+        
+        rule expr_func() -> Expr
+            = "|" _ p:param_list() _ "|" _ "{" _ body:stmt()* _ "}" { Expr::Func(p, body) }
+
         rule expr_NORMAL() -> Expr
             = expr_assign()
             / expr_binary()
 
         rule expr_BLOCK() -> Expr
             = block()
+            / expr_func()
             / expr_if()
             / expr_while()
 

@@ -6,6 +6,7 @@ use crate::{
     error::{Error, Result},
     lime_std::define_std,
     parser::{self, BinaryOp, Expr, Ident, Stmt},
+    value::FuncType,
     Func, Value,
 };
 
@@ -28,6 +29,14 @@ impl<'a> Env<'a> {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: Some(enclosing),
+        }
+    }
+
+    #[deprecated]
+    pub fn new_standalone() -> Self {
+        Self {
+            vars: RefCell::new(HashMap::new()),
+            enclosing: None,
         }
     }
 
@@ -347,10 +356,14 @@ impl<'a> Env<'a> {
                         args.push(self.eval_expr(arg_expr)?);
                     }
 
-                    Ok(lime_f.call(args))
+                    lime_f.call(args)
                 }
                 v @ _ => Err(Error::NotCallable(v)),
             },
+            Expr::Func(params, body) => Ok(Value::Func(Func {
+                tp: FuncType::Lime(params.clone(), body.clone()),
+                arity: (params.len(), params.len()),
+            })),
         }
     }
 }
