@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::{
     env::Env,
-    parser::Ident,
+    parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
     Error, Func,
     LimeError::*,
@@ -41,7 +41,7 @@ fn panic(args: Vec<Value>) -> Result<Value> {
     )))
 }
 
-pub fn define_std(env: &Rc<Env>) {
+fn define_builtin(env: &Rc<Env>) {
     macro_rules! built_in_fn {
         ($func:expr, $name:expr, $arity:expr) => {
             Value::Func(Func {
@@ -83,4 +83,16 @@ pub fn define_std(env: &Rc<Env>) {
         )
         .unwrap();
     }
+}
+
+pub fn define_prelude(env: &Rc<Env>) {
+    const PRELUDE_LM: &str = include_str!("prelude.lm");
+
+    let stmts = parser::parse(PRELUDE_LM).unwrap();
+    env.eval_stmts(&stmts).unwrap();
+}
+
+pub fn define_std(env: &Rc<Env>) {
+    define_builtin(env);
+    define_prelude(env);
 }
