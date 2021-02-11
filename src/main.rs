@@ -14,7 +14,7 @@ struct Opt {
 }
 
 fn main() -> Result<()> {
-    let mut intp = Interpreter::new();
+    let intp = Interpreter::new();
     let opt = Opt::from_args();
     if let Some(path) = opt.input {
         if let Err(e) = intp.eval_file(path) {

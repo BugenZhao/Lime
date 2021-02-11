@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, ops::Deref};
+use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
 
 use parser::UnaryOp;
 
@@ -10,12 +10,12 @@ use crate::{
     Func, Value,
 };
 
-pub struct Env<'a> {
+pub struct Env {
     vars: RefCell<HashMap<Ident, Value>>,
-    enclosing: Option<&'a Self>,
+    enclosing: Option<Rc<Self>>,
 }
 
-impl<'a> Env<'a> {
+impl Env {
     pub fn new_global() -> Self {
         let mut env = Self {
             vars: RefCell::new(HashMap::new()),
@@ -25,7 +25,7 @@ impl<'a> Env<'a> {
         env
     }
 
-    pub fn new(enclosing: &'a Self) -> Self {
+    pub fn new(enclosing: Rc<Self>) -> Self {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: Some(enclosing),
@@ -45,7 +45,7 @@ impl<'a> Env<'a> {
 
         if r.is_some() {
             r
-        } else if let Some(enclosing) = self.enclosing {
+        } else if let Some(enclosing) = &self.enclosing {
             enclosing.get(ident)
         } else {
             None
@@ -67,7 +67,7 @@ impl<'a> Env<'a> {
         if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
             *v = val.clone();
             Ok(())
-        } else if let Some(enclosing) = self.enclosing {
+        } else if let Some(enclosing) = &self.enclosing {
             enclosing.assign(ident, val)
         } else {
             Err(Error::CannotFindValue(ident.0.to_owned()))
@@ -75,8 +75,8 @@ impl<'a> Env<'a> {
     }
 }
 
-impl<'a> Env<'a> {
-    fn is_truthy(&self, expr: &Expr) -> Result<bool> {
+impl Env {
+    fn is_truthy(self: &Rc<Self>, expr: &Expr) -> Result<bool> {
         match self.eval_expr(expr)? {
             Value::Bool(true) => Ok(true),
             Value::Bool(false) => Ok(false),
@@ -85,8 +85,8 @@ impl<'a> Env<'a> {
     }
 }
 
-impl<'a> Env<'a> {
-    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
+impl Env {
+    pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
         let mut ret = Value::Nil;
 
         for stmt in stmts.iter() {
@@ -103,7 +103,7 @@ impl<'a> Env<'a> {
         Ok(ret)
     }
 
-    fn eval_stmt(&self, stmt: &Stmt) -> Result<Value> {
+    fn eval_stmt(self: &Rc<Self>, stmt: &Stmt) -> Result<Value> {
         match stmt {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
@@ -152,7 +152,7 @@ impl<'a> Env<'a> {
         }
     }
 
-    fn eval_expr(&self, expr: &Expr) -> Result<Value> {
+    fn eval_expr(self: &Rc<Self>, expr: &Expr) -> Result<Value> {
         macro_rules! int {
             ($v:expr) => {
                 Some(Value::Int($v))
@@ -308,7 +308,7 @@ impl<'a> Env<'a> {
                 .ok_or(Error::CannotCast(val, tp.to_owned()))
             }
             Expr::Block(stmts) => {
-                let new_env = Env::new(self);
+                let new_env = Rc::new(Env::new(Rc::clone(&self)));
                 new_env.eval_stmts(stmts)
             }
             Expr::If(cond, then, else_) => {

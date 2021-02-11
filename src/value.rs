@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, rc::Rc, sync::Arc};
 
 use crate::{Error, Result, env::Env, parser::{Ident, Stmt}};
 
@@ -86,7 +86,7 @@ impl Func {
             FuncType::BuiltIn(f, _) => Ok((f.0)(args)),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
             FuncType::Lime(params, body) => {
-                let env = crate::env::Env::new_standalone();
+                let env = Rc::new(crate::env::Env::new_standalone());
                 for (param, arg) in params.clone().into_iter().zip(args) {
                     env.decl(param, arg)?;
                 }

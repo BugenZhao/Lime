@@ -1,26 +1,26 @@
-use std::{fs::read_to_string, path::Path};
+use std::{fs::read_to_string, path::Path, rc::Rc};
 
 use crate::{env::Env, error::Result};
 use crate::{parser, Value};
 
 pub struct Interpreter {
-    env: Env<'static>,
+    env: Rc<Env>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: Env::new_global(),
+            env: Rc::new(Env::new_global()),
         }
     }
 }
 
 impl Interpreter {
-    pub fn eval_file<P: AsRef<Path>>(&mut self, path: P) -> Result<Value> {
+    pub fn eval_file<P: AsRef<Path>>(&self, path: P) -> Result<Value> {
         self.eval(&read_to_string(path)?)
     }
 
-    pub fn eval(&mut self, text: &str) -> Result<Value> {
+    pub fn eval(&self, text: &str) -> Result<Value> {
         let stmts = parser::parse(text)?;
         self.env.eval_stmts(&stmts)
     }
@@ -34,7 +34,7 @@ mod test {
 
     #[test]
     fn test() {
-        let mut intp = Interpreter::new();
+        let intp = Interpreter::new();
         let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
         assert_eq!(intp.env.get(&Ident("a".to_owned())).unwrap(), Value::Int(7));
     }
