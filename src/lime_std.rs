@@ -2,10 +2,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::{
-    env::Env, parser::Ident, value::FuncType, value::RustFn, value::N_MAX_ARGS, Func, Value,
+    env::Env,
+    parser::Ident,
+    value::{FuncType, RustFn, N_MAX_ARGS},
+    Error, Func, Result, Value,
 };
 
-fn print(args: Vec<Value>) -> Value {
+fn print(args: Vec<Value>) -> Result<Value> {
     println!(
         "{}",
         args.iter()
@@ -13,18 +16,27 @@ fn print(args: Vec<Value>) -> Value {
             .collect::<Vec<_>>()
             .join(" ")
     );
-    Value::Nil
+    Ok(Value::Nil)
 }
 
-fn time(_args: Vec<Value>) -> Value {
+fn time(_args: Vec<Value>) -> Result<Value> {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    Value::Float(
+    Ok(Value::Float(
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs_f64(),
-    )
+    ))
+}
+
+fn panic(args: Vec<Value>) -> Result<Value> {
+    Err(Error::LimePanic(
+        args.iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join(" "),
+    ))
 }
 
 pub fn define_std(env: &Rc<Env>) {
@@ -55,10 +67,17 @@ pub fn define_std(env: &Rc<Env>) {
         env.decl(
             Ident("count".to_owned()),
             built_in_fn!(
-                move |_| { Value::Int(v.fetch_add(1, Ordering::SeqCst)) },
+                move |_| { Ok(Value::Int(v.fetch_add(1, Ordering::SeqCst))) },
                 "count",
                 (0, 0)
             ),
+        )
+        .unwrap();
+    }
+    {
+        env.decl(
+            Ident("panic".to_owned()),
+            built_in_fn!(panic, "panic", (1, 255)),
         )
         .unwrap();
     }

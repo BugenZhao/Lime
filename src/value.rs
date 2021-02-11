@@ -32,7 +32,7 @@ impl Display for Value {
 }
 
 #[derive(Clone)]
-pub struct RustFn(pub Arc<dyn Fn(Vec<Value>) -> Value>);
+pub struct RustFn(pub Arc<dyn Fn(Vec<Value>) -> Result<Value>>);
 
 impl std::fmt::Debug for RustFn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -94,7 +94,7 @@ impl Func {
     #[inline]
     pub fn call(&self, args: Vec<Value>) -> Result<Value> {
         match &self.tp {
-            FuncType::BuiltIn(f, _) => Ok((f.0)(args)),
+            FuncType::BuiltIn(f, _) => (f.0)(args),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
             FuncType::Lime(params, body) => {
                 let fn_env = Rc::new(Env::new(Rc::clone(&self.env)));
