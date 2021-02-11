@@ -25,3 +25,17 @@ fn test_bad_return_2() {
     let r = eval!("return;").unwrap_err();
     assert!(matches!(r, Error::Return(Value::Nil)));
 }
+
+#[test]
+fn test_static_resolving() {
+    let text = r#"
+    var a = "global";
+    {
+        var show_a = || { print(a); a; };
+        assert show_a() == "global";
+        var a = "block";
+        assert show_a() == "global";
+    }
+    "#;
+    eval!(text).unwrap();
+}
