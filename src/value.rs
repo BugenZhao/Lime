@@ -1,5 +1,7 @@
 use std::{fmt::Display, sync::Arc};
 
+use crate::{Error, Result};
+
 pub const N_MAX_ARGS: usize = 255;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -8,7 +10,7 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
-    Func(Func, (usize, usize)),
+    Func(Func),
     Nil,
 }
 
@@ -19,7 +21,7 @@ impl Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::Func(v, _) => write!(f, "{}", v),
+            Value::Func(v) => write!(f, "{}", v),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -41,14 +43,22 @@ impl PartialEq for RustFn {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Func {
+pub enum FuncType {
     BuiltIn(RustFn, String),
+    Composed(Box<Func>, Box<Func>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Func {
+    pub tp: FuncType,
+    pub arity: (usize, usize),
 }
 
 impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Func::BuiltIn(_, name) => write!(f, "<built-in func `{}`>", name),
+        match &self.tp {
+            FuncType::BuiltIn(_, name) => write!(f, "<built-in func `{}`>", name),
+            FuncType::Composed(..) => write!(f, "<composed func>"),
         }
     }
 }
@@ -56,8 +66,30 @@ impl Display for Func {
 impl Func {
     #[inline]
     pub fn call(&self, args: Vec<Value>) -> Value {
-        match self {
-            Func::BuiltIn(f, _) => (f.0)(args),
+        match &self.tp {
+            FuncType::BuiltIn(f, _) => (f.0)(args),
+            FuncType::Composed(f, g) => f.call(vec![g.call(args)]),
+        }
+    }
+
+    pub fn compose(f: Self, g: Self) -> Result<Self> {
+        let arity = g.arity;
+        let _ = f.check(1)?;
+        Ok(Self {
+            tp: FuncType::Composed(box f, box g),
+            arity,
+        })
+    }
+
+    pub fn check(&self, supp: usize) -> Result<()> {
+        if supp >= self.arity.0 && supp <= self.arity.1 {
+            Ok(())
+        } else {
+            Err(Error::WrongArguments {
+                f: self.clone(),
+                take: self.arity,
+                supp,
+            })
         }
     }
 }

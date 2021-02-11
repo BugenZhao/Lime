@@ -6,7 +6,7 @@ use crate::{
     error::{Error, Result},
     lime_std::define_std,
     parser::{self, BinaryOp, Expr, Ident, Stmt},
-    Value,
+    Func, Value,
 };
 
 pub struct Env<'a> {
@@ -249,8 +249,8 @@ impl<'a> Env<'a> {
 
                         _ => None,
                     },
-                    (Value::Func(a, _), Value::Func(b, _), op) => match op {
-                        BinaryOp::Mul => todo!(),
+                    (Value::Func(a), Value::Func(b), op) => match op {
+                        BinaryOp::Mul => Some(Value::Func(Func::compose(a, b)?)),
 
                         // FIXME: arity not considered
                         BinaryOp::Eq => bool!(a == b),
@@ -338,15 +338,9 @@ impl<'a> Env<'a> {
                 }
             }
             Expr::Call(callee, arg_exprs) => match self.eval_expr(callee)? {
-                Value::Func(lime_f, arity) => {
+                Value::Func(lime_f) => {
                     let n_arg = arg_exprs.len();
-                    if n_arg < arity.0 || n_arg > arity.1 {
-                        return Err(Error::WrongArguments {
-                            f: lime_f,
-                            take: arity,
-                            supp: n_arg,
-                        });
-                    }
+                    let _ = lime_f.check(n_arg)?;
 
                     let mut args = vec![];
                     for arg_expr in arg_exprs.iter() {

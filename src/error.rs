@@ -36,10 +36,11 @@ pub enum Error {
     AssertionFailed(String, Value, Value),
     #[error("Variable `{0}` cannot have the value `{1:?}`")]
     CannotHaveValue(String, Value),
-    #[error("`{0}` is not callable")]
+    #[error("`{0:?}` is not callable")]
     NotCallable(Value),
-    #[error("Function `{f:?}` takes {} argument(s) but {supp} were supplied",
-            if take.0 == take.1 { format!("{}", take.0) } else { format!("{} to {}", take.0, take.1) })]
+    #[error("Function `{f:?}` takes {} arguments but {supp} were supplied",
+            if take.0 == take.1 { format!("{}", take.0) } 
+            else { format!("{} to {}", take.0, take.1) })]
     WrongArguments {
         f: Func,
         take: (usize, usize),

@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use crate::{env::Env, parser::Ident, value::RustFn, value::N_MAX_ARGS, Func, Value};
+use crate::{
+    env::Env, parser::Ident, value::FuncType, value::RustFn, value::N_MAX_ARGS, Func, Value,
+};
 
 macro_rules! built_in_fn {
     ($func:expr, $name:expr, $arity:expr) => {
-        Value::Func(
-            Func::BuiltIn(RustFn(Arc::new($func)), $name.to_owned()),
-            $arity,
-        )
+        Value::Func(Func {
+            tp: FuncType::BuiltIn(RustFn(Arc::new($func)), $name.to_owned()),
+            arity: $arity,
+        })
     };
 }
 
