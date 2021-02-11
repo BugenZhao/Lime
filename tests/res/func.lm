@@ -1,4 +1,42 @@
+// Basic
+
 var add = |a, b| { a + b; };
 assert add(1, 2) == 3;
 
 assert (|a, b| { a - b; })(5, 3) == 2;
+
+
+// Closure
+
+var my_counter = || {
+    var v = 0;
+    var my_count = || {
+        v = v + 1;
+    };
+    my_count;
+};
+
+var my_count_1 = my_counter();
+print(my_count_1);
+var my_count_2 = my_counter();
+print(my_count_2);
+
+assert my_count_1 != my_count_2;
+
+assert my_count_1() == 1;
+assert my_count_1() == 2;
+assert my_count_1() == 3;
+assert my_count_2() == 1;
+assert my_count_2() == 2;
+assert my_count_1() == 4;
+
+
+// Recursion
+
+var bad_fib = |n| {
+    if n == 0 or n == 1 { 1; }
+    else { bad_fib(n - 1) + bad_fib(n - 2); }
+};
+
+var ans = bad_fib(10);
+assert ans == 89;

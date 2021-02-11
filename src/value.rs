@@ -1,6 +1,10 @@
 use std::{fmt::Display, rc::Rc, sync::Arc};
 
-use crate::{Error, Result, env::Env, parser::{Ident, Stmt}};
+use crate::{
+    env::Env,
+    parser::{Ident, Stmt},
+    Error, Result,
+};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -49,10 +53,17 @@ pub enum FuncType {
     Lime(Vec<Ident>, Vec<Stmt>),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Func {
     pub tp: FuncType,
     pub arity: (usize, usize),
+    pub env: Rc<Env>,
+}
+
+impl PartialEq for Func {
+    fn eq(&self, other: &Self) -> bool {
+        self.tp == other.tp && self.arity == other.arity && Rc::ptr_eq(&self.env, &other.env)
+    }
 }
 
 impl Display for Func {
@@ -86,11 +97,11 @@ impl Func {
             FuncType::BuiltIn(f, _) => Ok((f.0)(args)),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
             FuncType::Lime(params, body) => {
-                let env = Rc::new(crate::env::Env::new_standalone());
+                let fn_env = Rc::new(Env::new(Rc::clone(&self.env)));
                 for (param, arg) in params.clone().into_iter().zip(args) {
-                    env.decl(param, arg)?;
+                    fn_env.decl(param, arg)?;
                 }
-                env.eval_stmts(body)
+                fn_env.eval_stmts(body)
             }
         }
     }
@@ -101,6 +112,7 @@ impl Func {
         Ok(Self {
             tp: FuncType::Composed(box f, box g),
             arity,
+            env: Rc::new(Env::new_empty()),
         })
     }
 

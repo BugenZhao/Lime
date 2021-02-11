@@ -10,7 +10,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: Rc::new(Env::new_global()),
+            env: Env::new_global(),
         }
     }
 }

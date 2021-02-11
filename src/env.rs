@@ -16,12 +16,12 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new_global() -> Self {
-        let mut env = Self {
+    pub fn new_global() -> Rc<Self> {
+        let env = Rc::new(Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
-        };
-        define_std(&mut env);
+        });
+        define_std(&env);
         env
     }
 
@@ -32,8 +32,7 @@ impl Env {
         }
     }
 
-    #[deprecated]
-    pub fn new_standalone() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
@@ -363,6 +362,7 @@ impl Env {
             Expr::Func(params, body) => Ok(Value::Func(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),
                 arity: (params.len(), params.len()),
+                env: Rc::clone(&self),
             })),
         }
     }
