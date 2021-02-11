@@ -54,6 +54,7 @@ pub enum Stmt {
     Assert(usize, usize, String, Expr),
     Break(Option<Expr>),
     Continue(Option<Expr>),
+    Return(Option<Expr>),
 }
 
 peg::parser! {
@@ -85,6 +86,7 @@ peg::parser! {
         rule kw_default() = "default"
         rule kw_break() = "break"
         rule kw_continue() = "continue"
+        rule kw_return() = "return"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -93,7 +95,7 @@ peg::parser! {
         rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
-                           kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue()
+                           kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -207,7 +209,7 @@ peg::parser! {
             = params:(ident() ** (_ "," _)) {?
                 if params.len() <= N_MAX_ARGS { Ok(params) } else { Err("fewer parameters") }
             }
-        
+
         rule expr_func() -> Expr
             = "|" _ p:param_list() _ "|" _ "{" _ body:stmt()* _ "}" { Expr::Func(p, body) }
 
@@ -241,12 +243,14 @@ peg::parser! {
         rule stmt_assert() -> Stmt
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
 
-        rule break_continue_val() -> Expr
+        rule bcr_val() -> Expr
             = __ e:expr_CLEAN() { e }
         rule stmt_break() -> Stmt
-            = kw_break() e:break_continue_val()? _ semi()+ { Stmt::Break(e) }
+            = kw_break() e:bcr_val()? _ semi()+ { Stmt::Break(e) }
         rule stmt_continue() -> Stmt
-            = kw_continue() e:break_continue_val()? _ semi()+ { Stmt::Continue(e) }
+            = kw_continue() e:bcr_val()? _ semi()+ { Stmt::Continue(e) }
+        rule stmt_return() -> Stmt
+            = kw_return() e:bcr_val()? _ semi()+ { Stmt::Return(e) }
 
         rule stmt() -> Stmt
             = stmt_var_decl()
@@ -254,6 +258,7 @@ peg::parser! {
             / stmt_assert()
             / stmt_break()
             / stmt_continue()
+            / stmt_return()
             / stmt_expr()
 
         rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
@@ -286,6 +291,7 @@ impl<'a> Preprocessor<'a> {
             }
             Stmt::Break(_) => {}
             Stmt::Continue(_) => {}
+            Stmt::Return(_) => {}
         }
     }
 }

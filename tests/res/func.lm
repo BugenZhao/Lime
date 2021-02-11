@@ -40,3 +40,27 @@ var bad_fib = |n| {
 
 var ans = bad_fib(10);
 assert ans == 89;
+
+
+// Return
+
+var collatz = |n| {
+    var i = 0;
+
+    while true {
+        print(n);
+        if n == 1 { return i; }
+        i = i + 1;
+
+        if (n / 2) * 2 == n { 
+            n = n / 2; 
+        } else {
+            n = 3 * n + 1;
+        }
+    }
+};
+
+var i = 27;
+var steps = collatz(i);
+print("Steps of", i, "is", steps);
+assert steps == 111;

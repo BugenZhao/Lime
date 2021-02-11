@@ -15,6 +15,8 @@ pub enum Error {
     Break(Value),
     #[error("Continue outside of a loop")]
     Continue(Value),
+    #[error("Return outside of a function")]
+    Return(Value),
 
     #[error("Cannot find value `{0}` in this scope")]
     CannotFindValue(String),

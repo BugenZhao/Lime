@@ -148,6 +148,14 @@ impl Env {
                 };
                 Err(Error::Continue(val))
             }
+            Stmt::Return(expr) => {
+                let val = if let Some(e) = expr {
+                    self.eval_expr(e)?
+                } else {
+                    Value::Nil
+                };
+                Err(Error::Return(val))
+            }
         }
     }
 
@@ -355,7 +363,10 @@ impl Env {
                         args.push(self.eval_expr(arg_expr)?);
                     }
 
-                    lime_f.call(args)
+                    match lime_f.call(args) {
+                        Ok(v) | Err(Error::Return(v)) => Ok(v),
+                        err @ Err(_) => err,
+                    }
                 }
                 v @ _ => Err(Error::NotCallable(v)),
             },

@@ -13,3 +13,15 @@ fn test_bad_arity() {
     let r = eval!("(|a, b| { a + b; })(3);").unwrap_err();
     assert!(matches!(r, Error::WrongArguments { .. }));
 }
+
+#[test]
+fn test_bad_return_1() {
+    let r = eval!("return 10;").unwrap_err();
+    assert!(matches!(r, Error::Return(Value::Int(10))));
+}
+
+#[test]
+fn test_bad_return_2() {
+    let r = eval!("return;").unwrap_err();
+    assert!(matches!(r, Error::Return(Value::Nil)));
+}
