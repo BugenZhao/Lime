@@ -1,9 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::{
-    parser::{Ident, Stmt},
-    Error, Result,
-};
+use crate::{Error, Result, env::Env, parser::{Ident, Stmt}};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -52,7 +49,7 @@ pub enum FuncType {
     Lime(Vec<Ident>, Vec<Stmt>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Func {
     pub tp: FuncType,
     pub arity: (usize, usize),
@@ -61,10 +58,24 @@ pub struct Func {
 impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.tp {
-            FuncType::BuiltIn(_, name) => write!(f, "<built-in func `{}`>", name),
-            FuncType::Composed(..) => write!(f, "<composed func>"),
-            FuncType::Lime(_, _) => write!(f, "<func>"),
+            FuncType::BuiltIn(_, name) => write!(f, "built-in func `{}`|{:?}|", name, self.arity),
+            FuncType::Composed(..) => write!(f, "composed func |{:?}|", self.arity),
+            FuncType::Lime(params, _) => write!(
+                f,
+                "func |{}|",
+                params
+                    .iter()
+                    .map(|i| i.0.to_owned())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         }
+    }
+}
+
+impl std::fmt::Debug for Func {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
     }
 }
 
