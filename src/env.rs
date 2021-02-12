@@ -51,9 +51,12 @@ impl Env {
         }
     }
 
-    pub fn decl(&self, ident: Ident, val: Value) -> Result<()> {
+    pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
         if let Value::Nil = val {
             return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        }
+        if let Value::Func(func) = val {
+            val = Value::Func(func.with_name(ident.0.clone()))
         }
         self.vars.borrow_mut().insert(ident, val);
         Ok(())
@@ -374,6 +377,7 @@ impl Env {
                 tp: FuncType::Lime(params.clone(), body.clone()),
                 arity: (params.len(), params.len()),
                 env: Rc::clone(&self),
+                name: None,
             })),
         }
     }

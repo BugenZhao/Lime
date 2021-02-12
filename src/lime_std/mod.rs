@@ -45,9 +45,10 @@ fn define_builtin(env: &Rc<Env>) {
     macro_rules! built_in_fn {
         ($func:expr, $name:expr, $arity:expr) => {
             Value::Func(Func {
-                tp: FuncType::BuiltIn(RustFn(Arc::new($func)), $name.to_owned()),
+                tp: FuncType::BuiltIn(RustFn(Arc::new($func))),
                 arity: $arity,
                 env: Rc::clone(env),
+                name: Some($name.to_owned()),
             })
         };
     }

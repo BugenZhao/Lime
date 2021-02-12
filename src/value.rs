@@ -48,7 +48,7 @@ impl PartialEq for RustFn {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FuncType {
-    BuiltIn(RustFn, String),
+    BuiltIn(RustFn),
     Composed(Box<Func>, Box<Func>),
     Lime(Vec<Ident>, Vec<Stmt>),
 }
@@ -58,6 +58,7 @@ pub struct Func {
     pub tp: FuncType,
     pub arity: (usize, usize),
     pub env: Rc<Env>,
+    pub name: Option<String>,
 }
 
 impl PartialEq for Func {
@@ -68,12 +69,14 @@ impl PartialEq for Func {
 
 impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = self.name.as_deref().unwrap_or("");
         match &self.tp {
-            FuncType::BuiltIn(_, name) => write!(f, "built-in func `{}`|{:?}|", name, self.arity),
-            FuncType::Composed(..) => write!(f, "composed func |{:?}|", self.arity),
+            FuncType::BuiltIn(_) => write!(f, "<built-in> {}|{:?}|", name, self.arity),
+            FuncType::Composed(..) => write!(f, "<composed> {}|{:?}|", name, self.arity),
             FuncType::Lime(params, _) => write!(
                 f,
-                "func |{}|",
+                "{}|{}|",
+                name,
                 params
                     .iter()
                     .map(|i| i.0.to_owned())
@@ -86,15 +89,29 @@ impl Display for Func {
 
 impl std::fmt::Debug for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self, f)
+        let name = self.name.as_deref().unwrap_or("");
+        match &self.tp {
+            FuncType::BuiltIn(rf) => write!(f, "<built-in({:?})> {}|{:?}|", rf, name, self.arity),
+            _ => std::fmt::Display::fmt(self, f),
+        }
     }
 }
 
 impl Func {
-    #[inline]
+    pub fn with_name(self, name: String) -> Self {
+        if self.name.is_some() {
+            self
+        } else {
+            Self {
+                name: Some(name),
+                ..self
+            }
+        }
+    }
+
     pub fn call(&self, args: Vec<Value>) -> Result<Value> {
         match &self.tp {
-            FuncType::BuiltIn(f, _) => (f.0)(args),
+            FuncType::BuiltIn(f) => (f.0)(args),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
             FuncType::Lime(params, body) => {
                 let fn_env = Rc::new(Env::new(Rc::clone(&self.env)));
@@ -113,6 +130,7 @@ impl Func {
             tp: FuncType::Composed(box f, box g),
             arity,
             env: Rc::new(Env::new_empty()),
+            name: None,
         })
     }
 
