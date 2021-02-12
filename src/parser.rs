@@ -15,6 +15,8 @@ pub enum BinaryOp {
     Pow,
 
     // Comparison
+    Teq,
+    Tne,
     Eq,
     Ne,
     Gt,
@@ -170,6 +172,9 @@ peg::parser! {
             --
             x:(@) _ kw_and() _ y:@ { Expr::Binary(box x, BinaryOp::And, box y) }
             --
+            x:(@) _ "===" _ y:@ { Expr::Binary(box x, BinaryOp::Teq, box y) }
+            x:(@) _ "!==" _ y:@ { Expr::Binary(box x, BinaryOp::Tne, box y) }
+            --
             x:(@) _ "==" _ y:@ { Expr::Binary(box x, BinaryOp::Eq, box y) }
             x:(@) _ "!=" _ y:@ { Expr::Binary(box x, BinaryOp::Ne, box y) }
             --
@@ -196,7 +201,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" _ ss:stmt()* _ "}" { Expr::Block(ss) }
+            = "{" semi()* ss:(raw_stmt())* semi()* "}" { Expr::Block(ss) }
 
         rule if_else() -> Expr
             = _ kw_else() _ else_:(expr_if() / block()) { else_ }

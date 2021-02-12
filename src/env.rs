@@ -233,6 +233,8 @@ impl Env {
                 let (l, r) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
 
                 match (l.clone(), r.clone(), op) {
+                    (a, b, BinaryOp::Teq) => bool!(a == b),
+                    (a, b, BinaryOp::Tne) => bool!(a != b),
                     (Value::Int(a), Value::Int(b), op) => match op {
                         BinaryOp::Add => int!(a + b),
                         BinaryOp::Sub => int!(a - b),
@@ -240,6 +242,7 @@ impl Env {
                         BinaryOp::Div => int!(a / b),
                         BinaryOp::Pow => int!(a.pow(b as u32)),
 
+                        BinaryOp::Teq | BinaryOp::Tne => unreachable!(),
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
@@ -257,6 +260,7 @@ impl Env {
                         BinaryOp::Div => float!(a / b),
                         BinaryOp::Pow => float!(a.powf(b)),
 
+                        BinaryOp::Teq | BinaryOp::Tne => unreachable!(),
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
