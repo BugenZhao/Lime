@@ -85,6 +85,11 @@ fn define_builtin(env: &Rc<Env>) {
         "dbg",
         1..=1
     );
+    def!(
+        |_| { Ok(Value::String(format!("Lime {}", env!("CARGO_PKG_VERSION")))) },
+        "version",
+        0..=0
+    );
 
     {
         use std::sync::atomic::{AtomicI64, Ordering};

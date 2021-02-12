@@ -1,10 +1,7 @@
-var version = || {
-    println("Lime 0.1.0");
-};
-
 var max = |a, b| {
     if a > b { a; } else { b; }
 };
+
 var min = |a, b| {
     if a < b { a; } else { b; }
 };

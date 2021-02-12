@@ -37,7 +37,7 @@ impl Completer for LimeHelper {
         pos: usize,
         _ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
-        if pos < line.len() || line.len() == 0 {
+        if pos < line.len() {
             return Ok((0, vec![]));
         }
         let ans = self
@@ -55,6 +55,10 @@ impl Hinter for LimeHelper {
     type Hint = String;
 
     fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<String> {
+        if pos < line.len() || line.len() == 0 {
+            return None;
+        }
+
         self.complete(line, pos, _ctx)
             .unwrap()
             .1
