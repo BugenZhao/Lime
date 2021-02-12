@@ -1,5 +1,5 @@
 var version = || {
-    print("Lime 0.1.0");
+    println("Lime 0.1.0");
 };
 
 var max = |a, b| {

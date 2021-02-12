@@ -1,5 +1,8 @@
-use std::rc::Rc;
 use std::sync::Arc;
+use std::{
+    io::{stdout, Write},
+    rc::Rc,
+};
 
 use crate::{
     env::Env,
@@ -10,14 +13,24 @@ use crate::{
     Result, Value,
 };
 
-fn print(args: Vec<Value>) -> Result<Value> {
-    println!(
-        "{}",
-        args.iter()
+macro_rules! join {
+    ($args:expr) => {
+        $args
+            .iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>()
             .join(" ")
-    );
+    };
+}
+
+fn print(args: Vec<Value>) -> Result<Value> {
+    print!("{}", join!(args));
+    stdout().flush()?;
+    Ok(Value::Nil)
+}
+
+fn println(args: Vec<Value>) -> Result<Value> {
+    println!("{}", join!(args));
     Ok(Value::Nil)
 }
 
@@ -33,60 +46,53 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 }
 
 fn panic(args: Vec<Value>) -> Result<Value> {
-    Err(Error::Lime(Panic(
-        args.iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(" "),
-    )))
+    Err(Error::Lime(Panic(join!(args))))
 }
 
 fn define_builtin(env: &Rc<Env>) {
-    macro_rules! built_in_fn {
+    macro_rules! def {
         ($func:expr, $name:expr, $arity:expr) => {
-            Value::Func(Func {
-                tp: FuncType::BuiltIn(RustFn(Arc::new($func))),
-                arity: $arity,
-                env: Rc::clone(env),
-                name: Some($name.to_owned()),
-            })
+            env.decl(
+                Ident($name.to_owned()),
+                Value::Func(Func {
+                    tp: FuncType::BuiltIn(RustFn(Arc::new($func))),
+                    arity: $arity,
+                    env: Rc::clone(env),
+                    name: Some($name.to_owned()),
+                }),
+            )
+            .unwrap();
         };
     }
 
-    {
-        env.decl(
-            Ident("print".to_owned()),
-            built_in_fn!(print, "print", (0, N_MAX_ARGS)),
-        )
-        .unwrap();
-    }
-    {
-        env.decl(Ident("time".to_owned()), built_in_fn!(time, "time", (0, 0)))
-            .unwrap();
-    }
+    def!(print, "print", (0, N_MAX_ARGS));
+    def!(println, "println", (0, N_MAX_ARGS));
+    def!(time, "time", (0, 0));
+    def!(panic, "panic", (1, N_MAX_ARGS));
+    def!(
+        |args| {
+            print(args)?;
+            let mut buf = String::new();
+            std::io::stdin().read_line(&mut buf)?;
+            buf.pop();
+            Ok(Value::String(buf))
+        },
+        "readln",
+        (0, N_MAX_ARGS)
+    );
+
     {
         use std::sync::atomic::{AtomicI64, Ordering};
         let v = AtomicI64::new(1);
-        env.decl(
-            Ident("count".to_owned()),
-            built_in_fn!(
-                move |_| { Ok(Value::Int(v.fetch_add(1, Ordering::SeqCst))) },
-                "count",
-                (0, 0)
-            ),
-        )
-        .unwrap();
-    }
-    {
-        env.decl(
-            Ident("panic".to_owned()),
-            built_in_fn!(panic, "panic", (1, 255)),
-        )
-        .unwrap();
+        def!(
+            move |_| { Ok(Value::Int(v.fetch_add(1, Ordering::SeqCst))) },
+            "count",
+            (0, 0)
+        );
     }
 }
 
-pub fn define_prelude(env: &Rc<Env>) {
+fn define_prelude(env: &Rc<Env>) {
     const PRELUDE_LM: &str = include_str!("prelude.lm");
 
     let stmts = parser::parse(PRELUDE_LM).unwrap();

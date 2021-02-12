@@ -17,9 +17,9 @@ var my_counter = || {
 };
 
 var my_count_1 = my_counter();
-print(my_count_1);
+println(my_count_1);
 var my_count_2 = my_counter();
-print(my_count_2);
+println(my_count_2);
 
 assert my_count_1 != my_count_2;
 
@@ -48,7 +48,7 @@ var collatz = |n| {
     var i = 0;
 
     while true {
-        print(n);
+        println(n);
         if n == 1 { return i; }
         i = i + 1;
 
@@ -62,5 +62,5 @@ var collatz = |n| {
 
 var i = 27;
 var steps = collatz(i);
-print("Steps of", i, "is", steps);
+println("Steps of", i, "is", steps);
 assert steps == 111;
