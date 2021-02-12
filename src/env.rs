@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    rc::Rc,
+};
 
 use parser::UnaryOp;
 
@@ -13,6 +18,7 @@ use crate::{
 pub struct Env {
     vars: RefCell<HashMap<Ident, Value>>,
     enclosing: Option<Rc<Self>>,
+    safe: bool,
 }
 
 impl Env {
@@ -20,6 +26,7 @@ impl Env {
         let env = Rc::new(Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
+            safe: true,
         });
         define_std(&env);
         env
@@ -29,6 +36,7 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: Some(enclosing),
+            safe: true,
         }
     }
 
@@ -36,6 +44,7 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
+            safe: true,
         }
     }
 
@@ -63,8 +72,10 @@ impl Env {
     }
 
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
-        if let Value::Nil = val {
-            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        if self.safe {
+            if let Value::Nil = val {
+                return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+            }
         }
         if let Value::Func(func) = val {
             val = Value::Func(func.with_name(ident.0.clone()))
@@ -74,8 +85,10 @@ impl Env {
     }
 
     pub fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
-        if let Value::Nil = val {
-            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        if self.safe {
+            if let Value::Nil = val {
+                return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+            }
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
             *v = val.clone();
@@ -397,5 +410,110 @@ impl Eval for Env {
         }
 
         Ok(ret)
+    }
+}
+
+impl Env {
+    fn get_step(&self, ident: &Ident) -> Option<usize> {
+        let mut curr = self;
+        let mut step = 0;
+
+        loop {
+            if curr.vars.borrow().contains_key(ident) {
+                return Some(step);
+            } else if let Some(next) = curr.enclosing.as_deref() {
+                curr = next;
+                step += 1;
+            } else {
+                return None;
+            }
+        }
+    }
+
+    fn res_stmts(self: &Rc<Self>, stmts: &mut [Stmt]) -> Result<()> {
+        for stmt in stmts.iter_mut() {
+            self.res_stmt(stmt)?;
+        }
+        Ok(())
+    }
+
+    fn res_stmt(self: &Rc<Self>, stmt: &mut Stmt) -> Result<()> {
+        match stmt {
+            Stmt::VarDecl(i, e) => {
+                self.res_expr(e)?;
+                self.decl(i.clone(), Value::Nil)?;
+            }
+            Stmt::Expr(e) => self.res_expr(e)?,
+            Stmt::Print(e) => self.res_expr(e)?,
+            Stmt::Assert(_, _, _, e) => self.res_expr(e)?,
+            Stmt::Break(e) => {
+                if let Some(e) = e {
+                    self.res_expr(e)?
+                }
+            }
+            Stmt::Continue(e) => {
+                if let Some(e) = e {
+                    self.res_expr(e)?
+                }
+            }
+            Stmt::Return(e) => {
+                if let Some(e) = e {
+                    self.res_expr(e)?
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn res_expr(self: &Rc<Self>, expr: &mut Expr) -> Result<()> {
+        match expr {
+            Expr::Variable(ident, step) => {
+                *step = Some(
+                    self.get_step(ident)
+                        .ok_or(Error::CannotFindValue(ident.0.clone()))?,
+                );
+            }
+            Expr::Literal(_) => {}
+            Expr::Binary(l, _, r) => {
+                self.res_expr(l)?;
+                self.res_expr(r)?;
+            }
+            Expr::Unary(_, e) => self.res_expr(e)?,
+            Expr::Assign(ident, e) => {
+                todo!()
+            }
+            Expr::Cast(e, _i) => {
+                // FIXME: _i resolution
+                self.res_expr(e)?;
+            }
+            Expr::Block(ss) => {
+                let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                new_env.res_stmts(ss)?;
+            }
+            Expr::If(c, t, e) => {
+                self.res_expr(c)?;
+                self.res_expr(t)?;
+                if let Some(e) = e.deref_mut() {
+                    self.res_expr(e)?;
+                }
+            }
+            Expr::While(c, b, d) => {
+                self.res_expr(c)?;
+                self.res_expr(b)?;
+                if let Some(d) = d.deref_mut() {
+                    self.res_expr(d)?;
+                }
+            }
+            Expr::Call(c, args) => {
+                self.res_expr(c)?;
+                for a in args.iter_mut() {
+                    self.res_expr(a)?;
+                }
+            }
+            Expr::Func(_, _) => {
+                todo!()
+            }
+        }
+        Ok(())
     }
 }
