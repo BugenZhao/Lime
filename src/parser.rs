@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+
 use crate::value::*;
 use crate::{
     error::{Error, Result},
@@ -103,7 +105,7 @@ peg::parser! {
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                            kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
-        rule kw_ALL() = kw_TYPE() / kw_NORMAL()
+        pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 
         // Primary
@@ -280,7 +282,15 @@ peg::parser! {
     }
 }
 
-#[inline]
+lazy_static! {
+    pub static ref KEYWORDS: Vec<String> = my_parser::kw_ALL("")
+        .unwrap_err()
+        .expected
+        .tokens()
+        .map(|s| s.to_owned().replace("\"", ""))
+        .collect();
+}
+
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
     let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;

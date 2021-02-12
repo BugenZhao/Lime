@@ -55,12 +55,10 @@ impl Hinter for LimeHelper {
     type Hint = String;
 
     fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<String> {
-        if pos < line.len() || line.len() == 0 {
-            return None;
-        }
-        self.hints
-            .iter()
-            .find(|x| x.starts_with(&line[..pos]))
+        self.complete(line, pos, _ctx)
+            .unwrap()
+            .1
+            .first()
             .map(|s| s[pos..].to_owned())
     }
 }

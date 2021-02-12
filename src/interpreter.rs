@@ -30,7 +30,10 @@ impl Interpreter {
     }
 
     pub fn hints(&self) -> Vec<String> {
-        self.env.names()
+        let mut r = self.env.names();
+        r.append(&mut parser::KEYWORDS.clone());
+        r.sort();
+        r
     }
 }
 
