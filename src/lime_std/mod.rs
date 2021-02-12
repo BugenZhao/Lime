@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    env::{Env, Eval},
+    env::Env,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
     Error, Func,

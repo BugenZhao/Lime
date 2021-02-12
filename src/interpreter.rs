@@ -1,9 +1,6 @@
 use std::{fs::read_to_string, path::Path, rc::Rc};
 
-use crate::{
-    env::{Env, Eval},
-    error::Result,
-};
+use crate::{env::Env, error::Result};
 use crate::{parser, Value};
 
 pub struct Interpreter {
