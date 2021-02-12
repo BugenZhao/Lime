@@ -64,7 +64,7 @@ impl Env {
 
     fn get_at_step(&self, id_name: &str, step: usize) -> Value {
         if step == 0 {
-            self.vars.borrow().get(id_name).cloned().unwrap()
+            self.vars.borrow().get(id_name).unwrap().to_owned()
         } else {
             self.enclosing
                 .as_deref()
@@ -86,14 +86,17 @@ impl Env {
         Ok(())
     }
 
-    fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
+    fn assign(&self, ident: &Ident, mut val: Value) -> Result<()> {
         if self.safe {
             if let Value::Nil = val {
                 return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
             }
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
-            *v = val.clone();
+            if let Value::Func(func) = val {
+                val = Value::Func(func.with_name(ident.0.clone()))
+            }
+            *v = val;
             Ok(())
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.assign(ident, val)
