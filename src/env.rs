@@ -104,6 +104,14 @@ impl Env {
 }
 
 impl Env {
+    pub fn names(&self) -> Vec<String> {
+        let mut vec = self.vars.borrow().keys().cloned().collect::<Vec<_>>();
+        vec.sort();
+        vec
+    }
+}
+
+impl Env {
     fn is_truthy(self: &Rc<Self>, expr: &Expr) -> Result<bool> {
         match self.eval_expr(expr)? {
             Value::Bool(true) => Ok(true),

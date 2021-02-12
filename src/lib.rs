@@ -8,6 +8,7 @@ mod parser;
 mod repl;
 mod resolver;
 mod value;
+mod repl_helper;
 
 pub use error::{Error, LimeError, Result};
 pub use interpreter::Interpreter;

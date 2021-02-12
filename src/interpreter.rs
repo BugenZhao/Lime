@@ -28,6 +28,10 @@ impl Interpreter {
     pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
         self.env.eval_stmts(&stmts)
     }
+
+    pub fn hints(&self) -> Vec<String> {
+        self.env.names()
+    }
 }
 
 #[cfg(test)]
