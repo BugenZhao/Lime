@@ -1,8 +1,8 @@
+use crate::value::*;
 use crate::{
     error::{Error, Result},
     resolver::Resolver,
 };
-use crate::{preprocessor::Preprocessor, value::*};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -279,8 +279,7 @@ peg::parser! {
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
     let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
-    Preprocessor::new(text).pp_stmts(&mut stmts);
-    Resolver::new_global().res_stmts(&mut stmts)?;
+    Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
 }
 

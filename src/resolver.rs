@@ -6,13 +6,15 @@ use crate::{
 };
 
 pub struct Resolver<'a> {
+    text: &'a str,
     vars: RefCell<HashSet<&'a str>>,
     enclosing: Option<Rc<Self>>,
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new_global() -> Rc<Self> {
+    pub fn new_global(text: &'a str) -> Rc<Self> {
         Rc::new(Self {
+            text,
             vars: RefCell::new(HashSet::new()),
             enclosing: None,
         })
@@ -20,6 +22,7 @@ impl<'a> Resolver<'a> {
 
     fn new(enclosing: Rc<Self>) -> Self {
         Self {
+            text: enclosing.text,
             vars: RefCell::new(HashSet::new()),
             enclosing: Some(enclosing),
         }
@@ -64,7 +67,10 @@ impl<'a> Resolver<'a> {
             }
             Stmt::Expr(e) => self.res_expr(e)?,
             Stmt::Print(e) => self.res_expr(e)?,
-            Stmt::Assert(_, _, _, e) => self.res_expr(e)?,
+            Stmt::Assert(start, end, text, e) => {
+                *text = self.text.chars().skip(*start).take(*end - *start).collect();
+                self.res_expr(e)?;
+            }
             Stmt::Break(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
