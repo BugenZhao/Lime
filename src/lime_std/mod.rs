@@ -29,11 +29,13 @@ fn print(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Nil)
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn println(args: Vec<Value>) -> Result<Value> {
     println!("{}", join!(args));
     Ok(Value::Nil)
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn time(_args: Vec<Value>) -> Result<Value> {
     use std::time::{SystemTime, UNIX_EPOCH};
 

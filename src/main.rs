@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use colored::*;
 use structopt::StructOpt;
 
-use lime::{repl, Interpreter, Result};
+use lime::{repl, Interpreter};
 
 #[derive(Debug, structopt::StructOpt)]
 struct Opt {
@@ -13,7 +13,7 @@ struct Opt {
     cont: bool,
 }
 
-fn main() -> Result<()> {
+fn main() {
     let intp = Interpreter::new();
     let opt = Opt::from_args();
     if let Some(path) = opt.input {
@@ -26,6 +26,4 @@ fn main() -> Result<()> {
     } else {
         repl(intp);
     }
-
-    Ok(())
 }

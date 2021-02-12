@@ -42,7 +42,7 @@ impl std::fmt::Debug for RustFn {
 
 impl PartialEq for RustFn {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        std::ptr::eq(&self.0, &other.0)
     }
 }
 

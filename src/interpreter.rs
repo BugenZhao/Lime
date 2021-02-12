@@ -7,6 +7,7 @@ pub struct Interpreter {
     env: Rc<Env>,
 }
 
+#[allow(clippy::new_without_default)]
 impl Interpreter {
     pub fn new() -> Self {
         Self {

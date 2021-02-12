@@ -293,7 +293,7 @@ lazy_static! {
 
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
-    let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
+    let mut stmts = result.map_err(Error::ParseError)?;
     Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
 }

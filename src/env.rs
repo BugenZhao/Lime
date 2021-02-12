@@ -76,7 +76,7 @@ impl Env {
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
         if self.safe {
             if let Value::Nil = val {
-                return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+                return Err(Error::CannotHaveValue(ident.0, val));
             }
         }
         if let Value::Func(func) = val {
@@ -117,7 +117,7 @@ impl Env {
         match self.eval_expr(expr)? {
             Value::Bool(true) => Ok(true),
             Value::Bool(false) => Ok(false),
-            v @ _ => Err(Error::CannotBeCondition(v)),
+            v => Err(Error::CannotBeCondition(v)),
         }
     }
 
@@ -142,7 +142,7 @@ impl Env {
         match stmt {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
-                self.decl(ident.clone(), val.clone())?;
+                self.decl(ident.clone(), val)?;
                 Ok(Value::Nil)
             }
             Stmt::Expr(expr) => match self.eval_expr(expr) {
@@ -219,7 +219,7 @@ impl Env {
 
         match expr {
             Expr::Variable(ident) => match self.get(ident) {
-                Some(value) => Ok(value.clone()),
+                Some(value) => Ok(value),
                 None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
             Expr::Literal(value) => Ok(value.clone()),
@@ -262,6 +262,7 @@ impl Env {
                         BinaryOp::And => None,
                         BinaryOp::Or => unreachable!(),
                     },
+                    #[allow(clippy::float_cmp)]
                     (Value::Float(a), Value::Float(b), op) => match op {
                         BinaryOp::Add => float!(a + b),
                         BinaryOp::Sub => float!(a - b),
@@ -280,6 +281,7 @@ impl Env {
                         BinaryOp::And => None,
                         BinaryOp::Or => unreachable!(),
                     },
+                    #[allow(clippy::bool_comparison)]
                     (Value::Bool(a), Value::Bool(b), op) => match op {
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
@@ -320,7 +322,7 @@ impl Env {
 
                     (_, _, _) => None,
                 }
-                .ok_or(Error::CannotApplyBinaryOp(op.clone(), l, r))
+                .ok_or_else(|| Error::CannotApplyBinaryOp(op.clone(), l, r))
             }
             Expr::Unary(op, val) => match (self.eval_expr(val)?, op) {
                 (Value::Int(x), UnaryOp::Neg) => Ok(Value::Int(-x)),
@@ -352,7 +354,7 @@ impl Env {
                     "String" => Some(Value::String(format!("{}", val))),
                     _ => None,
                 }
-                .ok_or(Error::CannotCast(val, tp.to_owned()))
+                .ok_or_else(|| Error::CannotCast(val, tp.to_owned()))
             }
             Expr::Block(stmts) => {
                 let new_env = Rc::new(Env::new(Rc::clone(&self)));
@@ -408,7 +410,7 @@ impl Env {
                         err @ Err(_) => err,
                     }
                 }
-                v @ _ => Err(Error::NotCallable(v)),
+                v => Err(Error::NotCallable(v)),
             },
             Expr::Func(params, body) => Ok(Value::Func(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),

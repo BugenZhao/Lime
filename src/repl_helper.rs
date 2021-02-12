@@ -55,7 +55,7 @@ impl Hinter for LimeHelper {
     type Hint = String;
 
     fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<String> {
-        if pos < line.len() || line.len() == 0 {
+        if pos < line.len() || line.is_empty() {
             return None;
         }
 
@@ -141,7 +141,5 @@ pub fn editor() -> Editor<LimeHelper> {
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(h));
 
-    // rl.bind_sequence(KeyEvent(KeyCode::Tab, Modifiers::NONE), Cmd::CompleteHint);
-
-    return rl;
+    rl
 }
