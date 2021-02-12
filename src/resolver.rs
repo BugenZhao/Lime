@@ -57,6 +57,8 @@ impl<'a> Resolver<'a> {
     fn res_stmt(self: &Rc<Self>, stmt: &'a mut Stmt) -> Result<()> {
         match stmt {
             Stmt::VarDecl(i, e) => {
+                // this leaves functions that are recursive or calling each other UNresolved
+                // they will be resolved in runtime instead
                 self.res_expr(e)?;
                 self.decl(i);
             }
