@@ -1,4 +1,4 @@
-use std::borrow::Cow::{self, Borrowed, Owned};
+use std::borrow::Cow::{self, Owned};
 
 use colored::Colorize;
 use rustyline::completion::Completer;
@@ -74,11 +74,11 @@ impl Highlighter for LimeHelper {
         default: bool,
     ) -> Cow<'b, str> {
         let _ = default;
-        Borrowed(prompt)
+        Owned(prompt.bright_green().bold().to_string())
     }
 
     fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
-        Owned(hint.bright_black().to_string())
+        Owned(hint.dimmed().to_string())
     }
 
     fn highlight<'l>(&self, line: &'l str, pos: usize) -> Cow<'l, str> {
@@ -87,6 +87,15 @@ impl Highlighter for LimeHelper {
 
     fn highlight_char(&self, line: &str, pos: usize) -> bool {
         self.highlighter.highlight_char(line, pos)
+    }
+
+    fn highlight_candidate<'c>(
+        &self,
+        candidate: &'c str,
+        completion: CompletionType,
+    ) -> Cow<'c, str> {
+        let _ = completion;
+        Owned(candidate.underline().to_string())
     }
 }
 
