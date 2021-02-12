@@ -31,11 +31,16 @@ fn test_static_resolving() {
     let text = r#"
     var a = "global";
     {
-        var show_a = || { println(a); a; };
-        assert show_a() == "global";
+        var show_global = || { println(a); a; };
+        assert show_global() == "global";
+
         var a = "block";
-        assert show_a() == "global";
+        var show_block = || { println(a); a; };
+        assert show_global() == "global";
+        assert  show_block() == "block";
     }
     "#;
-    eval!(text).unwrap();
+    let stmts = lime::parse_and_resolve(text).unwrap();
+    println!("{:#?}", stmts);
+    Interpreter::new().eval_stmts(&stmts).unwrap();
 }

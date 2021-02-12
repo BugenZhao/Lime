@@ -17,7 +17,7 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new_global() -> Rc<Self> {
+    pub fn new_global_std() -> Rc<Self> {
         let env = Rc::new(Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,

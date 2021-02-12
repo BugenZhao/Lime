@@ -1,6 +1,6 @@
 use std::{fs::read_to_string, path::Path, rc::Rc};
 
-use crate::{env::Env, error::Result};
+use crate::{env::Env, error::Result, parser::Stmt};
 use crate::{parser, Value};
 
 pub struct Interpreter {
@@ -10,7 +10,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: Env::new_global(),
+            env: Env::new_global_std(),
         }
     }
 }
@@ -22,6 +22,10 @@ impl Interpreter {
 
     pub fn eval(&self, text: &str) -> Result<Value> {
         let stmts = parser::parse_and_resolve(text)?;
+        self.env.eval_stmts(&stmts)
+    }
+
+    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
         self.env.eval_stmts(&stmts)
     }
 }
