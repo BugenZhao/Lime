@@ -1,5 +1,8 @@
-use crate::error::{Error, Result};
 use crate::value::*;
+use crate::{
+    error::{Error, Result},
+    resolver::Resolver,
+};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -301,10 +304,11 @@ impl<'a> Preprocessor<'a> {
 }
 
 #[inline]
-pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
     let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
     Preprocessor::new(text).pp_stmts(&mut stmts);
+    Resolver::new_global().res_stmts(&mut stmts)?;
     Ok(stmts)
 }
 
@@ -320,7 +324,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         _print c + 3;
         "#;
-        let r = parse(text);
+        let r = parse_and_resolve(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }
@@ -328,7 +332,7 @@ mod test {
     #[test]
     fn test_call() {
         let text = "-fn_gen(true)(add(1, 2)) as String;";
-        let stmts = parse(text).unwrap();
+        let stmts = parse_and_resolve(text).unwrap();
 
         assert_eq!(
             *stmts.first().unwrap(),
@@ -354,9 +358,9 @@ mod test {
     #[test]
     fn test_inline_closure_call() {
         let text = "|x|{x+1;}(3);";
-        parse(text).unwrap_err();
+        parse_and_resolve(text).unwrap_err();
 
         let text = "(|x|{x+1;})(3);";
-        parse(text).unwrap();
+        parse_and_resolve(text).unwrap();
     }
 }

@@ -95,7 +95,7 @@ fn define_builtin(env: &Rc<Env>) {
 fn define_prelude(env: &Rc<Env>) {
     const PRELUDE_LM: &str = include_str!("prelude.lm");
 
-    let stmts = parser::parse(PRELUDE_LM).unwrap();
+    let stmts = parser::parse_and_resolve(PRELUDE_LM).unwrap();
     env.eval_stmts(&stmts).unwrap();
 }
 

@@ -47,7 +47,7 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    fn res_stmts(self: &Rc<Self>, stmts: &'a mut [Stmt]) -> Result<()> {
+    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [Stmt]) -> Result<()> {
         for stmt in stmts.iter_mut() {
             self.res_stmt(stmt)?;
         }

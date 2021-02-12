@@ -27,12 +27,11 @@ fn test_bad_return_2() {
 }
 
 #[test]
-#[ignore]
 fn test_static_resolving() {
     let text = r#"
     var a = "global";
     {
-        var show_a = || { print(a); a; };
+        var show_a = || { println(a); a; };
         assert show_a() == "global";
         var a = "block";
         assert show_a() == "global";
