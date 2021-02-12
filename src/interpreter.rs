@@ -1,6 +1,6 @@
 use std::{fs::read_to_string, path::Path, rc::Rc};
 
-use crate::{env::Env, error::Result};
+use crate::{env::Env, error::Result, parser::Stmt};
 use crate::{parser, Value};
 
 pub struct Interpreter {
@@ -10,7 +10,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: Env::new_global(),
+            env: Env::new_global_std(),
         }
     }
 }
@@ -21,21 +21,27 @@ impl Interpreter {
     }
 
     pub fn eval(&self, text: &str) -> Result<Value> {
-        let stmts = parser::parse(text)?;
+        let stmts = parser::parse_and_resolve(text)?;
+        self.env.eval_stmts(&stmts)
+    }
+
+    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
         self.env.eval_stmts(&stmts)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::parser::Ident;
-
     use super::*;
+    use crate::parser::Ident;
 
     #[test]
     fn test() {
         let intp = Interpreter::new();
         let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
-        assert_eq!(intp.env.get(&Ident("a".to_owned())).unwrap(), Value::Int(7));
+        assert_eq!(
+            intp.env.get(&Ident("a".to_owned(), None)).unwrap(),
+            Value::Int(7)
+        );
     }
 }

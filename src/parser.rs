@@ -1,5 +1,8 @@
-use crate::error::{Error, Result};
 use crate::value::*;
+use crate::{
+    error::{Error, Result},
+    resolver::Resolver,
+};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,7 +34,7 @@ pub enum UnaryOp {
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Ident(pub String);
+pub struct Ident(pub String, pub Option<usize>);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -126,11 +129,11 @@ peg::parser! {
             ) { Expr::Literal(v) }
 
         rule ident() -> Ident // TODO: more elegant
-            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
             / expected!("name identifier")
 
         rule ident_type() -> Ident
-            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
             / expected!("type identifier")
 
         rule primary() -> Expr
@@ -160,7 +163,7 @@ peg::parser! {
         }
 
         rule expr_cast() -> Expr // TODO: type
-            = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned())) }
+            = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned(), None)) }
 
         rule expr_binary() -> Expr = precedence!{
             x:(@) _ kw_or() _ y:@ { Expr::Binary(box x, BinaryOp::Or, box y) }
@@ -272,39 +275,11 @@ peg::parser! {
     }
 }
 
-struct Preprocessor<'a> {
-    text: &'a str,
-}
-
-impl<'a> Preprocessor<'a> {
-    fn new(text: &'a str) -> Self {
-        Self { text }
-    }
-
-    fn pp_stmts(&self, stmts: &mut Vec<Stmt>) {
-        stmts.iter_mut().for_each(|s| self.pp_stmt(s))
-    }
-
-    fn pp_stmt(&self, stmt: &mut Stmt) {
-        match stmt {
-            Stmt::VarDecl(_, _) => {}
-            Stmt::Expr(_) => {}
-            Stmt::Print(_) => {}
-            Stmt::Assert(s, e, text, _) => {
-                *text = self.text.chars().skip(*s).take(*e - *s).collect();
-            }
-            Stmt::Break(_) => {}
-            Stmt::Continue(_) => {}
-            Stmt::Return(_) => {}
-        }
-    }
-}
-
 #[inline]
-pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
     let mut stmts = result.or_else(|err| Err(Error::ParseError(err)))?;
-    Preprocessor::new(text).pp_stmts(&mut stmts);
+    Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
 }
 
@@ -320,7 +295,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         _print c + 3;
         "#;
-        let r = parse(text);
+        let r = parse_and_resolve(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }
@@ -328,7 +303,7 @@ mod test {
     #[test]
     fn test_call() {
         let text = "-fn_gen(true)(add(1, 2)) as String;";
-        let stmts = parse(text).unwrap();
+        let stmts = parse_and_resolve(text).unwrap();
 
         assert_eq!(
             *stmts.first().unwrap(),
@@ -337,16 +312,16 @@ mod test {
                     UnaryOp::Neg,
                     box Expr::Call(
                         box Expr::Call(
-                            box Expr::Variable(Ident("fn_gen".to_owned())),
+                            box Expr::Variable(Ident("fn_gen".to_owned(), None)),
                             vec![Expr::Literal(Value::Bool(true))],
                         ),
                         vec![Expr::Call(
-                            box Expr::Variable(Ident("add".to_owned())),
+                            box Expr::Variable(Ident("add".to_owned(), None)),
                             vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
                         )],
                     ),
                 ),
-                Ident("String".to_owned()),
+                Ident("String".to_owned(), None),
             ))
         );
     }
@@ -354,9 +329,9 @@ mod test {
     #[test]
     fn test_inline_closure_call() {
         let text = "|x|{x+1;}(3);";
-        parse(text).unwrap_err();
+        parse_and_resolve(text).unwrap_err();
 
         let text = "(|x|{x+1;})(3);";
-        parse(text).unwrap();
+        parse_and_resolve(text).unwrap();
     }
 }

@@ -11,15 +11,17 @@ use crate::{
 };
 
 pub struct Env {
-    vars: RefCell<HashMap<Ident, Value>>,
+    vars: RefCell<HashMap<String, Value>>,
     enclosing: Option<Rc<Self>>,
+    safe: bool,
 }
 
 impl Env {
-    pub fn new_global() -> Rc<Self> {
+    pub fn new_global_std() -> Rc<Self> {
         let env = Rc::new(Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
+            safe: true,
         });
         define_std(&env);
         env
@@ -29,6 +31,7 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: Some(enclosing),
+            safe: true,
         }
     }
 
@@ -36,37 +39,60 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
+            safe: true,
         }
     }
 
     pub fn get(&self, ident: &Ident) -> Option<Value> {
-        let r = self.vars.borrow().get(ident).cloned();
+        match ident.1 {
+            Some(step) => Some(self.get_at_step(&ident.0, step)),
+            None => self.get_raw(&ident.0),
+        }
+    }
+
+    fn get_raw(&self, id_name: &str) -> Option<Value> {
+        let r = self.vars.borrow().get(id_name).cloned();
 
         if r.is_some() {
             r
-        } else if let Some(enclosing) = &self.enclosing {
-            enclosing.get(ident)
+        } else if let Some(enclosing) = self.enclosing.as_deref() {
+            enclosing.get_raw(id_name)
         } else {
             None
         }
     }
 
+    fn get_at_step(&self, id_name: &str, step: usize) -> Value {
+        if step == 0 {
+            self.vars.borrow().get(id_name).cloned().unwrap()
+        } else {
+            self.enclosing
+                .as_deref()
+                .unwrap()
+                .get_at_step(id_name, step - 1)
+        }
+    }
+
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
-        if let Value::Nil = val {
-            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+        if self.safe {
+            if let Value::Nil = val {
+                return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+            }
         }
         if let Value::Func(func) = val {
             val = Value::Func(func.with_name(ident.0.clone()))
         }
-        self.vars.borrow_mut().insert(ident, val);
+        self.vars.borrow_mut().insert(ident.0, val);
         Ok(())
     }
 
-    pub fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
-        if let Value::Nil = val {
-            return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+    fn assign(&self, ident: &Ident, val: Value) -> Result<()> {
+        if self.safe {
+            if let Value::Nil = val {
+                return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
+            }
         }
-        if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
+        if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             *v = val.clone();
             Ok(())
         } else if let Some(enclosing) = &self.enclosing {
@@ -85,9 +111,7 @@ impl Env {
             v @ _ => Err(Error::CannotBeCondition(v)),
         }
     }
-}
 
-impl Env {
     pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
         let mut ret = Value::Nil;
 
