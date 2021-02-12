@@ -27,6 +27,7 @@ fn test_bad_return_2() {
 }
 
 #[test]
+#[ignore]
 fn test_static_resolving() {
     let text = r#"
     var a = "global";

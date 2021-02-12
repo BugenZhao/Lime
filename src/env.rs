@@ -44,10 +44,21 @@ impl Env {
 
         if r.is_some() {
             r
-        } else if let Some(enclosing) = &self.enclosing {
+        } else if let Some(enclosing) = self.enclosing.as_deref() {
             enclosing.get(ident)
         } else {
             None
+        }
+    }
+
+    pub fn get_with_step(&self, ident: &Ident, step: usize) -> Value {
+        if step == 0 {
+            self.vars.borrow().get(ident).cloned().unwrap()
+        } else {
+            self.enclosing
+                .as_deref()
+                .unwrap()
+                .get_with_step(ident, step - 1)
         }
     }
 
@@ -185,10 +196,12 @@ impl Env {
         }
 
         match expr {
-            Expr::Variable(ident) => match self.get(ident) {
+            Expr::Variable(ident, None) => match self.get(ident) {
+                // TODO: bug on this
                 Some(value) => Ok(value.clone()),
                 None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
+            Expr::Variable(ident, Some(step)) => Ok(self.get_with_step(ident, *step)),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Binary(lhs, op @ BinaryOp::Or, rhs) => {
                 let l = self.eval_expr(lhs)?;

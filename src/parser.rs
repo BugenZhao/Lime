@@ -35,7 +35,7 @@ pub struct Ident(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Variable(Ident),
+    Variable(Ident, Option<usize>),
     Literal(Value),
     Binary(Box<Expr>, BinaryOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
@@ -134,7 +134,7 @@ peg::parser! {
             / expected!("type identifier")
 
         rule primary() -> Expr
-            = i:ident() { Expr::Variable(i) }
+            = i:ident() { Expr::Variable(i, None) }
             / literal()
             / "(" _ e:expr() _ ")" { e }
 
@@ -337,11 +337,11 @@ mod test {
                     UnaryOp::Neg,
                     box Expr::Call(
                         box Expr::Call(
-                            box Expr::Variable(Ident("fn_gen".to_owned())),
+                            box Expr::Variable(Ident("fn_gen".to_owned()), None),
                             vec![Expr::Literal(Value::Bool(true))],
                         ),
                         vec![Expr::Call(
-                            box Expr::Variable(Ident("add".to_owned())),
+                            box Expr::Variable(Ident("add".to_owned()), None),
                             vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
                         )],
                     ),
