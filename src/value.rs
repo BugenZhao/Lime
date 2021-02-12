@@ -1,7 +1,7 @@
 use std::{fmt::Display, ops::RangeInclusive, rc::Rc, sync::Arc};
 
 use crate::{
-    env::Env,
+    env::{Env, Eval},
     parser::{Ident, Stmt},
     Error, Result,
 };

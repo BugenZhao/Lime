@@ -96,25 +96,6 @@ impl Env {
             v @ _ => Err(Error::CannotBeCondition(v)),
         }
     }
-}
-
-impl Env {
-    pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
-        let mut ret = Value::Nil;
-
-        for stmt in stmts.iter() {
-            match self.eval_stmt(stmt) {
-                Ok(ov) => {
-                    ret = ov;
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-        }
-
-        Ok(ret)
-    }
 
     fn eval_stmt(self: &Rc<Self>, stmt: &Stmt) -> Result<Value> {
         match stmt {
@@ -393,5 +374,28 @@ impl Env {
                 name: None,
             })),
         }
+    }
+}
+
+pub trait Eval {
+    fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value>;
+}
+
+impl Eval for Env {
+    fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
+        let mut ret = Value::Nil;
+
+        for stmt in stmts.iter() {
+            match self.eval_stmt(stmt) {
+                Ok(ov) => {
+                    ret = ov;
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+
+        Ok(ret)
     }
 }
