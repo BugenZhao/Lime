@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
 use crate::value::*;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -129,7 +130,7 @@ peg::parser! {
             / expected!("name identifier")
 
         rule ident_type() -> Ident
-            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() (alpha() / digit())*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
             / expected!("type identifier")
 
         rule primary() -> Expr
@@ -200,14 +201,20 @@ peg::parser! {
             = kw_if() __ cond:expr() _ then:block() else_:if_else()? { Expr::If(box cond, box then, box else_) }
 
         rule while_default() -> Expr
-            = _ kw_default() _ default:expr_CLEAN() { default }
+            = _ kw_default() _ default:expr() { default }
 
         rule expr_while() -> Expr
             = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
 
         rule param_list() -> Vec<Ident>
             = params:(ident() ** (_ "," _)) {?
-                if params.len() <= N_MAX_ARGS { Ok(params) } else { Err("fewer parameters") }
+                if params.len() > N_MAX_ARGS {
+                    Err("fewer parameters")
+                } else if params.iter().collect::<HashSet<_>>().len() < params.len() {
+                    Err("unique identifiers")
+                } else {
+                    Ok(params)
+                }
             }
 
         rule expr_func() -> Expr
@@ -216,16 +223,13 @@ peg::parser! {
         rule expr_NORMAL() -> Expr
             = expr_assign()
             / expr_binary()
-
-        rule expr_BLOCK() -> Expr
-            = block()
             / expr_func()
+
+        rule expr_BLOCK() -> Expr  // optional semicolon
+            = block()
             / expr_if()
             / expr_while()
 
-        rule expr_CLEAN() -> Expr = expr_NORMAL() / block()
-
-        // TODO: check the order, must it be `call / block / normal / if / loop`?
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()
 
         // Stmt
@@ -244,7 +248,7 @@ peg::parser! {
             = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
 
         rule bcr_val() -> Expr
-            = __ e:expr_CLEAN() { e }
+            = __ e:expr() { e }
         rule stmt_break() -> Stmt
             = kw_break() e:bcr_val()? _ semi()+ { Stmt::Break(e) }
         rule stmt_continue() -> Stmt
@@ -345,5 +349,14 @@ mod test {
                 Ident("String".to_owned()),
             ))
         );
+    }
+
+    #[test]
+    fn test_inline_closure_call() {
+        let text = "|x|{x+1;}(3);";
+        parse(text).unwrap_err();
+
+        let text = "(|x|{x+1;})(3);";
+        parse(text).unwrap();
     }
 }
