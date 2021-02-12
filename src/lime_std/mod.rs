@@ -80,6 +80,11 @@ fn define_builtin(env: &Rc<Env>) {
         "readln",
         0..=N_MAX_ARGS
     );
+    def!(
+        |args| { Ok(Value::String(format!("{:?}", args[0]))) },
+        "dbg",
+        1..=1
+    );
 
     {
         use std::sync::atomic::{AtomicI64, Ordering};
