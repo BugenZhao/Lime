@@ -31,11 +31,11 @@ pub enum UnaryOp {
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Ident(pub String);
+pub struct Ident(pub String, pub Option<usize>);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Variable(Ident, Option<usize>),
+    Variable(Ident),
     Literal(Value),
     Binary(Box<Expr>, BinaryOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
@@ -126,15 +126,15 @@ peg::parser! {
             ) { Expr::Literal(v) }
 
         rule ident() -> Ident // TODO: more elegant
-            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
             / expected!("name identifier")
 
         rule ident_type() -> Ident
-            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned()) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
             / expected!("type identifier")
 
         rule primary() -> Expr
-            = i:ident() { Expr::Variable(i, None) }
+            = i:ident() { Expr::Variable(i) }
             / literal()
             / "(" _ e:expr() _ ")" { e }
 
@@ -160,7 +160,7 @@ peg::parser! {
         }
 
         rule expr_cast() -> Expr // TODO: type
-            = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned())) }
+            = p:expr_unary() __ kw_as() __ i:$(kw_TYPE()) { Expr::Cast(box p, Ident(i.to_owned(), None)) }
 
         rule expr_binary() -> Expr = precedence!{
             x:(@) _ kw_or() _ y:@ { Expr::Binary(box x, BinaryOp::Or, box y) }
@@ -337,16 +337,16 @@ mod test {
                     UnaryOp::Neg,
                     box Expr::Call(
                         box Expr::Call(
-                            box Expr::Variable(Ident("fn_gen".to_owned()), None),
+                            box Expr::Variable(Ident("fn_gen".to_owned(), None)),
                             vec![Expr::Literal(Value::Bool(true))],
                         ),
                         vec![Expr::Call(
-                            box Expr::Variable(Ident("add".to_owned()), None),
+                            box Expr::Variable(Ident("add".to_owned(), None)),
                             vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
                         )],
                     ),
                 ),
-                Ident("String".to_owned()),
+                Ident("String".to_owned(), None),
             ))
         );
     }

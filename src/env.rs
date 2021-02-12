@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub struct Env {
-    vars: RefCell<HashMap<Ident, Value>>,
+    vars: RefCell<HashMap<String, Value>>,
     enclosing: Option<Rc<Self>>,
     safe: bool,
 }
@@ -49,25 +49,32 @@ impl Env {
     }
 
     pub fn get(&self, ident: &Ident) -> Option<Value> {
-        let r = self.vars.borrow().get(ident).cloned();
+        match ident.1 {
+            Some(step) => Some(self.get_with_step(&ident.0, step)),
+            None => self.get_raw(&ident.0),
+        }
+    }
+
+    fn get_raw(&self, id_name: &str) -> Option<Value> {
+        let r = self.vars.borrow().get(id_name).cloned();
 
         if r.is_some() {
             r
         } else if let Some(enclosing) = self.enclosing.as_deref() {
-            enclosing.get(ident)
+            enclosing.get_raw(id_name)
         } else {
             None
         }
     }
 
-    pub fn get_with_step(&self, ident: &Ident, step: usize) -> Value {
+    pub fn get_with_step(&self, id_name: &str, step: usize) -> Value {
         if step == 0 {
-            self.vars.borrow().get(ident).cloned().unwrap()
+            self.vars.borrow().get(id_name).cloned().unwrap()
         } else {
             self.enclosing
                 .as_deref()
                 .unwrap()
-                .get_with_step(ident, step - 1)
+                .get_with_step(id_name, step - 1)
         }
     }
 
@@ -80,7 +87,7 @@ impl Env {
         if let Value::Func(func) = val {
             val = Value::Func(func.with_name(ident.0.clone()))
         }
-        self.vars.borrow_mut().insert(ident, val);
+        self.vars.borrow_mut().insert(ident.0, val);
         Ok(())
     }
 
@@ -90,7 +97,7 @@ impl Env {
                 return Err(Error::CannotHaveValue(ident.0.to_owned(), val));
             }
         }
-        if let Some(v) = self.vars.borrow_mut().get_mut(ident) {
+        if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             *v = val.clone();
             Ok(())
         } else if let Some(enclosing) = &self.enclosing {
@@ -190,12 +197,10 @@ impl Env {
         }
 
         match expr {
-            Expr::Variable(ident, None) => match self.get(ident) {
-                // TODO: bug on this
+            Expr::Variable(ident) => match self.get(ident) {
                 Some(value) => Ok(value.clone()),
                 None => Err(Error::CannotFindValue(ident.0.to_owned())),
             },
-            Expr::Variable(ident, Some(step)) => Ok(self.get_with_step(ident, *step)),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Binary(lhs, op @ BinaryOp::Or, rhs) => {
                 let l = self.eval_expr(lhs)?;
@@ -414,12 +419,12 @@ impl Eval for Env {
 }
 
 impl Env {
-    fn get_step(&self, ident: &Ident) -> Option<usize> {
+    fn get_step(&self, id_name: &str) -> Option<usize> {
         let mut curr = self;
         let mut step = 0;
 
         loop {
-            if curr.vars.borrow().contains_key(ident) {
+            if curr.vars.borrow().contains_key(id_name) {
                 return Some(step);
             } else if let Some(next) = curr.enclosing.as_deref() {
                 curr = next;
@@ -467,10 +472,10 @@ impl Env {
 
     fn res_expr(self: &Rc<Self>, expr: &mut Expr) -> Result<()> {
         match expr {
-            Expr::Variable(ident, step) => {
+            Expr::Variable(Ident(id_name, step)) => {
                 *step = Some(
-                    self.get_step(ident)
-                        .ok_or(Error::CannotFindValue(ident.0.clone()))?,
+                    self.get_step(id_name)
+                        .ok_or(Error::CannotFindValue(id_name.clone()))?,
                 );
             }
             Expr::Literal(_) => {}

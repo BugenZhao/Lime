@@ -39,6 +39,6 @@ mod test {
     fn test() {
         let intp = Interpreter::new();
         let _r = intp.eval("var a = 1 + 2 * 3;").unwrap();
-        assert_eq!(intp.env.get(&Ident("a".to_owned())).unwrap(), Value::Int(7));
+        assert_eq!(intp.env.get(&Ident("a".to_owned(), None)).unwrap(), Value::Int(7));
     }
 }

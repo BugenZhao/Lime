@@ -53,7 +53,7 @@ fn define_builtin(env: &Rc<Env>) {
     macro_rules! def {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
-                Ident($name.to_owned()),
+                Ident($name.to_owned(), None),
                 Value::Func(Func {
                     tp: FuncType::BuiltIn(RustFn(Arc::new($func))),
                     arity: $arity,
