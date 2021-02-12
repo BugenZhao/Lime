@@ -65,10 +65,10 @@ fn define_builtin(env: &Rc<Env>) {
         };
     }
 
-    def!(print, "print", (0, N_MAX_ARGS));
-    def!(println, "println", (0, N_MAX_ARGS));
-    def!(time, "time", (0, 0));
-    def!(panic, "panic", (1, N_MAX_ARGS));
+    def!(print, "print", 0..=N_MAX_ARGS);
+    def!(println, "println", 0..=N_MAX_ARGS);
+    def!(time, "time", 0..=0);
+    def!(panic, "panic", 1..=N_MAX_ARGS);
     def!(
         |args| {
             print(args)?;
@@ -78,7 +78,7 @@ fn define_builtin(env: &Rc<Env>) {
             Ok(Value::String(buf))
         },
         "readln",
-        (0, N_MAX_ARGS)
+        0..=N_MAX_ARGS
     );
 
     {
@@ -87,7 +87,7 @@ fn define_builtin(env: &Rc<Env>) {
         def!(
             move |_| { Ok(Value::Int(v.fetch_add(1, Ordering::SeqCst))) },
             "count",
-            (0, 0)
+            0..=0
         );
     }
 }

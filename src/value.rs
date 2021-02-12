@@ -1,4 +1,4 @@
-use std::{fmt::Display, rc::Rc, sync::Arc};
+use std::{fmt::Display, ops::RangeInclusive, rc::Rc, sync::Arc};
 
 use crate::{
     env::Env,
@@ -56,7 +56,7 @@ pub enum FuncType {
 #[derive(Clone)]
 pub struct Func {
     pub tp: FuncType,
-    pub arity: (usize, usize),
+    pub arity: RangeInclusive<usize>,
     pub env: Rc<Env>,
     pub name: Option<String>,
 }
@@ -124,7 +124,7 @@ impl Func {
     }
 
     pub fn compose(f: Self, g: Self) -> Result<Self> {
-        let arity = g.arity;
+        let arity = g.arity.clone();
         let _ = f.check(1)?;
         Ok(Self {
             tp: FuncType::Composed(box f, box g),
@@ -135,12 +135,12 @@ impl Func {
     }
 
     pub fn check(&self, supp: usize) -> Result<()> {
-        if supp >= self.arity.0 && supp <= self.arity.1 {
+        if self.arity.contains(&supp) {
             Ok(())
         } else {
             Err(Error::WrongArguments {
                 f: self.clone(),
-                take: self.arity,
+                take: self.arity.clone(),
                 supp,
             })
         }

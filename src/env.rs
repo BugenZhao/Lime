@@ -375,7 +375,7 @@ impl Env {
             },
             Expr::Func(params, body) => Ok(Value::Func(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),
-                arity: (params.len(), params.len()),
+                arity: params.len()..=params.len(),
                 env: Rc::clone(&self),
                 name: None,
             })),

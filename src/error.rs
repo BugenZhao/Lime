@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use crate::{
     parser::{BinaryOp, UnaryOp},
     Func, Value,
@@ -40,12 +42,10 @@ pub enum Error {
     CannotHaveValue(String, Value),
     #[error("`{0:?}` is not callable")]
     NotCallable(Value),
-    #[error("Function `{f:?}` takes {} arguments but {supp} were supplied",
-            if take.0 == take.1 { format!("{}", take.0) } 
-            else { format!("{} to {}", take.0, take.1) })]
+    #[error("Function `{f:?}` takes {take:?} arguments but {supp} were supplied")]
     WrongArguments {
         f: Func,
-        take: (usize, usize),
+        take: RangeInclusive<usize>,
         supp: usize,
     },
 
