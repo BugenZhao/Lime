@@ -6,9 +6,9 @@ mod interpreter;
 mod lime_std;
 mod parser;
 mod repl;
+mod repl_helper;
 mod resolver;
 mod value;
-mod repl_helper;
 
 pub use error::{Error, LimeError, Result};
 pub use interpreter::Interpreter;

@@ -1,12 +1,22 @@
+#![macro_use]
+
 use crate::{
     env::Env,
     parser::{Ident, Stmt},
     Error, Result,
 };
+use by_address::ByAddress;
 use itertools::Itertools;
-use std::{fmt::Display, ops::RangeInclusive, rc::Rc};
+use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, rc::Rc};
 
 pub const N_MAX_ARGS: usize = 255;
+
+#[macro_export]
+macro_rules! barc {
+    ($w:expr) => {
+        ByAddress(Rc::new($w))
+    };
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -15,7 +25,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Func(Func),
-    Class(),
+    Class(ByAddress<Rc<Class>>),
     Nil,
 }
 
@@ -27,7 +37,8 @@ impl Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Func(v) => write!(f, "{}", v),
-            Value::Class() => write!(f, "<some class>"),
+            Value::Class(v) => write!(f, "{}", v.name),
+            // Value::Object(v) => write!(f, "{:?}", v),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -139,4 +150,16 @@ impl Func {
             })
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Class {
+    pub name: String,
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct Object {
+    pub class: Rc<Class>,
+    pub fields: HashMap<String, Value>,
 }

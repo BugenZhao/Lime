@@ -16,6 +16,7 @@ structopt = "0.3"
 snailquote = "0.3"
 lazy_static = "1.4"
 itertools = "0.10"
+by_address = "1.0"
 
 [dev-dependencies]
 rand = "0.7"

@@ -1,10 +1,12 @@
 use crate::{
+    barc,
     error::{Error, Result},
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
-    value::FuncType,
+    value::{Class, FuncType},
     Func, Value,
 };
+use by_address::ByAddress;
 use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
 
 pub struct Env {
@@ -200,7 +202,12 @@ impl Env {
                 Err(Error::Return(val))
             }
             Stmt::ClassDecl(ident, fields) => {
-                todo!()
+                let val = Value::Class(barc!(Class {
+                    name: ident.0.clone(),
+                    fields: fields.iter().map(|i| i.0.to_owned()).collect(),
+                }));
+                self.decl_class(ident.clone(), val)?;
+                Ok(Value::Nil)
             }
         }
     }
