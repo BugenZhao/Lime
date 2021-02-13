@@ -1,0 +1,14 @@
+var my_print = print;
+var my_print_2 = print;
+
+assert_eq(my_print, print);
+assert_eq(my_print_2, print);
+assert_eq(my_print, my_print_2);
+
+var print_gen = |x| {
+    if x { print; }
+    else { my_print; }
+};
+assert_eq(print_gen(true), print);
+assert_eq(print_gen(false), print);
+
