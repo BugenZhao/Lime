@@ -1,9 +1,10 @@
 #![allow(unused_macros)]
 
 macro_rules! eval_file {
-    ($path:expr) => {
-        Interpreter::new().eval_file($path)
-    };
+    ($path:expr) => {{
+        let text = include_str!($path);
+        Interpreter::new().eval(text)
+    }};
 }
 
 macro_rules! eval {

@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_while() {
-    eval_file!("tests/res/while.lm").unwrap();
+    eval_file!("res/while.lm").unwrap();
 }
 
 #[test]

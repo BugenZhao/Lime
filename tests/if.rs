@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_if() {
-    eval_file!("tests/res/if.lm").unwrap();
+    eval_file!("res/if.lm").unwrap();
 }
 
 #[test]

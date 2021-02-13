@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_block() {
-    eval_file!("tests/res/block.lm").unwrap();
+    eval_file!("res/block.lm").unwrap();
 }
 
 #[test]

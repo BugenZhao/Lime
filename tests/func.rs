@@ -5,7 +5,7 @@ mod common;
 
 #[test]
 fn test_func() {
-    eval_file!("tests/res/func.lm").unwrap();
+    eval_file!("res/func.lm").unwrap();
 }
 
 #[test]

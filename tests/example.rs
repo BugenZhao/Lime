@@ -5,5 +5,5 @@ mod common;
 
 #[test]
 fn test_example() {
-    eval_file!("tests/res/example.lm").unwrap();
+    eval_file!("res/example.lm").unwrap();
 }

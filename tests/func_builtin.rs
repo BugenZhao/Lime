@@ -5,5 +5,5 @@ mod common;
 
 #[test]
 fn test_builtin() {
-    eval_file!("tests/res/func_builtin.lm").unwrap();
+    eval_file!("res/func_builtin.lm").unwrap();
 }
