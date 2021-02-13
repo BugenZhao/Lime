@@ -52,6 +52,7 @@ pub enum Expr {
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
     Func(Vec<Ident>, Vec<Stmt>),
+    Construct(Ident, Vec<(Ident, Expr)>),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
@@ -219,7 +220,6 @@ peg::parser! {
 
         rule while_default() -> Expr
             = _ kw_default() _ default:expr() { default }
-
         rule expr_while() -> Expr
             = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
 
@@ -233,12 +233,25 @@ peg::parser! {
                     Ok(params)
                 }
             }
-
         rule expr_func() -> Expr
             = "|" _ p:param_list() _ "|" _ "{" _ body:stmt()* _ "}" { Expr::Func(p, body) }
 
+        rule colon_kv() -> (Ident, Expr)
+            = k:ident() _ ":" _ v:expr() { (k, v) }
+        rule construct_list() -> Vec<(Ident, Expr)>
+            = kvs:(colon_kv() ** (_ "," _)) (_ "," _)? {?
+                if kvs.iter().map(|p| &p.0).collect::<HashSet<_>>().len() < kvs.len() {
+                    Err("unique identifiers")
+                } else {
+                    Ok(kvs)
+                }
+            }
+        rule expr_object_init() -> Expr
+            = class:ident() _ "{" _ kvs:construct_list() _ "}" { Expr::Construct(class, kvs) }
+
         rule expr_NORMAL() -> Expr
             = expr_assign()
+            / expr_object_init()
             / expr_binary()
             / expr_func()
 
@@ -261,7 +274,6 @@ peg::parser! {
                     Ok(fields)
                 }
             }
-
         rule stmt_class_decl() -> Stmt
             = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" { Stmt::ClassDecl(i, f) }
 

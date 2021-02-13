@@ -49,6 +49,10 @@ pub enum Error {
     },
     #[error("The name `{0}` is defined multiple times")]
     DefinedMutlipleTimes(String),
+    #[error("`{0}` is not a class")]
+    NotAClass(Value),
+    #[error("Some fields are wrong or missing while constructing an object of `{0}`")]
+    WrongFields(Value),
 
     #[error(transparent)]
     Lime(#[from] LimeError),

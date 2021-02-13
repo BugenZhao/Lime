@@ -3,10 +3,16 @@ use crate::{
     error::{Error, Result},
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
-    value::{Class, FuncType},
+    value::{Class, FuncType, Object},
     Func, Value,
 };
-use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
+use by_address::ByAddress;
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    ops::Deref,
+    rc::Rc,
+};
 
 pub struct Env {
     vars: RefCell<HashMap<String, Value>>,
@@ -336,6 +342,19 @@ impl Env {
 
                         _ => None,
                     },
+                    (Value::Class(a), Value::Class(b), op) => match op {
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+
+                        _ => None,
+                    },
+                    (Value::Object(a), Value::Object(b), op) => match op {
+                        // FIXME: fix the comparison
+                        BinaryOp::Eq => bool!(a == b),
+                        BinaryOp::Ne => bool!(a != b),
+
+                        _ => None,
+                    },
                     (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
                         float!(a.powi(b as i32))
                     }
@@ -446,6 +465,34 @@ impl Env {
                 env: Rc::clone(&self),
                 name: None,
             }))),
+            Expr::Construct(ident, kvs) => {
+                let v = self
+                    .get(ident)
+                    .ok_or_else(|| Error::CannotFindValue(ident.0.to_owned()))?;
+                if let Value::Class(ByAddress(class)) = &v {
+                    let keys_set = kvs.iter().map(|(k, _)| &k.0).collect::<HashSet<_>>();
+                    let expected_keys_set = class.fields.iter().collect::<HashSet<_>>();
+                    if keys_set == expected_keys_set {
+                        let mut values = vec![];
+                        for expr in kvs.iter().map(|(_, v)| v) {
+                            values.push(self.eval_expr(expr)?);
+                        }
+                        let fields = kvs
+                            .iter()
+                            .map(|(k, _)| k.0.to_owned())
+                            .zip(values.into_iter())
+                            .collect();
+                        Ok(Value::Object(barc!(Object {
+                            class: Rc::clone(class),
+                            fields,
+                        })))
+                    } else {
+                        Err(Error::WrongFields(v))
+                    }
+                } else {
+                    Err(Error::NotAClass(v))
+                }
+            }
         }
     }
 }

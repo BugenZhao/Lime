@@ -142,6 +142,11 @@ impl<'a> Resolver<'a> {
                 }
                 fn_res.res_stmts(body)?;
             }
+            Expr::Construct(_, kvs) => {
+                for (_, e) in kvs.iter_mut() {
+                    self.res_expr(e)?;
+                }
+            }
         }
         Ok(())
     }

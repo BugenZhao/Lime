@@ -18,7 +18,7 @@ macro_rules! barc {
     };
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)] // TODO: customize debug
 pub enum Value {
     Int(i64),
     Float(f64),
