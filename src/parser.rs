@@ -67,7 +67,7 @@ pub enum Stmt {
 }
 
 peg::parser! {
-    grammar my_parser() for str {
+    grammar lime_parser() for str {
         // Lexical
         rule ws() = [' ' | '\t' | '\r' | '\n']
         rule comment() = "//" (!"\n" [_])* / "/*" (!"*/" [_])* "*/"
@@ -315,7 +315,7 @@ peg::parser! {
 }
 
 lazy_static! {
-    pub static ref KEYWORDS: Vec<String> = my_parser::kw_ALL("")
+    pub static ref KEYWORDS: Vec<String> = lime_parser::kw_ALL("")
         .unwrap_err()
         .expected
         .tokens()
@@ -324,11 +324,11 @@ lazy_static! {
 }
 
 pub fn tokens(text: &str) -> Vec<(usize, &str)> {
-    my_parser::tokens(text).unwrap()
+    lime_parser::tokens(text).unwrap()
 }
 
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
+    let result: std::result::Result<Vec<Stmt>, _> = lime_parser::program(text);
     let mut stmts = result.map_err(Error::ParseError)?;
     Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
