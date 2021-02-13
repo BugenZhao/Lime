@@ -9,7 +9,7 @@ use rustyline::{CompletionType, Config, Context, Editor};
 use rustyline_derive::Helper;
 use validate::ValidationResult;
 
-use crate::parse_and_resolve;
+use crate::{parse_and_resolve, parser};
 
 #[derive(Helper)]
 pub struct LimeHelper {
@@ -40,14 +40,19 @@ impl Completer for LimeHelper {
         if pos < line.len() {
             return Ok((0, vec![]));
         }
-        let ans = self
-            .hints
+
+        let hints = &self.hints;
+        let tokens = parser::tokens(line);
+        let start = tokens.last().map(|p| p.0).unwrap_or(0);
+        let cands = hints
             .iter()
-            .filter(|x| x.starts_with(&line[..pos]))
-            .map(|s| s.to_owned())
+            .map(|s| s.as_str())
+            .chain(tokens.iter().rev().skip(1).map(|&p| p.1))
+            .filter(|x| x.starts_with(&line[start..pos]))
+            .map(|s| s.to_string())
             .collect();
 
-        Ok((0, ans))
+        Ok((start, cands))
     }
 }
 
@@ -59,11 +64,8 @@ impl Hinter for LimeHelper {
             return None;
         }
 
-        self.complete(line, pos, _ctx)
-            .unwrap()
-            .1
-            .first()
-            .map(|s| s[pos..].to_owned())
+        let (start, cands) = self.complete(line, pos, _ctx).unwrap();
+        cands.first().map(|s| s[(pos - start)..].to_owned())
     }
 }
 

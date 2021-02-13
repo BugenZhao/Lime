@@ -77,6 +77,7 @@ peg::parser! {
         rule digit() = ['0'..='9']
         rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
         rule aldig() = alpha() / digit()
+        rule non_aldig() = !aldig() [_]
 
 
         // Keywords
@@ -103,10 +104,15 @@ peg::parser! {
         rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
-                           kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
+                         / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
+
+        // For hinter
+        rule token() -> (usize, &'input str) = pos:position!() token:$(aldig()+) { (pos, token) }
+        pub rule tokens() -> Vec<(usize, &'input str)>
+            = _ non_aldig()* ts:(token() ** (non_aldig()+)) non_aldig()* _ { ts }
 
         // Primary
         rule integer() -> Value
@@ -290,6 +296,10 @@ lazy_static! {
         .collect();
 }
 
+pub fn tokens(text: &str) -> Vec<(usize, &str)> {
+    my_parser::tokens(text).unwrap()
+}
+
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = my_parser::program(text);
     let mut stmts = result.map_err(Error::ParseError)?;
@@ -347,5 +357,22 @@ mod test {
 
         let text = "(|x|{x+1;})(3);";
         parse_and_resolve(text).unwrap();
+    }
+
+    #[test]
+    fn test_tokens() {
+        use rand::prelude::IteratorRandom;
+        use rand::thread_rng;
+
+        let mut rng = thread_rng();
+        (0..100000)
+            .map(|_| {
+                (0..8)
+                    .map(|_| ('\x00'..='\x7f').choose(&mut rng).unwrap())
+                    .collect::<String>()
+            })
+            .for_each(|s| {
+                let _ = tokens(&s);
+            });
     }
 }
