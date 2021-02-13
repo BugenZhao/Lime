@@ -4,7 +4,7 @@ use crate::{
     Error, Result,
 };
 use itertools::Itertools;
-use std::{fmt::Display, ops::RangeInclusive, rc::Rc, sync::Arc};
+use std::{fmt::Display, ops::RangeInclusive, rc::Rc};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -15,6 +15,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Func(Func),
+    Class(),
     Nil,
 }
 
@@ -26,13 +27,13 @@ impl Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Func(v) => write!(f, "{}", v),
+            Value::Class() => write!(f, "<some class>"),
             Value::Nil => write!(f, "nil"),
         }
     }
 }
 
-#[derive(Clone)]
-pub struct RustFn(pub Arc<dyn Fn(Vec<Value>) -> Result<Value>>);
+pub struct RustFn(pub Box<dyn Fn(Vec<Value>) -> Result<Value>>);
 
 impl std::fmt::Debug for RustFn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,13 +41,7 @@ impl std::fmt::Debug for RustFn {
     }
 }
 
-impl PartialEq for RustFn {
-    fn eq(&self, other: &Self) -> bool {
-        std::ptr::eq(&self.0, &other.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum FuncType {
     BuiltIn(RustFn),
     Composed(Box<Func>, Box<Func>),
@@ -55,7 +50,7 @@ pub enum FuncType {
 
 #[derive(Clone)]
 pub struct Func {
-    pub tp: FuncType,
+    pub tp: Rc<FuncType>,
     pub arity: RangeInclusive<usize>,
     pub env: Rc<Env>,
     pub name: Option<String>,
@@ -63,14 +58,17 @@ pub struct Func {
 
 impl PartialEq for Func {
     fn eq(&self, other: &Self) -> bool {
-        self.tp == other.tp && self.arity == other.arity && Rc::ptr_eq(&self.env, &other.env)
+        Rc::ptr_eq(&self.tp, &other.tp)
+            && self.arity == other.arity
+            && Rc::ptr_eq(&self.env, &other.env)
+            && self.name == other.name
     }
 }
 
 impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.as_deref().unwrap_or("");
-        match &self.tp {
+        match &self.tp.as_ref() {
             FuncType::BuiltIn(_) => write!(f, "<built-in> {}|{:?}|", name, self.arity),
             FuncType::Composed(..) => write!(f, "<composed> {}|{:?}|", name, self.arity),
             FuncType::Lime(params, _) => write!(
@@ -86,7 +84,7 @@ impl Display for Func {
 impl std::fmt::Debug for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.as_deref().unwrap_or("");
-        match &self.tp {
+        match &self.tp.as_ref() {
             FuncType::BuiltIn(rf) => write!(f, "<built-in({:?})> {}|{:?}|", rf, name, self.arity),
             _ => std::fmt::Display::fmt(self, f),
         }
@@ -106,7 +104,7 @@ impl Func {
     }
 
     pub fn call(&self, args: Vec<Value>) -> Result<Value> {
-        match &self.tp {
+        match &self.tp.as_ref() {
             FuncType::BuiltIn(f) => (f.0)(args),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
             FuncType::Lime(params, body) => {
@@ -123,7 +121,7 @@ impl Func {
         let arity = g.arity.clone();
         let _ = f.check(1)?;
         Ok(Self {
-            tp: FuncType::Composed(box f, box g),
+            tp: Rc::new(FuncType::Composed(box f, box g)),
             arity,
             env: Rc::new(Env::new_empty()),
             name: None,

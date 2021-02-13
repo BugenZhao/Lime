@@ -85,6 +85,9 @@ impl<'a> Resolver<'a> {
                     self.res_expr(e)?
                 }
             }
+            Stmt::ClassDecl(i, _) => {
+                self.decl(i);
+            }
         }
         Ok(())
     }

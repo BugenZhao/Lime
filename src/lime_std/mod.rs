@@ -2,7 +2,6 @@ use itertools::Itertools;
 use std::{
     io::{stdout, Write},
     rc::Rc,
-    sync::Arc,
 };
 
 use crate::{
@@ -54,7 +53,7 @@ fn define_builtin(env: &Rc<Env>) {
             env.decl(
                 Ident($name.to_owned(), None),
                 Value::Func(Func {
-                    tp: FuncType::BuiltIn(RustFn(Arc::new($func))),
+                    tp: Rc::new(FuncType::BuiltIn(RustFn(box $func))),
                     arity: $arity,
                     env: Rc::clone(env),
                     name: Some($name.to_owned()),

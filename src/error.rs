@@ -1,7 +1,4 @@
-use crate::{
-    parser::{BinaryOp, UnaryOp},
-    Func, Value,
-};
+use crate::{Func, Value, parser::{BinaryOp, UnaryOp}};
 use std::ops::RangeInclusive;
 
 #[derive(thiserror::Error, Debug)]
@@ -47,6 +44,8 @@ pub enum Error {
         take: RangeInclusive<usize>,
         supp: usize,
     },
+    #[error("The name `{0}` is defined multiple times")]
+    DefinedMutlipleTimes(String),
 
     #[error(transparent)]
     Lime(#[from] LimeError),

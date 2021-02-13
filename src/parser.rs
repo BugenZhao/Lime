@@ -56,6 +56,7 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     VarDecl(Ident, Expr),
+    ClassDecl(Ident, Vec<Ident>),
     Expr(Expr),
     Print(Expr),
     Assert(usize, usize, String, Expr),
@@ -95,6 +96,7 @@ peg::parser! {
         rule kw_break() = "break"
         rule kw_continue() = "continue"
         rule kw_return() = "return"
+        rule kw_class() = "class"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -104,6 +106,7 @@ peg::parser! {
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                          / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
+                         / kw_class()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
         pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -221,7 +224,7 @@ peg::parser! {
             = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
 
         rule param_list() -> Vec<Ident>
-            = params:(ident() ** (_ "," _)) {?
+            = params:(ident() ** (_ "," _)) (_ "," _)? {?
                 if params.len() > N_MAX_ARGS {
                     Err("fewer parameters")
                 } else if params.iter().collect::<HashSet<_>>().len() < params.len() {
@@ -250,6 +253,18 @@ peg::parser! {
         rule stmt_var_decl() -> Stmt
             = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, e) }
 
+        rule field_list() -> Vec<Ident>
+            = fields:(ident() ** (_ "," _)) (_ "," _)? {?
+                if fields.iter().collect::<HashSet<_>>().len() < fields.len() {
+                    Err("unique identifiers")
+                } else {
+                    Ok(fields)
+                }
+            }
+
+        rule stmt_class_decl() -> Stmt
+            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" { Stmt::ClassDecl(i, f) }
+
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
             / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
@@ -272,6 +287,7 @@ peg::parser! {
 
         rule stmt() -> Stmt
             = stmt_var_decl()
+            / stmt_class_decl()
             / stmt_print()
             / stmt_assert()
             / stmt_break()

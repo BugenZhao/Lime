@@ -83,6 +83,16 @@ impl Env {
         Ok(())
     }
 
+    fn decl_class(&self, ident: Ident, val: Value) -> Result<()> {
+        assert!(matches!(val, Value::Class(..)));
+        if self.vars.borrow().contains_key(&ident.0) {
+            Err(Error::DefinedMutlipleTimes(ident.0))
+        } else {
+            self.vars.borrow_mut().insert(ident.0, val);
+            Ok(())
+        }
+    }
+
     fn assign(&self, ident: &Ident, mut val: Value) -> Result<()> {
         if self.safe {
             if let Value::Nil = val {
@@ -188,6 +198,9 @@ impl Env {
                     Value::Nil
                 };
                 Err(Error::Return(val))
+            }
+            Stmt::ClassDecl(ident, fields) => {
+                todo!()
             }
         }
     }
@@ -339,13 +352,13 @@ impl Env {
                         Value::Int(x) => Some(Value::Int(x as i64)),
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
-                        Value::String(_) | Value::Nil | Value::Func(..) => None,
+                        Value::String(_) | Value::Nil | Value::Func(..) | Value::Class(..) => None,
                     },
                     "Float" => match val {
                         Value::Int(x) => Some(Value::Float(x as f64)),
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
-                        Value::String(_) | Value::Nil | Value::Func(..) => None,
+                        Value::String(_) | Value::Nil | Value::Func(..) | Value::Class(..) => None,
                     },
                     "Bool" => None,
                     "String" => Some(Value::String(format!("{}", val))),
@@ -410,7 +423,7 @@ impl Env {
                 v => Err(Error::NotCallable(v)),
             },
             Expr::Func(params, body) => Ok(Value::Func(Func {
-                tp: FuncType::Lime(params.clone(), body.clone()),
+                tp: Rc::new(FuncType::Lime(params.clone(), body.clone())),
                 arity: params.len()..=params.len(),
                 env: Rc::clone(&self),
                 name: None,
