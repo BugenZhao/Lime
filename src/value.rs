@@ -26,6 +26,7 @@ pub enum Value {
     String(String),
     Func(ByAddress<Rc<Func>>),
     Class(ByAddress<Rc<Class>>),
+    Object(ByAddress<Rc<Object>>),
     Nil,
 }
 
@@ -38,7 +39,7 @@ impl Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
             Value::Class(ByAddress(v)) => write!(f, "{}", v.name),
-            // Value::Object(v) => write!(f, "{:?}", v),
+            Value::Object(ByAddress(v)) => write!(f, "{:?}", v),
             Value::Nil => write!(f, "nil"),
         }
     }

@@ -362,13 +362,21 @@ impl Env {
                         Value::Int(x) => Some(Value::Int(x as i64)),
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
-                        Value::String(_) | Value::Nil | Value::Func(..) | Value::Class(..) => None,
+                        Value::String(_)
+                        | Value::Nil
+                        | Value::Func(..)
+                        | Value::Class(..)
+                        | Value::Object(..) => None,
                     },
                     "Float" => match val {
                         Value::Int(x) => Some(Value::Float(x as f64)),
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
-                        Value::String(_) | Value::Nil | Value::Func(..) | Value::Class(..) => None,
+                        Value::String(_)
+                        | Value::Nil
+                        | Value::Func(..)
+                        | Value::Class(..)
+                        | Value::Object(..) => None,
                     },
                     "Bool" => None,
                     "String" => Some(Value::String(format!("{}", val))),
