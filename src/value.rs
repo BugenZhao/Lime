@@ -151,7 +151,7 @@ pub struct Class {
     pub fields: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub class: Rc<Class>,
     pub fields: HashMap<String, Value>,

@@ -12,3 +12,5 @@ var assert_eq = |a, b| {
     if a !== b { panic("Assertion failed:\n  left:", dbg(a), "\n right:", dbg(b)); }
     true;
 };
+
+class Pair { a, b }

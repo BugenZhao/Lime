@@ -5,5 +5,5 @@ mod common;
 
 #[test]
 fn test_by_ref() {
-    eval_file!("res/by_ref.lm").unwrap();
+    eval_file!("res/value_ref.lm").unwrap();
 }

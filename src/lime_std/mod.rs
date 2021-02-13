@@ -1,3 +1,5 @@
+#![allow(clippy::unnecessary_wraps)]
+
 use crate::{
     barc,
     env::Env,
@@ -7,6 +9,7 @@ use crate::{
     LimeError::*,
     Result, Value,
 };
+use by_address::ByAddress;
 use itertools::Itertools;
 use std::{
     io::{stdout, Write},
@@ -25,13 +28,11 @@ fn print(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Nil)
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn println(args: Vec<Value>) -> Result<Value> {
     println!("{}", join!(args));
     Ok(Value::Nil)
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn time(_args: Vec<Value>) -> Result<Value> {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -45,6 +46,23 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 
 fn panic(args: Vec<Value>) -> Result<Value> {
     Err(Error::Lime(Panic(join!(args))))
+}
+
+fn copy(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    match v {
+        Value::Int(_) => Ok(v),
+        Value::Float(_) => Ok(v),
+        Value::Bool(_) => Ok(v),
+        Value::String(_) => Ok(v),
+        Value::Object(ByAddress(rc_obj)) => {
+            let obj = (*rc_obj).clone();
+            Ok(Value::Object(barc!(obj)))
+        }
+        Value::Func(_) | Value::Class(_) | Value::Nil => {
+            Err(Error::Lime(Panic(format!("Cannot copy `{:?}`", v))))
+        }
+    }
 }
 
 fn define_builtin(env: &Rc<Env>) {
@@ -67,6 +85,7 @@ fn define_builtin(env: &Rc<Env>) {
     def!(println, "println", 0..=N_MAX_ARGS);
     def!(time, "time", 0..=0);
     def!(panic, "panic", 1..=N_MAX_ARGS);
+    def!(copy, "copy", 1..=1);
     def!(
         |args| {
             print(args)?;
@@ -88,7 +107,6 @@ fn define_builtin(env: &Rc<Env>) {
         "version",
         0..=0
     );
-
     {
         use std::sync::atomic::{AtomicI64, Ordering};
         let v = AtomicI64::new(1);

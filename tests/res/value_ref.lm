@@ -12,3 +12,10 @@ var print_gen = |x| {
 assert_eq(print_gen(true), print);
 assert_eq(print_gen(false), print);
 
+
+
+class Foo { bar }
+
+var foo = Foo { bar: 1 };
+var copied_foo = copy(foo);
+
