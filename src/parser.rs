@@ -1,10 +1,9 @@
-use lazy_static::lazy_static;
-
-use crate::value::*;
 use crate::{
     error::{Error, Result},
     resolver::Resolver,
+    value::*,
 };
+use lazy_static::lazy_static;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

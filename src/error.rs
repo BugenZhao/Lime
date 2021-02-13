@@ -1,9 +1,8 @@
-use std::ops::RangeInclusive;
-
 use crate::{
     parser::{BinaryOp, UnaryOp},
     Func, Value,
 };
+use std::ops::RangeInclusive;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

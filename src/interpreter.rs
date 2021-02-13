@@ -1,7 +1,5 @@
+use crate::{env::Env, error::Result, parser::Stmt, parser, Value};
 use std::{fs::read_to_string, path::Path, rc::Rc};
-
-use crate::{env::Env, error::Result, parser::Stmt};
-use crate::{parser, Value};
 
 pub struct Interpreter {
     env: Rc<Env>,
@@ -33,7 +31,6 @@ impl Interpreter {
     pub fn hints(&self) -> Vec<String> {
         let mut r = self.env.names();
         r.append(&mut parser::KEYWORDS.clone());
-        r.sort();
         r
     }
 }

@@ -1,9 +1,8 @@
-use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
-
 use crate::{
     error::Result,
     parser::{Expr, Ident, Stmt},
 };
+use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
 
 pub struct Resolver<'a> {
     text: &'a str,

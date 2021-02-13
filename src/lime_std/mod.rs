@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use itertools::Itertools;
 use std::{
     io::{stdout, Write},
     rc::Rc,
+    sync::Arc,
 };
 
 use crate::{
@@ -15,11 +16,7 @@ use crate::{
 
 macro_rules! join {
     ($args:expr) => {
-        $args
-            .iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(" ")
+        $args.iter().map(|v| v.to_string()).join(" ")
     };
 }
 

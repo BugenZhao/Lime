@@ -1,14 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
-
-use parser::UnaryOp;
-
 use crate::{
     error::{Error, Result},
     lime_std::define_std,
-    parser::{self, BinaryOp, Expr, Ident, Stmt},
+    parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     value::FuncType,
     Func, Value,
 };
+use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
 
 pub struct Env {
     vars: RefCell<HashMap<String, Value>>,

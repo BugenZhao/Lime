@@ -1,10 +1,10 @@
-use std::{fmt::Display, ops::RangeInclusive, rc::Rc, sync::Arc};
-
 use crate::{
     env::Env,
     parser::{Ident, Stmt},
     Error, Result,
 };
+use itertools::Itertools;
+use std::{fmt::Display, ops::RangeInclusive, rc::Rc, sync::Arc};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -77,11 +77,7 @@ impl Display for Func {
                 f,
                 "{}|{}|",
                 name,
-                params
-                    .iter()
-                    .map(|i| i.0.to_owned())
-                    .collect::<Vec<_>>()
-                    .join(", ")
+                params.iter().map(|i| i.0.to_owned()).join(", ")
             ),
         }
     }

@@ -1,15 +1,13 @@
-use std::borrow::Cow::{self, Owned};
-
+use crate::{parse_and_resolve, parser};
 use colored::Colorize;
+use itertools::Itertools;
 use rustyline::completion::Completer;
 use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
 use rustyline::hint::Hinter;
-use rustyline::validate::{self, MatchingBracketValidator, Validator};
+use rustyline::validate::{self, MatchingBracketValidator, ValidationResult, Validator};
 use rustyline::{CompletionType, Config, Context, Editor};
 use rustyline_derive::Helper;
-use validate::ValidationResult;
-
-use crate::{parse_and_resolve, parser};
+use std::borrow::Cow::{self, Owned};
 
 #[derive(Helper)]
 pub struct LimeHelper {
@@ -50,6 +48,8 @@ impl Completer for LimeHelper {
             .chain(tokens.iter().rev().skip(1).map(|&p| p.1))
             .filter(|x| x.starts_with(&line[start..pos]))
             .map(|s| s.to_string())
+            .unique()
+            .sorted()
             .collect();
 
         Ok((start, cands))

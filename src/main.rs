@@ -1,9 +1,7 @@
-use std::path::PathBuf;
-
 use colored::*;
-use structopt::StructOpt;
-
 use lime::{repl, Interpreter};
+use std::path::PathBuf;
+use structopt::StructOpt;
 
 #[derive(Debug, structopt::StructOpt)]
 struct Opt {
