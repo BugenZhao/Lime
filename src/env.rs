@@ -6,7 +6,6 @@ use crate::{
     value::{Class, FuncType},
     Func, Value,
 };
-use by_address::ByAddress;
 use std::{cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
 
 pub struct Env {
@@ -78,8 +77,10 @@ impl Env {
                 return Err(Error::CannotHaveValue(ident.0, val));
             }
         }
-        if let Value::Func(func) = val {
-            val = Value::Func(func.with_name(ident.0.clone()))
+        if let Value::Func(func) = &val {
+            if func.name.is_none() {
+                val = Value::Func(barc!(func.as_ref().clone().with_name(ident.0.clone())))
+            }
         }
         self.vars.borrow_mut().insert(ident.0, val);
         Ok(())
@@ -102,8 +103,10 @@ impl Env {
             }
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
-            if let Value::Func(func) = val {
-                val = Value::Func(func.with_name(ident.0.clone()))
+            if let Value::Func(func) = &val {
+                if func.name.is_none() {
+                    val = Value::Func(barc!(func.as_ref().clone().with_name(ident.0.clone())))
+                }
             }
             *v = val;
             Ok(())
@@ -429,12 +432,12 @@ impl Env {
                 }
                 v => Err(Error::NotCallable(v)),
             },
-            Expr::Func(params, body) => Ok(Value::Func(Func {
-                tp: Rc::new(FuncType::Lime(params.clone(), body.clone())),
+            Expr::Func(params, body) => Ok(Value::Func(barc!(Func {
+                tp: FuncType::Lime(params.clone(), body.clone()),
                 arity: params.len()..=params.len(),
                 env: Rc::clone(&self),
                 name: None,
-            })),
+            }))),
         }
     }
 }

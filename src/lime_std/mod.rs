@@ -1,16 +1,16 @@
-use itertools::Itertools;
-use std::{
-    io::{stdout, Write},
-    rc::Rc,
-};
-
 use crate::{
+    barc,
     env::Env,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
     Error, Func,
     LimeError::*,
     Result, Value,
+};
+use itertools::Itertools;
+use std::{
+    io::{stdout, Write},
+    rc::Rc,
 };
 
 macro_rules! join {
@@ -52,12 +52,12 @@ fn define_builtin(env: &Rc<Env>) {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
                 Ident($name.to_owned(), None),
-                Value::Func(Func {
-                    tp: Rc::new(FuncType::BuiltIn(RustFn(box $func))),
+                Value::Func(barc!(Func {
+                    tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
                     arity: $arity,
                     env: Rc::clone(env),
                     name: Some($name.to_owned()),
-                }),
+                })),
             )
             .unwrap();
         };

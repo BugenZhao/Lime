@@ -1,4 +1,7 @@
-use crate::{Func, Value, parser::{BinaryOp, UnaryOp}};
+use crate::{
+    parser::{BinaryOp, UnaryOp},
+    Func, Value,
+};
 use std::ops::RangeInclusive;
 
 #[derive(thiserror::Error, Debug)]
