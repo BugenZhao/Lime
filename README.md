@@ -2,6 +2,7 @@
 
 A Rust/Swift-like modern interpreted programming language, hosted by Rust.
 
+- Serious PEG(Parsing Expression Grammar)-based parser
 - Most of the statements are expressions that have values
 - Dynamic but strict typing system
 - First-class functions with Rust's closure style
