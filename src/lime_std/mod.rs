@@ -1,15 +1,14 @@
 #![allow(clippy::unnecessary_wraps)]
 
 use crate::{
+    ba_rc,
     env::Env,
-    lime_rc,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
     Error, Func,
     LimeError::*,
     Result, Value,
 };
-use by_address::ByAddress;
 use itertools::Itertools;
 use std::{
     io::{stdout, Write},
@@ -55,12 +54,12 @@ fn copy(args: Vec<Value>) -> Result<Value> {
         Value::Float(_) => Ok(v),
         Value::Bool(_) => Ok(v),
         Value::String(_) => Ok(v),
-        Value::Object(ByAddress(rc_obj)) => {
+        Value::Object(rc_obj) => {
             let obj = (*rc_obj).clone();
             for (_, v) in obj.borrow_mut().fields.iter_mut() {
                 *v = copy(vec![v.clone()])?;
             }
-            Ok(Value::Object(lime_rc!(obj)))
+            Ok(Value::Object(Rc::new(obj)))
         }
         Value::Func(_) | Value::Class(_) | Value::Nil => {
             Err(Error::Lime(Panic(format!("Cannot copy `{:?}`", v))))
@@ -73,7 +72,7 @@ fn define_builtin(env: &Rc<Env>) {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
                 Ident($name.to_owned(), None),
-                Value::Func(lime_rc!(Func {
+                Value::Func(ba_rc!(Func {
                     tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
                     arity: $arity,
                     env: Rc::clone(env),

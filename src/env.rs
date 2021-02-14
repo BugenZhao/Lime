@@ -1,8 +1,9 @@
 use crate::{
+    ba_rc,
     error::{Error, Result},
-    lime_rc, lime_rc_mut,
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
+    rc_refcell,
     value::{Class, FuncType, Object},
     Func, Value,
 };
@@ -85,7 +86,7 @@ impl Env {
         }
         if let Value::Func(func) = &val {
             if func.name.is_none() {
-                val = Value::Func(lime_rc!(func.as_ref().clone().with_name(ident.0.clone())))
+                val = Value::Func(ba_rc!(func.as_ref().clone().with_name(ident.0.clone())))
             }
         }
         self.vars.borrow_mut().insert(ident.0, val);
@@ -111,7 +112,7 @@ impl Env {
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             if let Value::Func(func) = &val {
                 if func.name.is_none() {
-                    val = Value::Func(lime_rc!(func.as_ref().clone().with_name(ident.0.clone())))
+                    val = Value::Func(ba_rc!(func.as_ref().clone().with_name(ident.0.clone())))
                 }
             }
             *v = val;
@@ -211,7 +212,7 @@ impl Env {
                 Err(Error::Return(val))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(lime_rc!(Class {
+                let val = Value::Class(ba_rc!(Class {
                     name: ident.0.clone(),
                     fields: fields.iter().map(|i| i.0.to_owned()).collect(),
                 }));
@@ -242,6 +243,15 @@ impl Env {
                 Some(Value::String($v))
             };
         }
+        macro_rules! class_check {
+            ($a:expr, $b:expr, $v:expr) => {
+                if $a.borrow().class == $b.borrow().class {
+                    $v
+                } else {
+                    None
+                }
+            };
+        }
 
         match expr {
             Expr::Variable(ident) => match self.get(ident) {
@@ -268,8 +278,8 @@ impl Env {
                 let (l, r) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
 
                 match (l.clone(), r.clone(), op) {
-                    (a, b, BinaryOp::Teq) => bool!(a == b),
-                    (a, b, BinaryOp::Tne) => bool!(a != b),
+                    (a, b, BinaryOp::Feq) => bool!(a == b),
+                    (a, b, BinaryOp::Fne) => bool!(a != b),
                     (Value::Int(a), Value::Int(b), op) => match op {
                         BinaryOp::Add => int!(a + b),
                         BinaryOp::Sub => int!(a - b),
@@ -277,7 +287,10 @@ impl Env {
                         BinaryOp::Div => int!(a / b),
                         BinaryOp::Pow => int!(a.pow(b as u32)),
 
-                        BinaryOp::Teq | BinaryOp::Tne => unreachable!(),
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
@@ -296,7 +309,10 @@ impl Env {
                         BinaryOp::Div => float!(a / b),
                         BinaryOp::Pow => float!(a.powf(b)),
 
-                        BinaryOp::Teq | BinaryOp::Tne => unreachable!(),
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
@@ -309,6 +325,10 @@ impl Env {
                     },
                     #[allow(clippy::bool_comparison)]
                     (Value::Bool(a), Value::Bool(b), op) => match op {
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
@@ -324,6 +344,10 @@ impl Env {
                     (Value::String(a), Value::String(b), op) => match op {
                         BinaryOp::Add => string!(a + &b),
 
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
                         BinaryOp::Gt => bool!(a > b),
@@ -337,21 +361,32 @@ impl Env {
                         // TODO: composed func
                         BinaryOp::Mul => todo!("func composition"),
 
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
 
                         _ => None,
                     },
                     (Value::Class(a), Value::Class(b), op) => match op {
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => bool!(a == b),
+                        BinaryOp::Rne => bool!(a != b),
+
                         BinaryOp::Eq => bool!(a == b),
                         BinaryOp::Ne => bool!(a != b),
 
                         _ => None,
                     },
                     (Value::Object(a), Value::Object(b), op) => match op {
-                        // FIXME: fix the comparison
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
+                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                        BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
+                        BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
+
+                        BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
+                        BinaryOp::Ne => class_check!(a, b, bool!(a != b)),
 
                         _ => None,
                     },
@@ -459,7 +494,7 @@ impl Env {
                 }
                 v => Err(Error::NotCallable(v)),
             },
-            Expr::Func(params, body) => Ok(Value::Func(lime_rc!(Func {
+            Expr::Func(params, body) => Ok(Value::Func(ba_rc!(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),
                 arity: params.len()..=params.len(),
                 env: Rc::clone(&self),
@@ -482,7 +517,7 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(lime_rc_mut!(Object {
+                        Ok(Value::Object(rc_refcell!(Object {
                             class: Rc::clone(class),
                             fields,
                         })))

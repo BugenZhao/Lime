@@ -16,8 +16,10 @@ pub enum BinaryOp {
     Pow,
 
     // Comparison
-    Teq,
-    Tne,
+    Feq, // force comparison without type checker
+    Fne,
+    Req, // reference comparison
+    Rne,
     Eq,
     Ne,
     Gt,
@@ -188,8 +190,10 @@ peg::parser! {
             --
             x:(@) _ kw_and() _ y:@ { Expr::Binary(box x, BinaryOp::And, box y) }
             --
-            x:(@) _ "===" _ y:@ { Expr::Binary(box x, BinaryOp::Teq, box y) }
-            x:(@) _ "!==" _ y:@ { Expr::Binary(box x, BinaryOp::Tne, box y) }
+            x:(@) _ "&==" _ y:@ { Expr::Binary(box x, BinaryOp::Feq, box y) }
+            x:(@) _ "&!=" _ y:@ { Expr::Binary(box x, BinaryOp::Fne, box y) }
+            x:(@) _ "===" _ y:@ { Expr::Binary(box x, BinaryOp::Req, box y) }
+            x:(@) _ "!==" _ y:@ { Expr::Binary(box x, BinaryOp::Rne, box y) }
             x:(@) _ "==" _ y:@ { Expr::Binary(box x, BinaryOp::Eq, box y) }
             x:(@) _ "!=" _ y:@ { Expr::Binary(box x, BinaryOp::Ne, box y) }
             --

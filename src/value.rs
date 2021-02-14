@@ -12,21 +12,20 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, ops::RangeInclusive
 pub const N_MAX_ARGS: usize = 255;
 
 #[macro_export]
-macro_rules! lime_rc {
+macro_rules! ba_rc {
     ($w:expr) => {
         by_address::ByAddress(std::rc::Rc::new($w))
     };
 }
 
 #[macro_export]
-macro_rules! lime_rc_mut {
+macro_rules! rc_refcell {
     ($w:expr) => {
-        by_address::ByAddress(std::rc::Rc::new(std::cell::RefCell::new($w)))
+        std::rc::Rc::new(std::cell::RefCell::new($w))
     };
 }
 
-pub type LimeRc<T> = ByAddress<Rc<T>>;
-pub type LimeRcMut<T> = LimeRc<RefCell<T>>;
+pub type Ba<T> = ByAddress<T>;
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
@@ -34,9 +33,9 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
-    Func(LimeRc<Func>),
-    Class(LimeRc<Class>),
-    Object(LimeRcMut<Object>),
+    Func(Ba<Rc<Func>>),
+    Class(Ba<Rc<Class>>),
+    Object(Rc<RefCell<Object>>),
     Nil,
 }
 
@@ -49,7 +48,7 @@ impl std::fmt::Debug for Value {
             Value::String(v) => write!(f, "String({:?})", v),
             Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
             Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v),
-            Value::Object(ByAddress(v)) => write!(f, "Object({:?})", v.borrow()),
+            Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -64,7 +63,7 @@ impl Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
             Value::Class(ByAddress(v)) => write!(f, "{}", v),
-            Value::Object(ByAddress(v)) => write!(f, "{}", v.borrow()),
+            Value::Object(v) => write!(f, "{}", v.borrow()),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -166,6 +165,7 @@ impl Func {
     }
 }
 
+#[derive(PartialEq)]
 pub struct Class {
     pub name: String,
     pub fields: Vec<String>,
@@ -183,7 +183,7 @@ impl Display for Class {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Object {
     pub class: Rc<Class>,
     pub fields: HashMap<String, Value>,

@@ -9,7 +9,7 @@ var min = |a, b| {
 var id = |x| { x; };
 
 var assert_eq = |a, b| {
-    if a !== b { panic("Assertion failed:\n  left:", dbg(a), "\n right:", dbg(b)); }
+    if a &!= b { panic("Assertion failed:\n  left:", dbg(a), "\n right:", dbg(b)); }
     true;
 };
 
