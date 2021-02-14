@@ -107,12 +107,14 @@ peg::parser! {
         rule kw_float() = "Float"
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
+        rule kw_big_class() = "Class"
+        rule kw_object() = "Object"
         rule kw_nil() = "Nil" / "nil"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                          / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
                          / kw_class()
-        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_nil()
+        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_big_class() / kw_object() / kw_nil()
         pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
 
