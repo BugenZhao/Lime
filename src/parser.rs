@@ -62,6 +62,7 @@ pub enum Expr {
 pub enum Stmt {
     VarDecl(Ident, Expr),
     ClassDecl(Ident, Vec<Ident>),
+    Impl(Ident, Vec<(Ident, Expr)>),
     Expr(Expr),
     Print(Expr),
     Assert(usize, usize, String, Expr),
@@ -102,6 +103,7 @@ peg::parser! {
         rule kw_continue() = "continue"
         rule kw_return() = "return"
         rule kw_class() = "class"
+        rule kw_impl() = "impl"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -288,6 +290,11 @@ peg::parser! {
         rule stmt_class_decl() -> Stmt
             = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { Stmt::ClassDecl(i, f) }
 
+        rule assoc_func() -> (Ident, Expr)
+            = i:ident() _ "=" _ e:(expr_func() / expected!("function")) _ semi()* { (i, e) }
+        rule stmt_impl() -> Stmt
+            = kw_impl() __ i:ident() _ "{" semi()* ms:assoc_func()* semi()* "}" _ semi()* { Stmt::Impl(i, ms) }
+
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
             / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
@@ -311,6 +318,7 @@ peg::parser! {
         rule stmt() -> Stmt
             = stmt_var_decl()
             / stmt_class_decl()
+            / stmt_impl()
             / stmt_print()
             / stmt_assert()
             / stmt_break()

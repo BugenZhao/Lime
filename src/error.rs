@@ -12,6 +12,9 @@ pub enum Error {
     #[error("Parse error: expect {} at {}", .0.expected, .0.location)]
     ParseError(peg::error::ParseError<peg::str::LineCol>),
 
+    #[error("The `{0}` statement should only appear at the top level")]
+    OnlyTopLevel(String),
+
     #[error("Break outside of a loop")]
     Break(Value),
     #[error("Continue outside of a loop")]

@@ -1,6 +1,7 @@
 use crate::{
     error::Result,
     parser::{Expr, Ident, Stmt},
+    Error,
 };
 use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
 
@@ -86,7 +87,19 @@ impl<'a> Resolver<'a> {
                 }
             }
             Stmt::ClassDecl(i, _) => {
+                if self.enclosing.is_some() {
+                    return Err(Error::OnlyTopLevel("class".to_owned()));
+                }
                 self.decl(i);
+            }
+            Stmt::Impl(i, afs) => {
+                if self.enclosing.is_some() {
+                    return Err(Error::OnlyTopLevel("impl".to_owned()));
+                }
+                self.decl(i);
+                for f in afs.iter_mut() {
+                    self.res_expr(&mut f.1)?;
+                }
             }
         }
         Ok(())

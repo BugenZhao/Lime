@@ -212,12 +212,22 @@ impl Env {
                 Err(Error::Return(val))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(ba_rc!(Class {
+                let val = Value::Class(ba_rc!(RefCell::new(Class {
                     name: ident.0.clone(),
                     fields: fields.iter().map(|i| i.0.to_owned()).collect(),
-                }));
+                })));
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil)
+            }
+            Stmt::Impl(ident, assoc_funcs) => {
+                let v = self
+                    .get(ident)
+                    .ok_or_else(|| Error::CannotFindValue(ident.0.to_owned()))?;
+                if let Value::Class(class) = &v {
+                    todo!()
+                } else {
+                    Err(Error::NotAClass(v))
+                }
             }
         }
     }
@@ -516,8 +526,18 @@ impl Env {
                     .get(ident)
                     .ok_or_else(|| Error::CannotFindValue(ident.0.to_owned()))?;
                 if let Value::Class(ByAddress(class)) = &v {
-                    let keys_set = kvs.iter().map(|(k, _)| &k.0).collect::<HashSet<_>>();
-                    let expected_keys_set = class.fields.iter().collect::<HashSet<_>>();
+                    let keys_set = kvs
+                        .iter()
+                        .map(|(k, _)| &k.0)
+                        .cloned()
+                        .collect::<HashSet<_>>();
+                    let expected_keys_set = class
+                        .borrow()
+                        .fields
+                        .iter()
+                        .cloned()
+                        .collect::<HashSet<_>>();
+
                     if keys_set == expected_keys_set {
                         let mut values = vec![];
                         for expr in kvs.iter().map(|(_, v)| v) {

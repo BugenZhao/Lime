@@ -34,7 +34,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Func(Ba<Rc<Func>>),
-    Class(Ba<Rc<Class>>),
+    Class(Ba<Rc<RefCell<Class>>>),
     Object(Rc<RefCell<Object>>),
     Nil,
 }
@@ -62,7 +62,7 @@ impl Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
-            Value::Class(ByAddress(v)) => write!(f, "{}", v),
+            Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
             Value::Object(v) => write!(f, "{}", v.borrow()),
             Value::Nil => write!(f, "nil"),
         }
@@ -185,7 +185,7 @@ impl Display for Class {
 
 #[derive(Clone, PartialEq)]
 pub struct Object {
-    pub class: Rc<Class>,
+    pub class: Rc<RefCell<Class>>,
     pub fields: HashMap<String, Value>,
 }
 
@@ -194,7 +194,7 @@ impl std::fmt::Debug for Object {
         write!(
             f,
             "{}{{{}}}",
-            self.class.name,
+            self.class.borrow().name,
             self.fields
                 .iter()
                 .sorted_by_key(|p| p.0)
