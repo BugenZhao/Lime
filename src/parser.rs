@@ -104,6 +104,7 @@ peg::parser! {
         rule kw_return() = "return"
         rule kw_class() = "class"
         rule kw_impl() = "impl"
+        rule kw_assoc() = "assoc"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -115,7 +116,7 @@ peg::parser! {
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                          / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
-                         / kw_class()
+                         / kw_class() / kw_assoc()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_big_class() / kw_object() / kw_nil()
         pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -293,10 +294,10 @@ peg::parser! {
         rule stmt_class_decl() -> Stmt
             = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { Stmt::ClassDecl(i, f) }
 
-        rule assoc_func() -> (Ident, Expr)
-            = i:ident() _ "=" _ e:(expr_func() / expected!("function")) _ semi()* { (i, e) }
+        rule assoc() -> (Ident, Expr)
+            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()* { (i, e) }
         rule stmt_impl() -> Stmt
-            = kw_impl() __ i:ident() _ "{" _ semi()* ms:assoc_func()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
+            = kw_impl() __ i:ident() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
 
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }

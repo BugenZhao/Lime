@@ -221,12 +221,12 @@ impl Env {
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil)
             }
-            Stmt::Impl(ident, assoc_funcs) => {
+            Stmt::Impl(ident, assocs) => {
                 let v = self
                     .get(ident)
                     .ok_or_else(|| Error::CannotFindValue(ident.0.to_owned()))?;
                 if let Value::Class(class) = &v {
-                    for (i, e) in assoc_funcs.iter() {
+                    for (i, e) in assocs.iter() {
                         class
                             .borrow_mut()
                             .decl_static(i.0.clone(), self.eval_expr(e)?)?;
