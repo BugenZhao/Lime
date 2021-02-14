@@ -251,6 +251,13 @@ impl Env {
                     None
                 }
             };
+            ($a:expr, $b:expr, $v1:expr, $v2:expr) => {
+                if $a.borrow().class == $b.borrow().class {
+                    $v1
+                } else {
+                    $v2
+                }
+            };
         }
 
         match expr {
@@ -278,8 +285,21 @@ impl Env {
                 let (l, r) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
 
                 match (l.clone(), r.clone(), op) {
+                    (Value::Object(a), Value::Object(b), op) => match op {
+                        BinaryOp::Feq => class_check!(a, b, bool!(a == b), bool!(false)),
+                        BinaryOp::Fne => class_check!(a, b, bool!(a != b), bool!(true)),
+                        BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
+                        BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
+
+                        BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
+                        BinaryOp::Ne => class_check!(a, b, bool!(a != b)),
+
+                        _ => None,
+                    },
+
                     (a, b, BinaryOp::Feq) => bool!(a == b),
                     (a, b, BinaryOp::Fne) => bool!(a != b),
+
                     (Value::Int(a), Value::Int(b), op) => match op {
                         BinaryOp::Add => int!(a + b),
                         BinaryOp::Sub => int!(a - b),
@@ -380,16 +400,7 @@ impl Env {
 
                         _ => None,
                     },
-                    (Value::Object(a), Value::Object(b), op) => match op {
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
-                        BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
 
-                        BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
-                        BinaryOp::Ne => class_check!(a, b, bool!(a != b)),
-
-                        _ => None,
-                    },
                     (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
                         float!(a.powi(b as i32))
                     }

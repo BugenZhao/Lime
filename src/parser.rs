@@ -284,7 +284,7 @@ peg::parser! {
                 }
             }
         rule stmt_class_decl() -> Stmt
-            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" { Stmt::ClassDecl(i, f) }
+            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { Stmt::ClassDecl(i, f) }
 
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
