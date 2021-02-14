@@ -224,7 +224,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" semi()* ss:(raw_stmt())* semi()* "}" { Expr::Block(ss) }
+            = "{" _ semi()* ss:(raw_stmt())* semi()* _ "}" { Expr::Block(ss) }
 
         rule if_else() -> Expr
             = _ kw_else() _ else_:(expr_if() / block()) { else_ }
@@ -293,7 +293,7 @@ peg::parser! {
         rule assoc_func() -> (Ident, Expr)
             = i:ident() _ "=" _ e:(expr_func() / expected!("function")) _ semi()* { (i, e) }
         rule stmt_impl() -> Stmt
-            = kw_impl() __ i:ident() _ "{" semi()* ms:assoc_func()* semi()* "}" _ semi()* { Stmt::Impl(i, ms) }
+            = kw_impl() __ i:ident() _ "{" _ semi()* ms:assoc_func()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
 
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }

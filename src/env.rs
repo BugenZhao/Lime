@@ -10,7 +10,7 @@ use crate::{
 use by_address::ByAddress;
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     ops::Deref,
     rc::Rc,
 };
@@ -95,11 +95,12 @@ impl Env {
 
     fn decl_class(&self, ident: Ident, val: Value) -> Result<()> {
         assert!(matches!(val, Value::Class(..)));
-        if self.vars.borrow().contains_key(&ident.0) {
-            Err(Error::DefinedMutlipleTimes(ident.0))
-        } else {
-            self.vars.borrow_mut().insert(ident.0, val);
-            Ok(())
+        match self.vars.borrow_mut().entry(ident.0.clone()) {
+            Entry::Occupied(_) => Err(Error::DefinedMutlipleTimes(ident.0)),
+            Entry::Vacant(e) => {
+                e.insert(val);
+                Ok(())
+            }
         }
     }
 
@@ -215,6 +216,7 @@ impl Env {
                 let val = Value::Class(ba_rc!(RefCell::new(Class {
                     name: ident.0.clone(),
                     fields: fields.iter().map(|i| i.0.to_owned()).collect(),
+                    statics: HashMap::new(),
                 })));
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil)
@@ -224,7 +226,12 @@ impl Env {
                     .get(ident)
                     .ok_or_else(|| Error::CannotFindValue(ident.0.to_owned()))?;
                 if let Value::Class(class) = &v {
-                    todo!()
+                    for (i, e) in assoc_funcs.iter() {
+                        class
+                            .borrow_mut()
+                            .decl_static(i.0.clone(), self.eval_expr(e)?)?;
+                    }
+                    Ok(Value::Nil)
                 } else {
                     Err(Error::NotAClass(v))
                 }
@@ -561,18 +568,12 @@ impl Env {
             }
             Expr::Get(expr, field) => {
                 let v = self.eval_expr(expr)?;
-                match v {
-                    Value::Class(_) => {
-                        todo!()
-                    }
-                    Value::Object(ref obj) => obj
-                        .borrow()
-                        .fields
-                        .get(&field.0)
-                        .cloned()
-                        .ok_or_else(|| Error::NoField(v.clone(), field.0.clone())),
-                    _ => Err(Error::NoField(v, field.0.clone())),
+                match &v {
+                    Value::Class(class) => class.borrow().statics.get(&field.0).cloned(),
+                    Value::Object(obj) => obj.borrow().fields.get(&field.0).cloned(),
+                    _ => None,
                 }
+                .ok_or_else(|| Error::NoField(v.clone(), field.0.clone()))
             }
             Expr::Set(expr, field, val) => {
                 let v = self.eval_expr(expr)?;

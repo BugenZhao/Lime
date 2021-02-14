@@ -7,7 +7,13 @@ use crate::{
 };
 use by_address::ByAddress;
 use itertools::Itertools;
-use std::{cell::RefCell, collections::HashMap, fmt::Display, ops::RangeInclusive, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
+    ops::RangeInclusive,
+    rc::Rc,
+};
 
 pub const N_MAX_ARGS: usize = 255;
 
@@ -47,7 +53,7 @@ impl std::fmt::Debug for Value {
             Value::Bool(v) => write!(f, "Bool({:?})", v),
             Value::String(v) => write!(f, "String({:?})", v),
             Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
-            Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v),
+            Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
             Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
             Value::Nil => write!(f, "nil"),
         }
@@ -169,6 +175,7 @@ impl Func {
 pub struct Class {
     pub name: String,
     pub fields: Vec<String>,
+    pub statics: HashMap<String, Value>,
 }
 
 impl std::fmt::Debug for Class {
@@ -180,6 +187,24 @@ impl std::fmt::Debug for Class {
 impl Display for Class {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl Class {
+    pub fn decl_static(&mut self, k: String, mut v: Value) -> Result<()> {
+        match self.statics.entry(k.clone()) {
+            Entry::Occupied(_) => Err(Error::DefinedMutlipleTimes(k)),
+            Entry::Vacant(e) => {
+                if let Value::Func(func) = &v {
+                    v = Value::Func(ba_rc!(func
+                        .as_ref()
+                        .clone()
+                        .with_name(format!("{}.{}", self.name, k))))
+                }
+                e.insert(v);
+                Ok(())
+            }
+        }
     }
 }
 
