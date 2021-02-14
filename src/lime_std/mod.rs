@@ -3,9 +3,10 @@
 use crate::{
     ba_rc,
     env::Env,
+    lime_error,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
-    Error, Func,
+    Func,
     LimeError::*,
     Result, Value,
 };
@@ -44,7 +45,7 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 }
 
 fn panic(args: Vec<Value>) -> Result<Value> {
-    Err(Error::Lime(Panic(join!(args))))
+    Err(lime_error!(Panic(join!(args))))
 }
 
 fn copy(args: Vec<Value>) -> Result<Value> {
@@ -62,7 +63,7 @@ fn copy(args: Vec<Value>) -> Result<Value> {
             Ok(Value::Object(Rc::new(obj)))
         }
         Value::Func(_) | Value::Class(_) | Value::Nil => {
-            Err(Error::Lime(Panic(format!("Cannot copy `{:?}`", v))))
+            Err(lime_error!(Panic(format!("Cannot copy `{:?}`", v))))
         }
     }
 }

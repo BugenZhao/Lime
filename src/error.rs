@@ -2,6 +2,7 @@ use crate::{
     parser::{BinaryOp, UnaryOp},
     Func, Value,
 };
+use itertools::Itertools;
 use std::ops::RangeInclusive;
 
 #[derive(thiserror::Error, Debug)]
@@ -63,8 +64,8 @@ pub enum Error {
     #[error("There's no settable field `{1}` in `{0:?}`")]
     NoFieldToSet(Value, String),
 
-    #[error(transparent)]
-    Lime(#[from] LimeError),
+    #[error("{0}\n\nBacktrace:\n  {}", .1.iter().map(|s| format!("`{}`", s)).join(", "))]
+    Lime(LimeError, Vec<String>),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -74,3 +75,10 @@ pub enum LimeError {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[macro_export]
+macro_rules! lime_error {
+    ($err:expr) => {
+        crate::error::Error::Lime($err, vec![])
+    };
+}

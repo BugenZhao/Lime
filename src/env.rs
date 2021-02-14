@@ -517,6 +517,15 @@ impl Env {
 
                     match lime_f.call(args) {
                         Ok(v) | Err(Error::Return(v)) => Ok(v),
+                        Err(Error::Lime(e, mut bt)) => {
+                            bt.push(
+                                lime_f
+                                    .name
+                                    .clone()
+                                    .unwrap_or_else(|| "<unknown>".to_owned()),
+                            );
+                            Err(Error::Lime(e, bt))
+                        }
                         err @ Err(_) => err,
                     }
                 }
