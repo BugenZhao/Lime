@@ -16,7 +16,7 @@ use std::{
 };
 
 pub struct Env {
-    vars: RefCell<HashMap<String, Value>>,
+    pub(crate) vars: RefCell<HashMap<String, Value>>,
     enclosing: Option<Rc<Self>>,
     safe: bool,
 }

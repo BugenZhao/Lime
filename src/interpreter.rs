@@ -1,5 +1,5 @@
-use crate::{env::Env, error::Result, parser::Stmt, parser, Value};
-use std::{fs::read_to_string, path::Path, rc::Rc};
+use crate::{env::Env, error::Result, parser, parser::Stmt, Value};
+use std::{collections::HashMap, fs::read_to_string, path::Path, rc::Rc};
 
 pub struct Interpreter {
     env: Rc<Env>,
@@ -31,7 +31,11 @@ impl Interpreter {
     pub fn hints(&self) -> Vec<String> {
         let mut r = self.env.names();
         r.append(&mut parser::KEYWORDS.clone());
-        r
+        r.drain(..).filter(|n| !n.starts_with('_')).collect()
+    }
+
+    pub fn global_map(&self) -> HashMap<String, Value> {
+        self.env.vars.borrow().clone()
     }
 }
 

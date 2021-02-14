@@ -110,6 +110,10 @@ impl Validator for LimeHelper {
         match r {
             ValidationResult::Valid(_) => {
                 let mut text = ctx.input().to_owned();
+                if text.starts_with(':') {
+                    return Ok(r);
+                }
+
                 text.push(';');
                 if let Err(e) = parse_and_resolve(&text) {
                     return Ok(ValidationResult::Invalid(Some(format!(
