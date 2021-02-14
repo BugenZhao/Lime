@@ -1,4 +1,5 @@
 #![feature(box_syntax)]
+#![feature(bindings_after_at)]
 
 mod env;
 mod error;

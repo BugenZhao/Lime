@@ -493,6 +493,21 @@ impl Env {
                     Err(Error::NotAClass(v))
                 }
             }
+
+            Expr::Get(expr, field) => {
+                let v = self.eval_expr(expr)?;
+                match v {
+                    Value::Class(_) => {
+                        todo!()
+                    }
+                    Value::Object(ref obj) => obj
+                        .fields
+                        .get(&field.0)
+                        .cloned()
+                        .ok_or_else(|| Error::NoField(v, field.0.clone())),
+                    _ => Err(Error::NoField(v, field.0.clone())),
+                }
+            }
         }
     }
 }

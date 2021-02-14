@@ -53,6 +53,7 @@ pub enum Expr {
     Call(Box<Expr>, Vec<Expr>),
     Func(Vec<Ident>, Vec<Stmt>),
     Construct(Ident, Vec<(Ident, Expr)>),
+    Get(Box<Expr>, Ident),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
@@ -164,6 +165,7 @@ peg::parser! {
         // TODO: check this
         rule expr_call() -> Expr = precedence!{
             f:(@) _ "(" _ args:arg_list() _ ")" { Expr::Call(box f, args) }
+            o:(@) _ "." _ f:ident() { Expr::Get(box o, f) }
             --
             p:primary() { p }
         }

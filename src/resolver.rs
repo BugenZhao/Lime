@@ -147,6 +147,9 @@ impl<'a> Resolver<'a> {
                     self.res_expr(e)?;
                 }
             }
+            Expr::Get(e, _) => {
+                self.res_expr(e)?;
+            }
         }
         Ok(())
     }

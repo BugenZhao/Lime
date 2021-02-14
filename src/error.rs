@@ -53,6 +53,8 @@ pub enum Error {
     NotAClass(Value),
     #[error("Some fields are wrong or missing while constructing an object of `{0}`")]
     WrongFields(Value),
+    #[error("There's no field `{1}` in `{0:?}`")]
+    NoField(Value, String),
 
     #[error(transparent)]
     Lime(#[from] LimeError),
