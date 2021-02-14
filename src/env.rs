@@ -570,29 +570,52 @@ impl Env {
                 let v = self.eval_expr(expr)?;
                 match &v {
                     Value::Class(class) => class.borrow().statics.get(&field.0).cloned(),
-                    Value::Object(obj) => obj.borrow().fields.get(&field.0).cloned(),
+                    Value::Object(obj) => {
+                        if let Some(field_val) = obj.borrow().fields.get(&field.0).cloned() {
+                            Some(field_val)
+                        } else if let Some(static_val) =
+                            obj.borrow().class.borrow().statics.get(&field.0).cloned()
+                        {
+                            Some(static_val)
+                        } else {
+                            None
+                        }
+                    }
                     _ => None,
                 }
                 .ok_or_else(|| Error::NoField(v.clone(), field.0.clone()))
             }
             Expr::Set(expr, field, val) => {
                 let v = self.eval_expr(expr)?;
-                match v {
-                    Value::Class(_) => {
-                        todo!()
+                match &v {
+                    Value::Class(class) => {
+                        let mut class = class.borrow_mut();
+                        let field = class.statics.get_mut(&field.0);
+                        match field {
+                            Some(field) => {
+                                let val = self.eval_expr(val)?;
+                                *field = val.clone();
+                                Some(val)
+                            }
+                            None => None,
+                        }
                     }
-                    Value::Object(ref obj) => {
+                    Value::Object(obj) => {
                         let mut obj = obj.borrow_mut();
-                        let field = obj
-                            .fields
-                            .get_mut(&field.0)
-                            .ok_or_else(|| Error::NoField(v.clone(), field.0.clone()))?;
-                        let val = self.eval_expr(val)?;
-                        *field = val.clone();
-                        Ok(val)
+                        let field = obj.fields.get_mut(&field.0);
+                        match field {
+                            Some(field) => {
+                                let val = self.eval_expr(val)?;
+                                *field = val.clone();
+                                Some(val)
+                            }
+                            None => None,
+                            // TODO: give clearer error reporting for setting a static field through object
+                        }
                     }
-                    _ => Err(Error::NoField(v, field.0.clone())),
+                    _ => None,
                 }
+                .ok_or_else(|| Error::NoFieldToSet(v, field.0.clone()))
             }
         }
     }

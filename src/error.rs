@@ -58,6 +58,8 @@ pub enum Error {
     WrongFields(Value),
     #[error("There's no field `{1}` in `{0:?}`")]
     NoField(Value, String),
+    #[error("There's no field `{1}` in `{0:?}`, or it can't be set")]
+    NoFieldToSet(Value, String),
 
     #[error(transparent)]
     Lime(#[from] LimeError),
