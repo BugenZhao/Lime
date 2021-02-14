@@ -1,0 +1,74 @@
+class Name { chn, eng }
+
+class Student {
+    name,
+    age,
+    gpa
+}
+
+impl Student {
+    assoc org = "SJTU";
+    
+    assoc is_good = |self| { 
+        self.gpa >= 4.0;
+    };
+    assoc print_name = |self| {
+        println("Chinese name:", self.name.chn, 
+                "\nEnglish name:", self.name.eng);
+    };
+    assoc get_older = |self| {
+        self.age = self.age + 1;
+        nil;
+    };
+}
+
+var i = Student {
+    name: Name {
+        chn: "zq", eng: "bugen"
+    },
+    age: 20,
+    gpa: 1.7
+};
+
+assert_eq(Student.org, "SJTU");
+assert_eq(i.org, "SJTU");
+
+assert_eq(i.is_good(), false);
+assert_eq(Student.is_good(i), false);
+
+i.print_name();
+println(i);
+
+
+var i_ref = i;
+var i_copy = copy(i);
+
+i_ref.get_older();
+assert_eq(i_ref.age, 21);
+assert_eq(i.age, 21);
+assert_eq(i_copy.age, 20);
+
+i.name.chn = "zzq";
+assert_eq(i_ref.name.chn, "zzq");
+assert_eq(i.name.chn, "zzq");
+assert_eq(i_copy.name.chn, "zq");
+
+
+class Repeater { n }
+impl Repeater {
+    assoc start = |self, func| {
+        var i = self.n;
+        while (i = i - 1) >= 0 {
+            func();
+        }
+        nil;
+    };
+}
+
+var i_get_older_func = i.get_older;
+var r = Repeater {n: 10};
+r.start(i_get_older_func);
+
+assert_eq(i.age, 31);
+assert_eq(i_ref.age, 31);
+assert_eq(i_copy.age, 20);
