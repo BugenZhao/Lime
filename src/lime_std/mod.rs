@@ -57,6 +57,9 @@ fn copy(args: Vec<Value>) -> Result<Value> {
         Value::String(_) => Ok(v),
         Value::Object(ByAddress(rc_obj)) => {
             let obj = (*rc_obj).clone();
+            for (_, v) in obj.borrow_mut().fields.iter_mut() {
+                *v = copy(vec![v.clone()])?;
+            }
             Ok(Value::Object(lime_rc!(obj)))
         }
         Value::Func(_) | Value::Class(_) | Value::Nil => {

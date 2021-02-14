@@ -493,7 +493,6 @@ impl Env {
                     Err(Error::NotAClass(v))
                 }
             }
-
             Expr::Get(expr, field) => {
                 let v = self.eval_expr(expr)?;
                 match v {
@@ -506,6 +505,25 @@ impl Env {
                         .get(&field.0)
                         .cloned()
                         .ok_or_else(|| Error::NoField(v.clone(), field.0.clone())),
+                    _ => Err(Error::NoField(v, field.0.clone())),
+                }
+            }
+            Expr::Set(expr, field, val) => {
+                let v = self.eval_expr(expr)?;
+                match v {
+                    Value::Class(_) => {
+                        todo!()
+                    }
+                    Value::Object(ref obj) => {
+                        let mut obj = obj.borrow_mut();
+                        let field = obj
+                            .fields
+                            .get_mut(&field.0)
+                            .ok_or_else(|| Error::NoField(v.clone(), field.0.clone()))?;
+                        let val = self.eval_expr(val)?;
+                        *field = val.clone();
+                        Ok(val)
+                    }
                     _ => Err(Error::NoField(v, field.0.clone())),
                 }
             }

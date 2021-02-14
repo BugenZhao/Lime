@@ -150,6 +150,10 @@ impl<'a> Resolver<'a> {
             Expr::Get(e, _) => {
                 self.res_expr(e)?;
             }
+            Expr::Set(o, _, v) => {
+                self.res_expr(o)?;
+                self.res_expr(v)?;
+            }
         }
         Ok(())
     }

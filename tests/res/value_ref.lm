@@ -13,9 +13,35 @@ assert_eq(print_gen(true), print);
 assert_eq(print_gen(false), print);
 
 
-
 class Foo { bar }
 
 var foo = Foo { bar: 1 };
+var refed_foo = foo;
 var copied_foo = copy(foo);
 
+assert_eq(refed_foo.bar, 1);
+assert_eq(copied_foo.bar, 1);
+
+foo.bar = 10;
+assert_eq(refed_foo.bar, 10);
+assert_eq(copied_foo.bar, 1);
+
+copied_foo.bar = 100;
+assert_eq(refed_foo.bar, 10);
+assert_eq(copied_foo.bar, 100);
+
+
+var nested = Foo {bar: Foo {bar: 1}};
+var refed_nested = nested;
+var copied_nested = copy(nested);
+
+assert_eq(refed_nested.bar.bar, 1);
+assert_eq(copied_nested.bar.bar, 1);
+
+nested.bar.bar = 10;
+assert_eq(refed_nested.bar.bar, 10);
+assert_eq(copied_nested.bar.bar, 1);
+
+copied_nested.bar.bar = 100;
+assert_eq(refed_nested.bar.bar, 10);
+assert_eq(copied_nested.bar.bar, 100);
