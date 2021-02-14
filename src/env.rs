@@ -576,7 +576,14 @@ impl Env {
                         } else if let Some(static_val) =
                             obj.borrow().class.borrow().statics.get(&field.0).cloned()
                         {
-                            Some(static_val)
+                            if let Value::Func(func) = static_val {
+                                Some(Value::Func(ba_rc!(Func::new_parital_apply(
+                                    func.as_ref().clone(),
+                                    Value::Object(rc_refcell!(obj.as_ref().borrow().clone()))
+                                )?)))
+                            } else {
+                                Some(static_val)
+                            }
                         } else {
                             None
                         }

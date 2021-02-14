@@ -50,6 +50,8 @@ pub enum Error {
         take: RangeInclusive<usize>,
         supp: usize,
     },
+    #[error("Cannot partial apply function `{0:?}` since it takes fewer arguments")]
+    CannotPartialApply(Func),
     #[error("The name `{0}` is defined multiple times")]
     DefinedMutlipleTimes(String),
     #[error("`{0}` is not a class")]
@@ -58,7 +60,7 @@ pub enum Error {
     WrongFields(Value),
     #[error("There's no field `{1}` in `{0:?}`")]
     NoField(Value, String),
-    #[error("There's no field `{1}` in `{0:?}`, or it can't be set")]
+    #[error("There's no settable field `{1}` in `{0:?}`")]
     NoFieldToSet(Value, String),
 
     #[error(transparent)]

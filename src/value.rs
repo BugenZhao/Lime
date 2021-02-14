@@ -88,6 +88,7 @@ impl std::fmt::Debug for RustFn {
 pub enum FuncType {
     BuiltIn(RustFn),
     Composed(Box<Func>, Box<Func>),
+    PartialApplied(Box<Func>, Value),
     Lime(Vec<Ident>, Vec<Stmt>),
 }
 
@@ -105,6 +106,9 @@ impl std::fmt::Debug for Func {
         match &self.tp {
             FuncType::BuiltIn(rf) => write!(f, "<built-in({:?})> {}|{:?}|", rf, name, self.arity),
             FuncType::Composed(..) => write!(f, "<composed> {}|{:?}|", name, self.arity),
+            FuncType::PartialApplied(..) => {
+                write!(f, "<partial-applied> {}|{:?}|", name, self.arity)
+            }
             FuncType::Lime(params, _) => write!(
                 f,
                 "{}|{}|",
@@ -133,10 +137,15 @@ impl Func {
         }
     }
 
-    pub fn call(&self, args: Vec<Value>) -> Result<Value> {
+    pub fn call(&self, mut args: Vec<Value>) -> Result<Value> {
         match &self.tp {
             FuncType::BuiltIn(f) => (f.0)(args),
             FuncType::Composed(f, g) => f.call(vec![g.call(args)?]),
+            FuncType::PartialApplied(f, arg) => {
+                let mut real_args = vec![arg.clone()];
+                real_args.append(&mut args);
+                f.call(real_args)
+            }
             FuncType::Lime(params, body) => {
                 let fn_env = Rc::new(Env::new(Rc::clone(&self.env)));
                 for (param, arg) in params.clone().into_iter().zip(args) {
@@ -147,7 +156,7 @@ impl Func {
         }
     }
 
-    pub fn compose(f: Self, g: Self) -> Result<Self> {
+    pub fn new_compose(f: Self, g: Self) -> Result<Self> {
         let arity = g.arity.clone();
         let _ = f.check(1)?;
         Ok(Self {
@@ -156,6 +165,22 @@ impl Func {
             env: Rc::new(Env::new_empty()),
             name: None,
         })
+    }
+
+    pub fn new_parital_apply(f: Self, arg: Value) -> Result<Self> {
+        let min = f.arity.start();
+        let max = f.arity.end();
+
+        if *max >= 1 {
+            Ok(Self {
+                tp: FuncType::PartialApplied(box f.clone(), arg),
+                arity: min.saturating_sub(1)..=max.saturating_sub(1),
+                env: f.env,
+                name: f.name,
+            })
+        } else {
+            Err(Error::CannotPartialApply(f))
+        }
     }
 
     pub fn check(&self, supp: usize) -> Result<()> {
