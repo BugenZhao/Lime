@@ -377,7 +377,7 @@ mod test {
 
     #[test]
     fn test_call() {
-        let text = "-fn_gen(true)(add(1, 2)) as String;";
+        let text = "-fn_gen(true).first(add(1, 2)).second as String;";
         let stmts = parse_and_resolve(text).unwrap();
 
         assert_eq!(
@@ -385,16 +385,22 @@ mod test {
             Stmt::Expr(Expr::Cast(
                 box Expr::Unary(
                     UnaryOp::Neg,
-                    box Expr::Call(
+                    box Expr::Get(
                         box Expr::Call(
-                            box Expr::Variable(Ident("fn_gen".to_owned(), None)),
-                            vec![Expr::Literal(Value::Bool(true))],
+                            box Expr::Get(
+                                box Expr::Call(
+                                    box Expr::Variable(Ident("fn_gen".to_owned(), None)),
+                                    vec![Expr::Literal(Value::Bool(true))],
+                                ),
+                                Ident("first".to_owned(), None)
+                            ),
+                            vec![Expr::Call(
+                                box Expr::Variable(Ident("add".to_owned(), None)),
+                                vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
+                            )],
                         ),
-                        vec![Expr::Call(
-                            box Expr::Variable(Ident("add".to_owned(), None)),
-                            vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
-                        )],
-                    ),
+                        Ident("second".to_owned(), None)
+                    )
                 ),
                 Ident("String".to_owned(), None),
             ))
