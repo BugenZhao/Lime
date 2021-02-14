@@ -579,7 +579,7 @@ impl Env {
                             if let Value::Func(func) = static_val {
                                 Some(Value::Func(ba_rc!(Func::new_parital_apply(
                                     func.as_ref().clone(),
-                                    Value::Object(rc_refcell!(obj.as_ref().borrow().clone()))
+                                    Value::Object(Rc::clone(obj))
                                 )?)))
                             } else {
                                 Some(static_val)
@@ -596,11 +596,13 @@ impl Env {
                 let v = self.eval_expr(expr)?;
                 match &v {
                     Value::Class(class) => {
+                        // val may be related to obj, do not borrow mutably too early
+                        let val = self.eval_expr(val)?;
+
                         let mut class = class.borrow_mut();
                         let field = class.statics.get_mut(&field.0);
                         match field {
                             Some(field) => {
-                                let val = self.eval_expr(val)?;
                                 *field = val.clone();
                                 Some(val)
                             }
@@ -608,11 +610,13 @@ impl Env {
                         }
                     }
                     Value::Object(obj) => {
+                        // val may be related to obj, do not borrow mutably too early
+                        let val = self.eval_expr(val)?;
+
                         let mut obj = obj.borrow_mut();
                         let field = obj.fields.get_mut(&field.0);
                         match field {
                             Some(field) => {
-                                let val = self.eval_expr(val)?;
                                 *field = val.clone();
                                 Some(val)
                             }
