@@ -53,6 +53,11 @@ assert_eq(i.age, 30);
 nil;
 ```
 
+## REPL Demo
+
+[![asciicast](https://asciinema.org/a/xp5O4UQEfQCDT1ZePhdR219gi.svg)](https://asciinema.org/a/xp5O4UQEfQCDT1ZePhdR219gi)
+
+
 ## Roadmap
 
 ### Lime
