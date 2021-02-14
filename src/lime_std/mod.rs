@@ -1,8 +1,8 @@
 #![allow(clippy::unnecessary_wraps)]
 
 use crate::{
-    barc,
     env::Env,
+    lime_rc,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
     Error, Func,
@@ -57,7 +57,7 @@ fn copy(args: Vec<Value>) -> Result<Value> {
         Value::String(_) => Ok(v),
         Value::Object(ByAddress(rc_obj)) => {
             let obj = (*rc_obj).clone();
-            Ok(Value::Object(barc!(obj)))
+            Ok(Value::Object(lime_rc!(obj)))
         }
         Value::Func(_) | Value::Class(_) | Value::Nil => {
             Err(Error::Lime(Panic(format!("Cannot copy `{:?}`", v))))
@@ -70,7 +70,7 @@ fn define_builtin(env: &Rc<Env>) {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
                 Ident($name.to_owned(), None),
-                Value::Func(barc!(Func {
+                Value::Func(lime_rc!(Func {
                     tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
                     arity: $arity,
                     env: Rc::clone(env),

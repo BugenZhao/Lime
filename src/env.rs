@@ -1,6 +1,6 @@
 use crate::{
-    barc,
     error::{Error, Result},
+    lime_rc, lime_rc_mut,
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     value::{Class, FuncType, Object},
@@ -85,7 +85,7 @@ impl Env {
         }
         if let Value::Func(func) = &val {
             if func.name.is_none() {
-                val = Value::Func(barc!(func.as_ref().clone().with_name(ident.0.clone())))
+                val = Value::Func(lime_rc!(func.as_ref().clone().with_name(ident.0.clone())))
             }
         }
         self.vars.borrow_mut().insert(ident.0, val);
@@ -111,7 +111,7 @@ impl Env {
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             if let Value::Func(func) = &val {
                 if func.name.is_none() {
-                    val = Value::Func(barc!(func.as_ref().clone().with_name(ident.0.clone())))
+                    val = Value::Func(lime_rc!(func.as_ref().clone().with_name(ident.0.clone())))
                 }
             }
             *v = val;
@@ -211,7 +211,7 @@ impl Env {
                 Err(Error::Return(val))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(barc!(Class {
+                let val = Value::Class(lime_rc!(Class {
                     name: ident.0.clone(),
                     fields: fields.iter().map(|i| i.0.to_owned()).collect(),
                 }));
@@ -459,7 +459,7 @@ impl Env {
                 }
                 v => Err(Error::NotCallable(v)),
             },
-            Expr::Func(params, body) => Ok(Value::Func(barc!(Func {
+            Expr::Func(params, body) => Ok(Value::Func(lime_rc!(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),
                 arity: params.len()..=params.len(),
                 env: Rc::clone(&self),
@@ -482,7 +482,7 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(barc!(Object {
+                        Ok(Value::Object(lime_rc_mut!(Object {
                             class: Rc::clone(class),
                             fields,
                         })))
@@ -501,10 +501,11 @@ impl Env {
                         todo!()
                     }
                     Value::Object(ref obj) => obj
+                        .borrow()
                         .fields
                         .get(&field.0)
                         .cloned()
-                        .ok_or_else(|| Error::NoField(v, field.0.clone())),
+                        .ok_or_else(|| Error::NoField(v.clone(), field.0.clone())),
                     _ => Err(Error::NoField(v, field.0.clone())),
                 }
             }

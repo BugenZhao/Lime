@@ -7,16 +7,26 @@ use crate::{
 };
 use by_address::ByAddress;
 use itertools::Itertools;
-use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, ops::RangeInclusive, rc::Rc};
 
 pub const N_MAX_ARGS: usize = 255;
 
 #[macro_export]
-macro_rules! barc {
+macro_rules! lime_rc {
     ($w:expr) => {
         by_address::ByAddress(std::rc::Rc::new($w))
     };
 }
+
+#[macro_export]
+macro_rules! lime_rc_mut {
+    ($w:expr) => {
+        by_address::ByAddress(std::rc::Rc::new(std::cell::RefCell::new($w)))
+    };
+}
+
+pub type LimeRc<T> = ByAddress<Rc<T>>;
+pub type LimeRcMut<T> = LimeRc<RefCell<T>>;
 
 #[derive(Debug, Clone, PartialEq)] // TODO: customize debug
 pub enum Value {
@@ -24,9 +34,9 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
-    Func(ByAddress<Rc<Func>>),
-    Class(ByAddress<Rc<Class>>),
-    Object(ByAddress<Rc<Object>>),
+    Func(LimeRc<Func>),
+    Class(LimeRc<Class>),
+    Object(LimeRcMut<Object>),
     Nil,
 }
 
