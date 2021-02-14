@@ -28,7 +28,7 @@ macro_rules! lime_rc_mut {
 pub type LimeRc<T> = ByAddress<Rc<T>>;
 pub type LimeRcMut<T> = LimeRc<RefCell<T>>;
 
-#[derive(Debug, Clone, PartialEq)] // TODO: customize debug
+#[derive(Clone, PartialEq)]
 pub enum Value {
     Int(i64),
     Float(f64),
@@ -40,6 +40,21 @@ pub enum Value {
     Nil,
 }
 
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(v) => write!(f, "Int({:?})", v),
+            Value::Float(v) => write!(f, "Float({:?})", v),
+            Value::Bool(v) => write!(f, "Bool({:?})", v),
+            Value::String(v) => write!(f, "String({:?})", v),
+            Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
+            Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v),
+            Value::Object(ByAddress(v)) => write!(f, "Object({:?})", v.borrow()),
+            Value::Nil => write!(f, "nil"),
+        }
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -48,8 +63,8 @@ impl Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
-            Value::Class(ByAddress(v)) => write!(f, "{}", v.name),
-            Value::Object(ByAddress(v)) => write!(f, "{:?}", v),
+            Value::Class(ByAddress(v)) => write!(f, "{}", v),
+            Value::Object(ByAddress(v)) => write!(f, "{}", v.borrow()),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -79,11 +94,11 @@ pub struct Func {
     pub name: Option<String>,
 }
 
-impl Display for Func {
+impl std::fmt::Debug for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.as_deref().unwrap_or("");
         match &self.tp {
-            FuncType::BuiltIn(_) => write!(f, "<built-in> {}|{:?}|", name, self.arity),
+            FuncType::BuiltIn(rf) => write!(f, "<built-in({:?})> {}|{:?}|", rf, name, self.arity),
             FuncType::Composed(..) => write!(f, "<composed> {}|{:?}|", name, self.arity),
             FuncType::Lime(params, _) => write!(
                 f,
@@ -95,13 +110,9 @@ impl Display for Func {
     }
 }
 
-impl std::fmt::Debug for Func {
+impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = self.name.as_deref().unwrap_or("");
-        match &self.tp {
-            FuncType::BuiltIn(rf) => write!(f, "<built-in({:?})> {}|{:?}|", rf, name, self.arity),
-            _ => std::fmt::Display::fmt(self, f),
-        }
+        std::fmt::Debug::fmt(self, f)
     }
 }
 
@@ -155,14 +166,46 @@ impl Func {
     }
 }
 
-#[derive(Debug)]
 pub struct Class {
     pub name: String,
     pub fields: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+impl std::fmt::Debug for Class {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{{{}}}", self.name, self.fields.iter().join(", "))
+    }
+}
+
+impl Display for Class {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Clone)]
 pub struct Object {
     pub class: Rc<Class>,
     pub fields: HashMap<String, Value>,
+}
+
+impl std::fmt::Debug for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{{{}}}",
+            self.class.name,
+            self.fields
+                .iter()
+                .sorted_by_key(|p| p.0)
+                .map(|(k, v)| format!("{}: {}", k, v))
+                .join(", ")
+        )
+    }
+}
+
+impl Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
 }
