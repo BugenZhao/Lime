@@ -295,7 +295,7 @@ peg::parser! {
             = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { Stmt::ClassDecl(i, f) }
 
         rule assoc() -> (Ident, Expr)
-            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()* { (i, e) }
+            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()+ { (i, e) }
         rule stmt_impl() -> Stmt
             = kw_impl() __ i:ident() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
 
