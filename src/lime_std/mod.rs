@@ -3,10 +3,10 @@
 use crate::{
     ba_rc,
     env::Env,
-    lime_error,
+    err, lime_error,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
-    Func,
+    ErrType, Func,
     LimeError::*,
     Result, Value,
 };
@@ -68,6 +68,15 @@ fn copy(args: Vec<Value>) -> Result<Value> {
     }
 }
 
+fn __expect(args: Vec<Value>) -> Result<Value> {
+    let (v, _args) = args.split_first().unwrap();
+    if matches!(v, Value::Nil) {
+        Err(err!(ErrType::ErrorReturn(Value::Nil)))
+    } else {
+        Ok(v.clone())
+    }
+}
+
 fn define_builtin(env: &Rc<Env>) {
     macro_rules! def {
         ($func:expr, $name:expr, $arity:expr) => {
@@ -89,6 +98,7 @@ fn define_builtin(env: &Rc<Env>) {
     def!(time, "time", 0..=0);
     def!(panic, "panic", 1..=N_MAX_ARGS);
     def!(copy, "copy", 1..=1);
+    def!(__expect, "__expect", 1..=N_MAX_ARGS);
     def!(
         |args| {
             print(args)?;

@@ -126,6 +126,23 @@ impl Env {
 }
 
 impl Env {
+    pub fn get_generic_assoc(&self, obj: &Value, name: &str) -> Option<Value> {
+        let func = self.get_raw(&format!("__{}", name))?;
+
+        if let Value::Func(func) = func {
+            Some(Value::Func(ba_rc!(Func::new_parital_apply(
+                func.as_ref().clone(),
+                obj.clone()
+            )
+            .unwrap())))
+        } else {
+            // TODO: more types of assoc?
+            None
+        }
+    }
+}
+
+impl Env {
     fn is_truthy(self: &Rc<Self>, expr: &Expr) -> Result<bool> {
         match self.eval_expr(expr)? {
             Value::Bool(true) => Ok(true),
@@ -577,6 +594,9 @@ impl Env {
             }
             Expr::Get(expr, field) => {
                 let v = self.eval_expr(expr)?;
+                if let Some(assoc) = self.get_generic_assoc(&v, &field.0) {
+                    return Ok(assoc);
+                }
                 match &v {
                     Value::Class(class) => class.borrow().statics.get(&field.0).cloned(),
                     Value::Object(obj) => {

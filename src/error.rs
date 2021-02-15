@@ -86,6 +86,8 @@ pub enum ErrType {
     Continue(Value),
     #[error("Return outside of a function")]
     Return(Value),
+    #[error("Error return: {0}")]
+    ErrorReturn(Value),
 
     #[error("Cannot find value `{0}` in this scope")]
     CannotFindValue(String),
