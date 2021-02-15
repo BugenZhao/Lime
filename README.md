@@ -7,6 +7,7 @@ A Rust/Swift-like modern interpreted programming language, hosted by Rust.
 - Dynamic but strict typing system
 - First-class functions with Rust's closure style
 - Functional techniques, like currying, composing, and higher-order function [WIP]
+- "nil with cause" error handling design and nil safety
 - REPL with auto-completer, syntax checker, history recorder included
 - ...
 
@@ -44,8 +45,8 @@ i.print_name();
 println("Is", i.name.eng, "a good student? =>", i.is_good());
 
 var money? = i.try_make_money();
-if money?.is_some() {
-    var money = money? * 0.7;  // tax :P
+if var money = money? {
+    money = money * 0.7;  // tax :P
     println("Wow! I've made $", money);
 } else {
     println("Oh-no! I failed since", money?.cause());
@@ -90,7 +91,11 @@ nil;
     - [ ] `for`
     - [ ] `for in`
     - [x] make them expressions
-- [x] `nil` and `nil` safety
+- [ ] `nil` and `nil` safety
+    - [x] `nil`...
+    - [x] ...with cause
+    - [x] allow `name?` to hold `nil`
+    - [ ] universal `nil` check on fields and assocs
 - [x] function types and function call
 - [ ] function
     - [x] arity check
@@ -125,14 +130,15 @@ nil;
     - [ ] casting
     - [ ] indexing `[]`
     - [ ] ...
-- [ ] error-handling
+- [x] error-handling
     - [x] panic
     - [x] backtrace for lime error
     - [x] backtrace for all error
-    - [ ] recoverable Lime errors
+    - [x] recoverable Lime errors
         - [x] nil with cause design
             - [x] is_some, is_nil, cause, expect
-        - [ ] sugars
+        - [x] sugars: if var
+    - [ ] ...
 - [ ] pass-by-value object "struct"
     - [ ] refactor object clone logic
     - [ ] syntax
