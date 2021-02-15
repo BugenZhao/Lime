@@ -88,7 +88,7 @@ pub enum ErrType {
     Return(Value),
     #[error("Built-in expect: {0}")]
     Expect(Value),
-    #[error("Error return: {0}")]
+    #[error("Uncatched error: {0}")]
     ErrorReturn(Value),
 
     #[error("Cannot find value `{0}` in this scope")]

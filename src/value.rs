@@ -56,7 +56,7 @@ impl std::fmt::Debug for Value {
             Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
             Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
             Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
-            Value::Nil(..) => write!(f, "nil"),
+            Value::Nil(c) => write!(f, "Nil({:?})", c),
         }
     }
 }
@@ -71,7 +71,8 @@ impl Display for Value {
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
             Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
             Value::Object(v) => write!(f, "{}", v.borrow()),
-            Value::Nil(..) => write!(f, "nil"),
+            Value::Nil(None) => write!(f, "nil"),
+            Value::Nil(Some(cause)) => write!(f, "nil with cause `{}`", cause),
         }
     }
 }
