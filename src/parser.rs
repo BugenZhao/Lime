@@ -37,6 +37,12 @@ pub enum UnaryOp {
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Ident(pub String, pub Option<usize>);
 
+impl Ident {
+    pub fn can_hold_nil(&self) -> bool {
+        self.0.ends_with('?')
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Variable(Ident),
@@ -150,12 +156,13 @@ peg::parser! {
                 / string()
             ) { Expr::Literal(v) }
 
+        rule raw_ident() -> &'input str
+            = $(alpha() aldig()* "?"*)
         rule ident() -> Ident // TODO: more elegant
-            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
+            = quiet!{ i:$(!(kw_ALL() !aldig()) raw_ident()) { Ident(i.to_owned(), None) } }
             / expected!("name identifier")
-
         rule ident_type() -> Ident
-            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) raw_ident()) { Ident(i.to_owned(), None) } }
             / expected!("type identifier")
 
         rule primary() -> Expr

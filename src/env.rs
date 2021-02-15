@@ -18,7 +18,6 @@ use std::{
 pub struct Env {
     pub(crate) vars: RefCell<HashMap<String, Value>>,
     enclosing: Option<Rc<Self>>,
-    safe: bool,
 }
 
 impl Env {
@@ -26,7 +25,6 @@ impl Env {
         let env = Rc::new(Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
-            safe: true,
         });
         define_std(&env);
         env
@@ -36,7 +34,6 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: Some(enclosing),
-            safe: true,
         }
     }
 
@@ -44,7 +41,6 @@ impl Env {
         Self {
             vars: RefCell::new(HashMap::new()),
             enclosing: None,
-            safe: true,
         }
     }
 
@@ -79,11 +75,10 @@ impl Env {
     }
 
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
-        if self.safe {
-            if let Value::Nil = val {
-                return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
-            }
+        if matches!(val, Value::Nil) && !ident.can_hold_nil() {
+            return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
         }
+
         if let Value::Func(func) = &val {
             if func.name.is_none() {
                 val = Value::Func(ba_rc!(func.as_ref().clone().with_name(ident.0.clone())))
@@ -105,10 +100,8 @@ impl Env {
     }
 
     fn assign(&self, ident: &Ident, mut val: Value) -> Result<()> {
-        if self.safe {
-            if let Value::Nil = val {
-                return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
-            }
+        if matches!(val, Value::Nil) && !ident.can_hold_nil() {
+            return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             if let Value::Func(func) = &val {
@@ -222,6 +215,7 @@ impl Env {
                 Ok(Value::Nil)
             }
             Stmt::Impl(ident, assocs) => {
+                // FIXME: nil safety
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
@@ -543,6 +537,7 @@ impl Env {
                 name: None,
             }))),
             Expr::Construct(ident, kvs) => {
+                // FIXME: nil safety
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
@@ -607,6 +602,7 @@ impl Env {
                 .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
             }
             Expr::Set(expr, field, val) => {
+                // FIXME: nil safety
                 let v = self.eval_expr(expr)?;
                 match &v {
                     Value::Class(class) => {
