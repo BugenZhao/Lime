@@ -95,7 +95,7 @@ nil;
     - [x] `nil`...
     - [x] ...with cause
     - [x] allow `name?` to hold `nil`
-    - [ ] universal `nil` check on fields and assocs
+    - [ ] ! universal `nil` check on fields and assocs
 - [x] function types and function call
 - [ ] function
     - [x] arity check
@@ -145,6 +145,8 @@ nil;
     - [ ] ...
 - [ ] `enum` type
     - [ ] pattern match
+- [ ] string interpolation / runtime format
+- [ ] immutable value
 
 
 
@@ -168,6 +170,7 @@ nil;
     - [x] basic `:ls`
     - [x] basic `:help`
     - [ ] ...
+- [ ] web-assembly build
 
 
 ### Lime Standard Library

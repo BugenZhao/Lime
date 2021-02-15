@@ -1,6 +1,6 @@
 [package]
 name = "lime"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Bugen Zhao <i@bugenzhao.com>"]
 edition = "2018"
 
