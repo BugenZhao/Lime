@@ -41,7 +41,7 @@ fn test_obj_comparison_3() {
     "
     )
     .unwrap_err();
-    assert!(matches!(r, Error::CannotApplyBinaryOp(..)));
+    assert!(matches!(r.tp, ErrType::CannotApplyBinaryOp(..)));
 }
 
 #[test]
@@ -55,5 +55,5 @@ fn test_obj_comparison_4() {
     "
     )
     .unwrap_err();
-    assert!(matches!(r, Error::CannotApplyBinaryOp(..)));
+    assert!(matches!(r.tp, ErrType::CannotApplyBinaryOp(..)));
 }

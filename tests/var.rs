@@ -11,5 +11,5 @@ fn test_assign() {
 #[test]
 fn test_assign_before_decl() {
     let r = eval!("a = 5;").unwrap_err();
-    assert!(matches!(r, Error::CannotFindValue(..)));
+    assert!(matches!(r.tp, ErrType::CannotFindValue(..)));
 }

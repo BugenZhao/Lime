@@ -16,5 +16,5 @@ fn test_empty_block_1() {
 #[test]
 fn test_empty_block_2() {
     let r = eval!("var a = {};").unwrap_err();
-    assert!(matches!(r, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }
