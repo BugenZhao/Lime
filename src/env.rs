@@ -75,7 +75,7 @@ impl Env {
     }
 
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
-        if matches!(val, Value::Nil) && !ident.can_hold_nil() {
+        if matches!(val, Value::Nil(..)) && !ident.can_hold_nil() {
             return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
         }
 
@@ -100,7 +100,7 @@ impl Env {
     }
 
     fn assign(&self, ident: &Ident, mut val: Value) -> Result<()> {
-        if matches!(val, Value::Nil) && !ident.can_hold_nil() {
+        if matches!(val, Value::Nil(..)) && !ident.can_hold_nil() {
             return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
@@ -152,7 +152,7 @@ impl Env {
     }
 
     pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
-        let mut ret = Value::Nil;
+        let mut ret = Value::Nil(None);
 
         for stmt in stmts.iter() {
             match self.eval_stmt(stmt) {
@@ -173,7 +173,7 @@ impl Env {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
                 self.decl(ident.clone(), val)?;
-                Ok(Value::Nil)
+                Ok(Value::Nil(None))
             }
             Stmt::Expr(expr) => match self.eval_expr(expr) {
                 Ok(v) => Ok(v),
@@ -182,7 +182,7 @@ impl Env {
             Stmt::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
-                    Ok(Value::Nil)
+                    Ok(Value::Nil(None))
                 }
                 Err(e) => Err(e),
             },
@@ -195,14 +195,14 @@ impl Env {
                         Value::Bool(true),
                     )))
                 } else {
-                    Ok(Value::Nil)
+                    Ok(Value::Nil(None))
                 }
             }
             Stmt::Break(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
-                    Value::Nil
+                    Value::Nil(None)
                 };
                 Err(err!(ErrType::Break(val)))
             }
@@ -210,7 +210,7 @@ impl Env {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
-                    Value::Nil
+                    Value::Nil(None)
                 };
                 Err(err!(ErrType::Continue(val)))
             }
@@ -218,7 +218,7 @@ impl Env {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
-                    Value::Nil
+                    Value::Nil(None)
                 };
                 Err(err!(ErrType::Return(val)))
             }
@@ -229,7 +229,7 @@ impl Env {
                     statics: HashMap::new(),
                 })));
                 self.decl_class(ident.clone(), val)?;
-                Ok(Value::Nil)
+                Ok(Value::Nil(None))
             }
             Stmt::Impl(ident, assocs) => {
                 // FIXME: nil safety
@@ -242,7 +242,7 @@ impl Env {
                             .borrow_mut()
                             .decl_static(i.0.clone(), self.eval_expr(e)?)?;
                     }
-                    Ok(Value::Nil)
+                    Ok(Value::Nil(None))
                 } else {
                     Err(err!(ErrType::NotAClass(v)))
                 }
@@ -456,7 +456,7 @@ impl Env {
                         Value::Float(x) => Some(Value::Int(x as i64)),
                         Value::Bool(x) => Some(Value::Int(x as i64)),
                         Value::String(_)
-                        | Value::Nil
+                        | Value::Nil(..)
                         | Value::Func(..)
                         | Value::Class(..)
                         | Value::Object(..) => None,
@@ -466,7 +466,7 @@ impl Env {
                         Value::Float(x) => Some(Value::Float(x as f64)),
                         Value::Bool(_) => None,
                         Value::String(_)
-                        | Value::Nil
+                        | Value::Nil(..)
                         | Value::Func(..)
                         | Value::Class(..)
                         | Value::Object(..) => None,
@@ -487,11 +487,11 @@ impl Env {
                 } else if let Some(else_) = else_.deref() {
                     self.eval_expr(else_)
                 } else {
-                    Ok(Value::Nil)
+                    Ok(Value::Nil(None))
                 }
             }
             Expr::While(cond, body, default) => {
-                let mut ret = Value::Nil;
+                let mut ret = Value::Nil(None);
                 let mut looped = false;
 
                 while self.is_truthy(cond)? {
@@ -520,7 +520,7 @@ impl Env {
                 } else if let Some(default) = default.deref() {
                     self.eval_expr(default)
                 } else {
-                    Ok(Value::Nil)
+                    Ok(Value::Nil(None))
                 }
             }
             Expr::Call(callee, arg_exprs) => match self.eval_expr(callee)? {
@@ -534,15 +534,15 @@ impl Env {
                     }
 
                     match lime_f.call(args) {
-                        Ok(v)
-                        | Err(Error {
-                            tp: ErrType::Return(v),
-                            ..
-                        }) => Ok(v),
-                        Err(mut e) => {
-                            e.push(lime_f.as_ref());
-                            Err(e)
-                        }
+                        Ok(v) => Ok(v),
+                        Err(mut e) => match e.tp {
+                            ErrType::Return(v) | ErrType::ErrorReturn(v) => Ok(v),
+                            ErrType::Expect(v) => Err(err!(ErrType::ErrorReturn(v))),
+                            _ => {
+                                e.push(lime_f.as_ref());
+                                Err(e)
+                            }
+                        },
                     }
                 }
                 v => Err(err!(ErrType::NotCallable(v))),

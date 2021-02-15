@@ -119,6 +119,9 @@ nil;
     - [x] backtrace for lime error
     - [x] backtrace for all error
     - [ ] recoverable Lime errors
+        - [x] nil with cause design
+            - [x] is_some, is_nil, cause, expect
+        - [ ] sugars
 - [ ] pass-by-value object "struct"
     - [ ] refactor object clone logic
     - [ ] syntax

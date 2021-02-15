@@ -25,12 +25,12 @@ macro_rules! join {
 fn print(args: Vec<Value>) -> Result<Value> {
     print!("{}", join!(args));
     stdout().flush()?;
-    Ok(Value::Nil)
+    Ok(Value::Nil(None))
 }
 
 fn println(args: Vec<Value>) -> Result<Value> {
     println!("{}", join!(args));
-    Ok(Value::Nil)
+    Ok(Value::Nil(None))
 }
 
 fn time(_args: Vec<Value>) -> Result<Value> {
@@ -62,29 +62,53 @@ fn copy(args: Vec<Value>) -> Result<Value> {
             }
             Ok(Value::Object(Rc::new(obj)))
         }
-        Value::Func(_) | Value::Class(_) | Value::Nil => {
+        Value::Nil(_) => Ok(v),
+        Value::Func(_) | Value::Class(_) => {
             Err(lime_error!(Panic(format!("Cannot copy `{:?}`", v))))
         }
     }
 }
 
-fn __expect(args: Vec<Value>) -> Result<Value> {
-    let (v, _args) = args.split_first().unwrap();
-    if matches!(v, Value::Nil) {
-        Err(err!(ErrType::ErrorReturn(Value::Nil)))
+fn __expect(mut args: Vec<Value>) -> Result<Value> {
+    let is_nil = {
+        let (v, args) = args.split_first_mut().unwrap();
+        if let Value::Nil(cause) = v {
+            if !args.is_empty() {
+                *cause = Some(join!(args))
+            }
+            true
+        } else {
+            false
+        }
+    };
+    let v = args.into_iter().next().unwrap();
+    if is_nil {
+        Err(err!(ErrType::Expect(v)))
     } else {
-        Ok(v.clone())
+        Ok(v)
     }
 }
 
 fn __is_some(args: Vec<Value>) -> Result<Value> {
     let v = args.into_iter().next().unwrap();
-    Ok(Value::Bool(!matches!(v, Value::Nil)))
+    Ok(Value::Bool(!matches!(v, Value::Nil(..))))
 }
 
 fn __is_nil(args: Vec<Value>) -> Result<Value> {
     let v = args.into_iter().next().unwrap();
-    Ok(Value::Bool(matches!(v, Value::Nil)))
+    Ok(Value::Bool(matches!(v, Value::Nil(..))))
+}
+
+fn __cause(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    if let Value::Nil(cause) = v {
+        Ok(Value::String(cause.unwrap_or_else(|| "".to_owned())))
+    } else {
+        Err(lime_error!(Panic(format!(
+            "`{:?}` does not have cause since it is not `nil`",
+            v
+        ))))
+    }
 }
 
 fn define_builtin(env: &Rc<Env>) {
@@ -111,6 +135,7 @@ fn define_builtin(env: &Rc<Env>) {
     def!(__expect, "__expect", 1..=N_MAX_ARGS);
     def!(__is_some, "__is_some", 1..=1);
     def!(__is_nil, "__is_nil", 1..=1);
+    def!(__cause, "__cause", 1..=1);
 
     def!(
         |args| {

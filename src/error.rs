@@ -86,6 +86,8 @@ pub enum ErrType {
     Continue(Value),
     #[error("Return outside of a function")]
     Return(Value),
+    #[error("Built-in expect: {0}")]
+    Expect(Value),
     #[error("Error return: {0}")]
     ErrorReturn(Value),
 

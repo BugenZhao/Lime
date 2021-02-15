@@ -142,7 +142,7 @@ peg::parser! {
             = kw_true()  { Value::Bool(true)  }
             / kw_false() { Value::Bool(false) }
 
-        rule nil() -> Value = kw_nil() { Value::Nil }
+        rule nil() -> Value = kw_nil() { Value::Nil(None) }
 
         rule string() -> Value
             = quiet!{ s:$("\"" ("\\\"" / !"\"" [_])* "\"") { Value::String(snailquote::unescape(s).unwrap()) } }

@@ -43,7 +43,7 @@ pub enum Value {
     Func(Ba<Rc<Func>>),
     Class(Ba<Rc<RefCell<Class>>>),
     Object(Rc<RefCell<Object>>),
-    Nil,
+    Nil(Option<String>),
 }
 
 impl std::fmt::Debug for Value {
@@ -56,7 +56,7 @@ impl std::fmt::Debug for Value {
             Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
             Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
             Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
-            Value::Nil => write!(f, "nil"),
+            Value::Nil(..) => write!(f, "nil"),
         }
     }
 }
@@ -71,7 +71,7 @@ impl Display for Value {
             Value::Func(ByAddress(v)) => write!(f, "{}", v),
             Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
             Value::Object(v) => write!(f, "{}", v.borrow()),
-            Value::Nil => write!(f, "nil"),
+            Value::Nil(..) => write!(f, "nil"),
         }
     }
 }

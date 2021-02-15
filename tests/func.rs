@@ -23,7 +23,7 @@ fn test_bad_return_1() {
 #[test]
 fn test_bad_return_2() {
     let r = eval!("return;").unwrap_err();
-    assert!(matches!(r.tp, ErrType::Return(Value::Nil)));
+    assert!(matches!(r.tp, ErrType::Return(Value::Nil(..))));
 }
 
 #[test]
