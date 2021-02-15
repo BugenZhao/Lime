@@ -3,12 +3,10 @@
 use crate::{
     ba_rc,
     env::Env,
-    err, lime_error,
+    err,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
-    ErrType, Func,
-    LimeError::*,
-    Result, Value,
+    ErrType, Func, Result, Value,
 };
 use itertools::Itertools;
 use std::{
@@ -45,7 +43,7 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 }
 
 fn panic(args: Vec<Value>) -> Result<Value> {
-    Err(lime_error!(Panic(join!(args))))
+    Err(err!(ErrType::LimePanic(join!(args))))
 }
 
 fn copy(args: Vec<Value>) -> Result<Value> {
@@ -64,7 +62,7 @@ fn copy(args: Vec<Value>) -> Result<Value> {
         }
         Value::Nil(_) => Ok(v),
         Value::Func(_) | Value::Class(_) => {
-            Err(lime_error!(Panic(format!("Cannot copy `{:?}`", v))))
+            Err(err!(ErrType::LimePanic(format!("Cannot copy `{:?}`", v))))
         }
     }
 }
@@ -104,7 +102,7 @@ fn __cause(args: Vec<Value>) -> Result<Value> {
     if let Value::Nil(cause) = v {
         Ok(Value::String(cause.unwrap_or_else(|| "".to_owned())))
     } else {
-        Err(lime_error!(Panic(format!(
+        Err(err!(ErrType::LimePanic(format!(
             "`{:?}` does not have cause since it is not `nil`",
             v
         ))))

@@ -132,21 +132,8 @@ pub enum ErrType {
     #[error("There's no settable field `{1}` in `{0:?}`")]
     NoFieldToSet(Value, String),
 
-    #[error(transparent)]
-    Lime(LimeError),
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum LimeError {
     #[error("Panic: {0}")]
-    Panic(String),
+    LimePanic(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-#[macro_export]
-macro_rules! lime_error {
-    ($err:expr) => {
-        crate::err!(crate::error::ErrType::Lime($err))
-    };
-}
