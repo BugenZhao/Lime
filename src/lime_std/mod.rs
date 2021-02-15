@@ -77,6 +77,16 @@ fn __expect(args: Vec<Value>) -> Result<Value> {
     }
 }
 
+fn __is_some(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    Ok(Value::Bool(!matches!(v, Value::Nil)))
+}
+
+fn __is_nil(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    Ok(Value::Bool(matches!(v, Value::Nil)))
+}
+
 fn define_builtin(env: &Rc<Env>) {
     macro_rules! def {
         ($func:expr, $name:expr, $arity:expr) => {
@@ -99,6 +109,9 @@ fn define_builtin(env: &Rc<Env>) {
     def!(panic, "panic", 1..=N_MAX_ARGS);
     def!(copy, "copy", 1..=1);
     def!(__expect, "__expect", 1..=N_MAX_ARGS);
+    def!(__is_some, "__is_some", 1..=1);
+    def!(__is_nil, "__is_nil", 1..=1);
+
     def!(
         |args| {
             print(args)?;
