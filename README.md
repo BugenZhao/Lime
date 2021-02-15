@@ -116,7 +116,8 @@ nil;
     - [ ] ...
 - [ ] error-handling
     - [x] panic
-    - [x] backtrace
+    - [x] backtrace for lime error
+    - [x] backtrace for all error
     - [ ] recoverable Lime errors
 - [ ] pass-by-value object "struct"
     - [ ] refactor object clone logic
