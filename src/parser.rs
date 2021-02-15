@@ -37,6 +37,12 @@ pub enum UnaryOp {
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Ident(pub String, pub Option<usize>);
 
+impl Ident {
+    pub fn can_hold_nil(&self) -> bool {
+        self.0.ends_with('?')
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Variable(Ident),
@@ -47,6 +53,7 @@ pub enum Expr {
     Cast(Box<Expr>, Ident),
     Block(Vec<Stmt>),
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
+    IfVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
     Func(Vec<Ident>, Vec<Stmt>),
@@ -136,7 +143,7 @@ peg::parser! {
             = kw_true()  { Value::Bool(true)  }
             / kw_false() { Value::Bool(false) }
 
-        rule nil() -> Value = kw_nil() { Value::Nil }
+        rule nil() -> Value = kw_nil() { Value::Nil(None) }
 
         rule string() -> Value
             = quiet!{ s:$("\"" ("\\\"" / !"\"" [_])* "\"") { Value::String(snailquote::unescape(s).unwrap()) } }
@@ -150,12 +157,13 @@ peg::parser! {
                 / string()
             ) { Expr::Literal(v) }
 
+        rule raw_ident() -> &'input str
+            = $(alpha() aldig()* "?"*)
         rule ident() -> Ident // TODO: more elegant
-            = quiet!{ i:$(!(kw_ALL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
+            = quiet!{ i:$(!(kw_ALL() !aldig()) raw_ident()) { Ident(i.to_owned(), None) } }
             / expected!("name identifier")
-
         rule ident_type() -> Ident
-            = quiet!{ i:$(!(kw_NORMAL() !aldig()) (alpha() aldig()*)) { Ident(i.to_owned(), None) } }
+            = quiet!{ i:$(!(kw_NORMAL() !aldig()) raw_ident()) { Ident(i.to_owned(), None) } }
             / expected!("type identifier")
 
         rule primary() -> Expr
@@ -170,7 +178,6 @@ peg::parser! {
                 if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer arguments") }
             }
 
-        // TODO: check this
         rule expr_call() -> Expr = precedence!{
             o:(@) _ "." _ f:ident() _ "=" _ v:expr() { Expr::Set(box o, f, box v) }
             --
@@ -228,9 +235,13 @@ peg::parser! {
             = "{" _ semi()* ss:(raw_stmt())* semi()* _ "}" { Expr::Block(ss) }
 
         rule if_else() -> Expr
-            = _ kw_else() _ else_:(expr_if() / block()) { else_ }
+            = _ kw_else() _ else_:(expr_if() / expr_if_var() / block()) { else_ }
         rule expr_if() -> Expr
             = kw_if() __ cond:expr() _ then:block() else_:if_else()? { Expr::If(box cond, box then, box else_) }
+        rule expr_if_var() -> Expr
+            = kw_if() __ kw_var() __ i:ident() _ "=" _ e:expr() _ then:block() else_:if_else()? { 
+                Expr::IfVar(i, box e, box then, box else_) 
+            }
 
         rule while_default() -> Expr
             = _ kw_default() _ default:expr() { default }
@@ -272,6 +283,7 @@ peg::parser! {
         rule expr_BLOCK() -> Expr  // optional semicolon
             = block()
             / expr_if()
+            / expr_if_var()
             / expr_while()
 
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()

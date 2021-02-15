@@ -1,0 +1,50 @@
+var success_count = 0;
+
+var try_pipe_recv = |buf_size| {
+    if buf_size < 10 {
+        nil.expect("buffer too small");
+    } else if buf_size > 100 {
+        nil.expect("broken pipe");
+    }
+    success_count = success_count + 1;
+    "pong";
+};
+
+class Receiver {
+    socket_fd
+}
+
+impl Receiver {
+    assoc recv_with_default = |self, buf_size, def| {
+        var msg? = try_pipe_recv(buf_size);
+        println("buf_size:", buf_size, "; msg?:", msg?);
+
+        if msg?.is_some() { msg?; }
+        else {
+            var cause = msg?.cause();
+            println("error occurred:", cause);
+            def;
+        }
+    };
+}
+
+var rx = Receiver { socket_fd: 888 };
+
+var msg_1 = rx.recv_with_default(5, "msg_1");
+assert_eq(msg_1, "msg_1");
+assert_eq(success_count, 0);
+
+var msg_2 = rx.recv_with_default(50, "msg_2");
+assert_eq(msg_2, "pong");
+assert_eq(success_count, 1);
+
+var msg_3 = rx.recv_with_default(500, "msg_3");
+assert_eq(msg_3, "msg_3");
+assert_eq(success_count, 1);
+
+
+if var msg = try_pipe_recv(50) {
+    assert_eq(msg, "pong");
+} else {
+    panic("msg must be some");
+}

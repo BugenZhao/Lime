@@ -3,12 +3,10 @@
 use crate::{
     ba_rc,
     env::Env,
-    lime_error,
+    err,
     parser::{self, Ident},
     value::{FuncType, RustFn, N_MAX_ARGS},
-    Func,
-    LimeError::*,
-    Result, Value,
+    ErrType, Func, Result, Value,
 };
 use itertools::Itertools;
 use std::{
@@ -25,12 +23,12 @@ macro_rules! join {
 fn print(args: Vec<Value>) -> Result<Value> {
     print!("{}", join!(args));
     stdout().flush()?;
-    Ok(Value::Nil)
+    Ok(Value::Nil(None))
 }
 
 fn println(args: Vec<Value>) -> Result<Value> {
     println!("{}", join!(args));
-    Ok(Value::Nil)
+    Ok(Value::Nil(None))
 }
 
 fn time(_args: Vec<Value>) -> Result<Value> {
@@ -45,7 +43,7 @@ fn time(_args: Vec<Value>) -> Result<Value> {
 }
 
 fn panic(args: Vec<Value>) -> Result<Value> {
-    Err(lime_error!(Panic(join!(args))))
+    Err(err!(ErrType::LimePanic(join!(args))))
 }
 
 fn copy(args: Vec<Value>) -> Result<Value> {
@@ -62,9 +60,52 @@ fn copy(args: Vec<Value>) -> Result<Value> {
             }
             Ok(Value::Object(Rc::new(obj)))
         }
-        Value::Func(_) | Value::Class(_) | Value::Nil => {
-            Err(lime_error!(Panic(format!("Cannot copy `{:?}`", v))))
+        Value::Nil(_) => Ok(v),
+        Value::Func(_) | Value::Class(_) => {
+            Err(err!(ErrType::LimePanic(format!("Cannot copy `{:?}`", v))))
         }
+    }
+}
+
+fn __expect(mut args: Vec<Value>) -> Result<Value> {
+    let is_nil = {
+        let (v, args) = args.split_first_mut().unwrap();
+        if let Value::Nil(cause) = v {
+            if !args.is_empty() {
+                *cause = Some(join!(args))
+            }
+            true
+        } else {
+            false
+        }
+    };
+    let v = args.into_iter().next().unwrap();
+    if is_nil {
+        Err(err!(ErrType::Expect(v)))
+    } else {
+        Ok(v)
+    }
+}
+
+fn __is_some(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    Ok(Value::Bool(!matches!(v, Value::Nil(..))))
+}
+
+fn __is_nil(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    Ok(Value::Bool(matches!(v, Value::Nil(..))))
+}
+
+fn __cause(args: Vec<Value>) -> Result<Value> {
+    let v = args.into_iter().next().unwrap();
+    if let Value::Nil(cause) = v {
+        Ok(Value::String(cause.unwrap_or_else(|| "".to_owned())))
+    } else {
+        Err(err!(ErrType::LimePanic(format!(
+            "`{:?}` does not have cause since it is not `nil`",
+            v
+        ))))
     }
 }
 
@@ -89,6 +130,11 @@ fn define_builtin(env: &Rc<Env>) {
     def!(time, "time", 0..=0);
     def!(panic, "panic", 1..=N_MAX_ARGS);
     def!(copy, "copy", 1..=1);
+    def!(__expect, "__expect", 1..=N_MAX_ARGS);
+    def!(__is_some, "__is_some", 1..=1);
+    def!(__is_nil, "__is_nil", 1..=1);
+    def!(__cause, "__cause", 1..=1);
+
     def!(
         |args| {
             print(args)?;

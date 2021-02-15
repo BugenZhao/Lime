@@ -27,7 +27,7 @@ pub fn repl(intp: Interpreter) {
             Ok(mut line) => {
                 line.push(';');
                 match intp.eval(&line) {
-                    Ok(Value::Nil) => println!(),
+                    Ok(Value::Nil(None)) => println!(),
                     Ok(val) => println!("{:?}", val),
                     Err(err) => println!("{}", err.to_string().red()),
                 }

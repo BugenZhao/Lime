@@ -168,6 +168,13 @@ impl<'a> Resolver<'a> {
                 self.res_expr(o)?;
                 self.res_expr(v)?;
             }
+            Expr::IfVar(_, e, t, el) => {
+                self.res_expr(e)?;
+                self.res_expr(t)?;
+                if let Some(el) = el.deref_mut() {
+                    self.res_expr(el)?;
+                }
+            }
         }
         Ok(())
     }

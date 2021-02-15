@@ -41,11 +41,11 @@ fn test_bad_syntax_4() {
 #[test]
 fn test_nil_1() {
     let r = eval!("var a = if true and true {};").unwrap_err();
-    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil(..))));
 }
 
 #[test]
 fn test_nil_2() {
     let r = eval!("var a = if false { 3; };").unwrap_err();
-    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil(..))));
 }
