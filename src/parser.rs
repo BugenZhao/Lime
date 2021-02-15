@@ -1,8 +1,4 @@
-use crate::{
-    error::{Error, Result},
-    resolver::Resolver,
-    value::*,
-};
+use crate::{error::Result, resolver::Resolver, value::*};
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 
@@ -353,7 +349,7 @@ pub fn tokens(text: &str) -> Vec<(usize, &str)> {
 
 pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
     let result: std::result::Result<Vec<Stmt>, _> = lime_parser::program(text);
-    let mut stmts = result.map_err(Error::ParseError)?;
+    let mut stmts = result?;
     Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
 }

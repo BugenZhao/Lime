@@ -1,4 +1,5 @@
 use crate::{
+    err,
     error::Result,
     parser::{Expr, Ident, Stmt},
     Error,
@@ -88,13 +89,13 @@ impl<'a> Resolver<'a> {
             }
             Stmt::ClassDecl(i, _) => {
                 if self.enclosing.is_some() {
-                    return Err(Error::OnlyTopLevel("class".to_owned()));
+                    return Err(err!(Error::OnlyTopLevel("class".to_owned())));
                 }
                 self.decl(i);
             }
             Stmt::Impl(i, afs) => {
                 if self.enclosing.is_some() {
-                    return Err(Error::OnlyTopLevel("impl".to_owned()));
+                    return Err(err!(Error::OnlyTopLevel("impl".to_owned())));
                 }
                 self.decl(i);
                 for f in afs.iter_mut() {

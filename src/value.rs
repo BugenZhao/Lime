@@ -2,6 +2,7 @@
 
 use crate::{
     env::Env,
+    err,
     parser::{Ident, Stmt},
     Error, Result,
 };
@@ -179,7 +180,7 @@ impl Func {
                 name: f.name,
             })
         } else {
-            Err(Error::CannotPartialApply(f))
+            Err(err!(Error::CannotPartialApply(f)))
         }
     }
 
@@ -187,11 +188,11 @@ impl Func {
         if self.arity.contains(&supp) {
             Ok(())
         } else {
-            Err(Error::WrongArguments {
+            Err(err!(Error::WrongArguments {
                 f: self.clone(),
                 take: self.arity.clone(),
                 supp,
-            })
+            }))
         }
     }
 }
@@ -218,7 +219,7 @@ impl Display for Class {
 impl Class {
     pub fn decl_static(&mut self, k: String, mut v: Value) -> Result<()> {
         match self.statics.entry(k.clone()) {
-            Entry::Occupied(_) => Err(Error::DefinedMutlipleTimes(k)),
+            Entry::Occupied(_) => Err(err!(Error::DefinedMutlipleTimes(k))),
             Entry::Vacant(e) => {
                 if let Value::Func(func) = &v {
                     v = Value::Func(ba_rc!(func

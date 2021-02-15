@@ -5,10 +5,74 @@ use crate::{
 use itertools::Itertools;
 use std::ops::RangeInclusive;
 
+#[derive(Debug)]
+struct LimeBacktrace(Vec<String>);
+
+impl std::fmt::Display for LimeBacktrace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0.iter().map(|s| format!("`{}`", s)).join(", ")
+        )
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub struct NewError {
+    #[source]
+    pub tp: Error,
+    bt: LimeBacktrace,
+}
+
+impl NewError {
+    pub fn new(tp: Error) -> Self {
+        Self {
+            tp,
+            bt: LimeBacktrace(vec![]),
+        }
+    }
+
+    pub fn push(&mut self, func: &Func) {
+        self.bt
+            .0
+            .push(func.name.clone().unwrap_or_else(|| "<unknown>".to_owned()))
+    }
+}
+
+impl std::fmt::Display for NewError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tp)?;
+        if !self.bt.0.is_empty() {
+            write!(f, "\nBacktrace:\n  {}", self.bt)?;
+        }
+        Ok(())
+    }
+}
+
+impl From<std::io::Error> for NewError {
+    fn from(e: std::io::Error) -> Self {
+        Self::new(Error::IoError(e))
+    }
+}
+
+impl From<peg::error::ParseError<peg::str::LineCol>> for NewError {
+    fn from(e: peg::error::ParseError<peg::str::LineCol>) -> Self {
+        Self::new(Error::ParseError(e))
+    }
+}
+
+#[macro_export]
+macro_rules! err {
+    ($tp:expr) => {
+        crate::error::NewError::new($tp)
+    };
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    IoError(std::io::Error),
 
     #[error("Parse error: expect {} at {}", .0.expected, .0.location)]
     ParseError(peg::error::ParseError<peg::str::LineCol>),
@@ -64,8 +128,8 @@ pub enum Error {
     #[error("There's no settable field `{1}` in `{0:?}`")]
     NoFieldToSet(Value, String),
 
-    #[error("{0}\n\nBacktrace:\n  {}", .1.iter().map(|s| format!("`{}`", s)).join(", "))]
-    Lime(LimeError, Vec<String>),
+    #[error(transparent)]
+    Lime(LimeError),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -74,11 +138,11 @@ pub enum LimeError {
     Panic(String),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, NewError>;
 
 #[macro_export]
 macro_rules! lime_error {
     ($err:expr) => {
-        crate::error::Error::Lime($err, vec![])
+        crate::err!(crate::error::Error::Lime($err))
     };
 }

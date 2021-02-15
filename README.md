@@ -143,7 +143,7 @@ nil;
 - [ ] special commands
     - [x] basic `:ls`
     - [x] basic `:help`
-    - [ ]
+    - [ ] ...
 
 
 ### Lime Standard Library
