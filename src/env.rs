@@ -1,6 +1,6 @@
 use crate::{
     ba_rc, err,
-    error::{Error, NewError, Result},
+    error::{ErrType, Error, Result},
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     rc_refcell,
@@ -81,7 +81,7 @@ impl Env {
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
         if self.safe {
             if let Value::Nil = val {
-                return Err(err!(Error::CannotHaveValue(ident.0, val)));
+                return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
             }
         }
         if let Value::Func(func) = &val {
@@ -96,7 +96,7 @@ impl Env {
     fn decl_class(&self, ident: Ident, val: Value) -> Result<()> {
         assert!(matches!(val, Value::Class(..)));
         match self.vars.borrow_mut().entry(ident.0.clone()) {
-            Entry::Occupied(_) => Err(err!(Error::DefinedMutlipleTimes(ident.0))),
+            Entry::Occupied(_) => Err(err!(ErrType::DefinedMutlipleTimes(ident.0))),
             Entry::Vacant(e) => {
                 e.insert(val);
                 Ok(())
@@ -107,7 +107,7 @@ impl Env {
     fn assign(&self, ident: &Ident, mut val: Value) -> Result<()> {
         if self.safe {
             if let Value::Nil = val {
-                return Err(err!(Error::CannotHaveValue(ident.0.to_owned(), val)));
+                return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
             }
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
@@ -121,7 +121,7 @@ impl Env {
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.assign(ident, val)
         } else {
-            Err(err!(Error::CannotFindValue(ident.0.to_owned())))
+            Err(err!(ErrType::CannotFindValue(ident.0.to_owned())))
         }
     }
 }
@@ -137,7 +137,7 @@ impl Env {
         match self.eval_expr(expr)? {
             Value::Bool(true) => Ok(true),
             Value::Bool(false) => Ok(false),
-            v => Err(err!(Error::CannotBeCondition(v))),
+            v => Err(err!(ErrType::CannotBeCondition(v))),
         }
     }
 
@@ -179,7 +179,7 @@ impl Env {
             Stmt::Assert(_, _, text, expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
-                    Err(err!(Error::AssertionFailed(
+                    Err(err!(ErrType::AssertionFailed(
                         text.to_owned(),
                         val,
                         Value::Bool(true),
@@ -194,7 +194,7 @@ impl Env {
                 } else {
                     Value::Nil
                 };
-                Err(err!(Error::Break(val)))
+                Err(err!(ErrType::Break(val)))
             }
             Stmt::Continue(expr) => {
                 let val = if let Some(e) = expr {
@@ -202,7 +202,7 @@ impl Env {
                 } else {
                     Value::Nil
                 };
-                Err(err!(Error::Continue(val)))
+                Err(err!(ErrType::Continue(val)))
             }
             Stmt::Return(expr) => {
                 let val = if let Some(e) = expr {
@@ -210,7 +210,7 @@ impl Env {
                 } else {
                     Value::Nil
                 };
-                Err(err!(Error::Return(val)))
+                Err(err!(ErrType::Return(val)))
             }
             Stmt::ClassDecl(ident, fields) => {
                 let val = Value::Class(ba_rc!(RefCell::new(Class {
@@ -224,7 +224,7 @@ impl Env {
             Stmt::Impl(ident, assocs) => {
                 let v = self
                     .get(ident)
-                    .ok_or_else(|| err!(Error::CannotFindValue(ident.0.to_owned())))?;
+                    .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
                 if let Value::Class(class) = &v {
                     for (i, e) in assocs.iter() {
                         class
@@ -233,7 +233,7 @@ impl Env {
                     }
                     Ok(Value::Nil)
                 } else {
-                    Err(err!(Error::NotAClass(v)))
+                    Err(err!(ErrType::NotAClass(v)))
                 }
             }
         }
@@ -280,7 +280,7 @@ impl Env {
         match expr {
             Expr::Variable(ident) => match self.get(ident) {
                 Some(value) => Ok(value),
-                None => Err(err!(Error::CannotFindValue(ident.0.to_owned()))),
+                None => Err(err!(ErrType::CannotFindValue(ident.0.to_owned()))),
             },
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Binary(lhs, op @ BinaryOp::Or, rhs) => {
@@ -291,10 +291,10 @@ impl Env {
                         let r = self.eval_expr(rhs)?;
                         match r {
                             Value::Bool(b) => Ok(Value::Bool(b)),
-                            _ => Err(err!(Error::CannotApplyBinaryOp(op.clone(), l, r))),
+                            _ => Err(err!(ErrType::CannotApplyBinaryOp(op.clone(), l, r))),
                         }
                     }
-                    _ => Err(err!(Error::CannotApplyBinaryOpSc(op.clone(), l))),
+                    _ => Err(err!(ErrType::CannotApplyBinaryOpSc(op.clone(), l))),
                 }
             }
             Expr::Binary(lhs, op, rhs) => {
@@ -424,13 +424,13 @@ impl Env {
 
                     (_, _, _) => None,
                 }
-                .ok_or_else(|| err!(Error::CannotApplyBinaryOp(op.clone(), l, r)))
+                .ok_or_else(|| err!(ErrType::CannotApplyBinaryOp(op.clone(), l, r)))
             }
             Expr::Unary(op, val) => match (self.eval_expr(val)?, op) {
                 (Value::Int(x), UnaryOp::Neg) => Ok(Value::Int(-x)),
                 (Value::Float(x), UnaryOp::Neg) => Ok(Value::Float(-x)),
                 (Value::Bool(x), UnaryOp::Not) => Ok(Value::Bool(!x)),
-                (v, op) => Err(err!(Error::CannotApplyUnaryOp(op.clone(), v))),
+                (v, op) => Err(err!(ErrType::CannotApplyUnaryOp(op.clone(), v))),
             },
             Expr::Assign(ident, val) => {
                 let val = self.eval_expr(val)?;
@@ -464,7 +464,7 @@ impl Env {
                     "String" => Some(Value::String(format!("{}", val))),
                     _ => None,
                 }
-                .ok_or_else(|| err!(Error::CannotCast(val, tp.to_owned())))
+                .ok_or_else(|| err!(ErrType::CannotCast(val, tp.to_owned())))
             }
             Expr::Block(stmts) => {
                 let new_env = Rc::new(Env::new(Rc::clone(&self)));
@@ -487,12 +487,12 @@ impl Env {
                     looped = true;
                     match self.eval_expr(body) {
                         Ok(v)
-                        | Err(NewError {
-                            tp: Error::Continue(v),
+                        | Err(Error {
+                            tp: ErrType::Continue(v),
                             ..
                         }) => ret = v,
-                        Err(NewError {
-                            tp: Error::Break(v),
+                        Err(Error {
+                            tp: ErrType::Break(v),
                             ..
                         }) => {
                             ret = v;
@@ -524,8 +524,8 @@ impl Env {
 
                     match lime_f.call(args) {
                         Ok(v)
-                        | Err(NewError {
-                            tp: Error::Return(v),
+                        | Err(Error {
+                            tp: ErrType::Return(v),
                             ..
                         }) => Ok(v),
                         Err(mut e) => {
@@ -534,7 +534,7 @@ impl Env {
                         }
                     }
                 }
-                v => Err(err!(Error::NotCallable(v))),
+                v => Err(err!(ErrType::NotCallable(v))),
             },
             Expr::Func(params, body) => Ok(Value::Func(ba_rc!(Func {
                 tp: FuncType::Lime(params.clone(), body.clone()),
@@ -545,7 +545,7 @@ impl Env {
             Expr::Construct(ident, kvs) => {
                 let v = self
                     .get(ident)
-                    .ok_or_else(|| err!(Error::CannotFindValue(ident.0.to_owned())))?;
+                    .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
                 if let Value::Class(ByAddress(class)) = &v {
                     let keys_set = kvs
                         .iter()
@@ -574,10 +574,10 @@ impl Env {
                             fields,
                         })))
                     } else {
-                        Err(err!(Error::WrongFields(v)))
+                        Err(err!(ErrType::WrongFields(v)))
                     }
                 } else {
-                    Err(err!(Error::NotAClass(v)))
+                    Err(err!(ErrType::NotAClass(v)))
                 }
             }
             Expr::Get(expr, field) => {
@@ -604,7 +604,7 @@ impl Env {
                     }
                     _ => None,
                 }
-                .ok_or_else(|| err!(Error::NoField(v.clone(), field.0.clone())))
+                .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
             }
             Expr::Set(expr, field, val) => {
                 let v = self.eval_expr(expr)?;
@@ -640,7 +640,7 @@ impl Env {
                     }
                     _ => None,
                 }
-                .ok_or_else(|| err!(Error::NoFieldToSet(v, field.0.clone())))
+                .ok_or_else(|| err!(ErrType::NoFieldToSet(v, field.0.clone())))
             }
         }
     }

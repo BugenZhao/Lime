@@ -2,7 +2,7 @@ use crate::{
     err,
     error::Result,
     parser::{Expr, Ident, Stmt},
-    Error,
+    ErrType,
 };
 use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
 
@@ -89,13 +89,13 @@ impl<'a> Resolver<'a> {
             }
             Stmt::ClassDecl(i, _) => {
                 if self.enclosing.is_some() {
-                    return Err(err!(Error::OnlyTopLevel("class".to_owned())));
+                    return Err(err!(ErrType::OnlyTopLevel("class".to_owned())));
                 }
                 self.decl(i);
             }
             Stmt::Impl(i, afs) => {
                 if self.enclosing.is_some() {
-                    return Err(err!(Error::OnlyTopLevel("impl".to_owned())));
+                    return Err(err!(ErrType::OnlyTopLevel("impl".to_owned())));
                 }
                 self.decl(i);
                 for f in afs.iter_mut() {

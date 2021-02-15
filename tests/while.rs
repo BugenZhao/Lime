@@ -16,13 +16,13 @@ fn test_nil_1() {
 #[test]
 fn test_nil_2() {
     let r = eval!("var a = while false {};").unwrap_err();
-    assert!(matches!(r.tp, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }
 
 #[test]
 fn test_nil_3() {
     let r = eval!("var a = 5; a = while false {};").unwrap_err();
-    assert!(matches!(r.tp, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_default_looped_but_nil() {
     "
     )
     .unwrap_err();
-    assert!(matches!(r.tp, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn test_bad_break() {
     )
     .unwrap_err();
     println!("{}", r);
-    assert!(matches!(r.tp, Error::Break(..)));
+    assert!(matches!(r.tp, ErrType::Break(..)));
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn test_bad_continue() {
         "
     )
     .unwrap_err();
-    assert!(matches!(r.tp, Error::Continue(..)));
+    assert!(matches!(r.tp, ErrType::Continue(..)));
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn test_break_without_value() {
         "
     )
     .unwrap_err();
-    assert!(matches!(r.tp, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }
 
 #[test]
@@ -111,5 +111,5 @@ fn test_continue_without_value() {
         "
     )
     .unwrap_err();
-    assert!(matches!(r.tp, Error::CannotHaveValue(_, Value::Nil)));
+    assert!(matches!(r.tp, ErrType::CannotHaveValue(_, Value::Nil)));
 }

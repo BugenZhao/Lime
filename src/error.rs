@@ -19,14 +19,14 @@ impl std::fmt::Display for LimeBacktrace {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub struct NewError {
+pub struct Error {
     #[source]
-    pub tp: Error,
+    pub tp: ErrType,
     bt: LimeBacktrace,
 }
 
-impl NewError {
-    pub fn new(tp: Error) -> Self {
+impl Error {
+    pub fn new(tp: ErrType) -> Self {
         Self {
             tp,
             bt: LimeBacktrace(vec![]),
@@ -40,7 +40,7 @@ impl NewError {
     }
 }
 
-impl std::fmt::Display for NewError {
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.tp)?;
         if !self.bt.0.is_empty() {
@@ -50,27 +50,27 @@ impl std::fmt::Display for NewError {
     }
 }
 
-impl From<std::io::Error> for NewError {
+impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Self::new(Error::IoError(e))
+        Self::new(ErrType::IoError(e))
     }
 }
 
-impl From<peg::error::ParseError<peg::str::LineCol>> for NewError {
+impl From<peg::error::ParseError<peg::str::LineCol>> for Error {
     fn from(e: peg::error::ParseError<peg::str::LineCol>) -> Self {
-        Self::new(Error::ParseError(e))
+        Self::new(ErrType::ParseError(e))
     }
 }
 
 #[macro_export]
 macro_rules! err {
     ($tp:expr) => {
-        crate::error::NewError::new($tp)
+        crate::error::Error::new($tp)
     };
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum ErrType {
     #[error(transparent)]
     IoError(std::io::Error),
 
@@ -138,11 +138,11 @@ pub enum LimeError {
     Panic(String),
 }
 
-pub type Result<T> = std::result::Result<T, NewError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[macro_export]
 macro_rules! lime_error {
     ($err:expr) => {
-        crate::err!(crate::error::Error::Lime($err))
+        crate::err!(crate::error::ErrType::Lime($err))
     };
 }

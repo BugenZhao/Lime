@@ -4,7 +4,7 @@ use crate::{
     env::Env,
     err,
     parser::{Ident, Stmt},
-    Error, Result,
+    ErrType, Result,
 };
 use by_address::ByAddress;
 use itertools::Itertools;
@@ -180,7 +180,7 @@ impl Func {
                 name: f.name,
             })
         } else {
-            Err(err!(Error::CannotPartialApply(f)))
+            Err(err!(ErrType::CannotPartialApply(f)))
         }
     }
 
@@ -188,7 +188,7 @@ impl Func {
         if self.arity.contains(&supp) {
             Ok(())
         } else {
-            Err(err!(Error::WrongArguments {
+            Err(err!(ErrType::WrongArguments {
                 f: self.clone(),
                 take: self.arity.clone(),
                 supp,
@@ -219,7 +219,7 @@ impl Display for Class {
 impl Class {
     pub fn decl_static(&mut self, k: String, mut v: Value) -> Result<()> {
         match self.statics.entry(k.clone()) {
-            Entry::Occupied(_) => Err(err!(Error::DefinedMutlipleTimes(k))),
+            Entry::Occupied(_) => Err(err!(ErrType::DefinedMutlipleTimes(k))),
             Entry::Vacant(e) => {
                 if let Value::Func(func) = &v {
                     v = Value::Func(ba_rc!(func
