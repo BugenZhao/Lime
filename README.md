@@ -139,10 +139,13 @@ nil;
             - [x] is_some, is_nil, cause, expect
         - [x] sugars: if var
     - [ ] ...
-- [ ] pass-by-value object "struct"
+- [ ] pass-by-value `struct` object
     - [ ] refactor object clone logic
     - [ ] syntax
     - [ ] ...
+- [ ] `enum` type
+    - [ ] pattern match
+
 
 
 ### Lime REPL
@@ -168,6 +171,7 @@ nil;
 
 
 ### Lime Standard Library
+
 - [ ] built-in collections
     - [ ] `Vec`
     - [ ] `HashMap`
