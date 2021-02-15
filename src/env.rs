@@ -658,6 +658,24 @@ impl Env {
                 }
                 .ok_or_else(|| err!(ErrType::NoFieldToSet(v, field.0.clone())))
             }
+            Expr::IfVar(ident, expr, then, else_) => {
+                let val = self.eval_expr(expr)?;
+                if !matches!(val, Value::Nil(..)) {
+                    match then.as_ref() {
+                        Expr::Block(stmts) => {
+                            // TODO: merge this with eval_expr(Expr::Block(..))
+                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                            new_env.decl(ident.clone(), val)?;
+                            new_env.eval_stmts(stmts)
+                        }
+                        _ => unreachable!(),
+                    }
+                } else if let Some(else_) = else_.deref() {
+                    self.eval_expr(else_)
+                } else {
+                    Ok(Value::Nil(None))
+                }
+            }
         }
     }
 }

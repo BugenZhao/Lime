@@ -53,6 +53,7 @@ pub enum Expr {
     Cast(Box<Expr>, Ident),
     Block(Vec<Stmt>),
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
+    IfVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
     Func(Vec<Ident>, Vec<Stmt>),
@@ -177,7 +178,6 @@ peg::parser! {
                 if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer arguments") }
             }
 
-        // TODO: check this
         rule expr_call() -> Expr = precedence!{
             o:(@) _ "." _ f:ident() _ "=" _ v:expr() { Expr::Set(box o, f, box v) }
             --
@@ -235,9 +235,13 @@ peg::parser! {
             = "{" _ semi()* ss:(raw_stmt())* semi()* _ "}" { Expr::Block(ss) }
 
         rule if_else() -> Expr
-            = _ kw_else() _ else_:(expr_if() / block()) { else_ }
+            = _ kw_else() _ else_:(expr_if() / expr_if_var() / block()) { else_ }
         rule expr_if() -> Expr
             = kw_if() __ cond:expr() _ then:block() else_:if_else()? { Expr::If(box cond, box then, box else_) }
+        rule expr_if_var() -> Expr
+            = kw_if() __ kw_var() __ i:ident() _ "=" _ e:expr() _ then:block() else_:if_else()? { 
+                Expr::IfVar(i, box e, box then, box else_) 
+            }
 
         rule while_default() -> Expr
             = _ kw_default() _ default:expr() { default }
@@ -279,6 +283,7 @@ peg::parser! {
         rule expr_BLOCK() -> Expr  // optional semicolon
             = block()
             / expr_if()
+            / expr_if_var()
             / expr_while()
 
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()

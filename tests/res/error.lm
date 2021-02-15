@@ -41,3 +41,10 @@ assert_eq(success_count, 1);
 var msg_3 = rx.recv_with_default(500, "msg_3");
 assert_eq(msg_3, "msg_3");
 assert_eq(success_count, 1);
+
+
+if var msg = try_pipe_recv(50) {
+    assert_eq(msg, "pong");
+} else {
+    panic("msg must be some");
+}
