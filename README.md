@@ -18,12 +18,15 @@ impl Student {
     assoc org = "SJTU";
 
     assoc is_good = |self| { 
-        if self.name.eng == "bugen" { true; }
-        else { self.gpa >= 4.29; }
+        self.gpa >= 4.29;
     };
     assoc print_name = |self| {
         println("Chinese name:", self.name.chn, 
                 "\nEnglish name:", self.name.eng);
+    };
+    assoc try_make_money = |self| {
+        if self.is_good() { 1000000000.0; }
+        else { nil.expect("there's no money for you"); }
     };
     assoc get_older = |self| {
         self.age = self.age + 1;
@@ -39,6 +42,14 @@ var i = Student {
 
 i.print_name();
 println("Is", i.name.eng, "a good student? =>", i.is_good());
+
+var money? = i.try_make_money();
+if money?.is_some() {
+    var money = money? * 0.7;  // tax :P
+    println("Wow! I've made $", money);
+} else {
+    println("Oh-no! I failed since", money?.cause());
+}
 
 var rep = |n, fn| { || {
     var i = n;
