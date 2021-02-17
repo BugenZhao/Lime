@@ -1,7 +1,7 @@
 use crate::{
     err,
     error::Result,
-    parser::{Expr, Ident, Stmt},
+    ast::{Expr, Ident, Stmt},
     ErrType,
 };
 use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};

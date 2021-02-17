@@ -1,4 +1,4 @@
-use crate::{env::Env, error::Result, parser, parser::Stmt, Value};
+use crate::{ast::Stmt, env::Env, error::Result, parse_and_resolve, Value, KEYWORDS};
 use std::{collections::HashMap, fs::read_to_string, path::Path, rc::Rc};
 
 pub struct Interpreter {
@@ -20,7 +20,7 @@ impl Interpreter {
     }
 
     pub fn eval(&self, text: &str) -> Result<Value> {
-        let stmts = parser::parse_and_resolve(text)?;
+        let stmts = parse_and_resolve(text)?;
         self.env.eval_stmts(&stmts)
     }
 
@@ -30,7 +30,7 @@ impl Interpreter {
 
     pub fn hints(&self) -> Vec<String> {
         let mut r = self.env.names();
-        r.append(&mut parser::KEYWORDS.clone());
+        r.append(&mut KEYWORDS.clone());
         r.drain(..).filter(|n| !n.starts_with('_')).collect()
     }
 
@@ -42,7 +42,7 @@ impl Interpreter {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::Ident;
+    use crate::ast::Ident;
 
     #[test]
     fn test() {

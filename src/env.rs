@@ -2,7 +2,7 @@ use crate::{
     ba_rc, err,
     error::{ErrType, Result},
     lime_std::define_std,
-    parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
+    ast::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     rc_refcell,
     value::{Class, FuncType, Object},
     Func, Value,

@@ -2,7 +2,7 @@ use super::Value;
 use crate::{
     env::Env,
     err,
-    parser::{Ident, Stmt},
+    ast::{Ident, Stmt},
     ErrType, Result,
 };
 use itertools::Itertools;
