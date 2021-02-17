@@ -91,11 +91,11 @@ nil;
     - [ ] `for`
     - [ ] `for in`
     - [x] make them expressions
-- [ ] `nil` and `nil` safety
+- [x] `nil` and `nil` safety
     - [x] `nil`...
     - [x] ...with cause
     - [x] allow `name?` to hold `nil`
-    - [ ] ! universal `nil` check on fields and assocs
+    - [x] `nil` check on fields and assocs
 - [x] function types and function call
 - [ ] function
     - [x] arity check
