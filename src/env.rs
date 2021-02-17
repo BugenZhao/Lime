@@ -1,6 +1,6 @@
 use crate::{
     ba_rc, err,
-    error::{ErrType, Error, Result},
+    error::{ErrType, Result},
     lime_std::define_std,
     parser::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     rc_refcell,
@@ -126,7 +126,7 @@ impl Env {
 }
 
 impl Env {
-    pub fn get_generic_assoc(&self, obj: &Value, name: &str) -> Option<Value> {
+    pub fn get_internal_assoc(&self, obj: &Value, name: &str) -> Option<Value> {
         let func = self.get_raw(&format!("__{}", name))?;
 
         if let Value::Func(func) = func {
@@ -302,21 +302,15 @@ impl Env {
                 while self.is_truthy(cond)? {
                     looped = true;
                     match self.eval_expr(body) {
-                        Ok(v)
-                        | Err(Error {
-                            tp: ErrType::Continue(v),
-                            ..
-                        }) => ret = v,
-                        Err(Error {
-                            tp: ErrType::Break(v),
-                            ..
-                        }) => {
-                            ret = v;
-                            break;
-                        }
-                        err @ Err(_) => {
-                            return err;
-                        }
+                        Ok(v) => ret = v,
+                        Err(e) => match e.tp {
+                            ErrType::Continue(v) => ret = v,
+                            ErrType::Break(v) => {
+                                ret = v;
+                                break;
+                            }
+                            _ => return Err(e),
+                        },
                     }
                 }
 
@@ -391,7 +385,7 @@ impl Env {
             }
             Expr::Get(expr, field) => {
                 let v = self.eval_expr(expr)?;
-                if let Some(assoc) = self.get_generic_assoc(&v, &field.0) {
+                if let Some(assoc) = self.get_internal_assoc(&v, &field.0) {
                     return Ok(assoc);
                 }
                 match &v {
