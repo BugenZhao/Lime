@@ -10,7 +10,7 @@ use crate::{
 use by_address::ByAddress;
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap},
     ops::Deref,
     rc::Rc,
 };
@@ -143,14 +143,6 @@ impl Env {
 }
 
 impl Env {
-    fn is_truthy(self: &Rc<Self>, expr: &Expr) -> Result<bool> {
-        match self.eval_expr(expr)? {
-            Value::Bool(true) => Ok(true),
-            Value::Bool(false) => Ok(false),
-            v => Err(err!(ErrType::CannotBeCondition(v))),
-        }
-    }
-
     pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
         let mut ret = Value::Nil(None);
 
@@ -232,7 +224,6 @@ impl Env {
                 Ok(Value::Nil(None))
             }
             Stmt::Impl(ident, assocs) => {
-                // FIXME: nil safety
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
@@ -251,43 +242,6 @@ impl Env {
     }
 
     fn eval_expr(self: &Rc<Self>, expr: &Expr) -> Result<Value> {
-        macro_rules! int {
-            ($v:expr) => {
-                Some(Value::Int($v))
-            };
-        }
-        macro_rules! float {
-            ($v:expr) => {
-                Some(Value::Float($v))
-            };
-        }
-        macro_rules! bool {
-            ($v:expr) => {
-                Some(Value::Bool($v))
-            };
-        }
-        macro_rules! string {
-            ($v:expr) => {
-                Some(Value::String($v))
-            };
-        }
-        macro_rules! class_check {
-            ($a:expr, $b:expr, $v:expr) => {
-                if $a.borrow().class == $b.borrow().class {
-                    $v
-                } else {
-                    None
-                }
-            };
-            ($a:expr, $b:expr, $v1:expr, $v2:expr) => {
-                if $a.borrow().class == $b.borrow().class {
-                    $v1
-                } else {
-                    $v2
-                }
-            };
-        }
-
         match expr {
             Expr::Variable(ident) => match self.get(ident) {
                 Some(value) => Ok(value),
@@ -312,130 +266,7 @@ impl Env {
                 assert_ne!(*op, BinaryOp::Or);
                 let (l, r) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
 
-                match (l.clone(), r.clone(), op) {
-                    (Value::Object(a), Value::Object(b), op) => match op {
-                        BinaryOp::Feq => class_check!(a, b, bool!(a == b), bool!(false)),
-                        BinaryOp::Fne => class_check!(a, b, bool!(a != b), bool!(true)),
-                        BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
-                        BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
-
-                        BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
-                        BinaryOp::Ne => class_check!(a, b, bool!(a != b)),
-
-                        _ => None,
-                    },
-
-                    (a, b, BinaryOp::Feq) => bool!(a == b),
-                    (a, b, BinaryOp::Fne) => bool!(a != b),
-
-                    (Value::Int(a), Value::Int(b), op) => match op {
-                        BinaryOp::Add => int!(a + b),
-                        BinaryOp::Sub => int!(a - b),
-                        BinaryOp::Mul => int!(a * b),
-                        BinaryOp::Div => int!(a / b),
-                        BinaryOp::Pow => int!(a.pow(b as u32)),
-
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-                        BinaryOp::Gt => bool!(a > b),
-                        BinaryOp::Ge => bool!(a >= b),
-                        BinaryOp::Lt => bool!(a < b),
-                        BinaryOp::Le => bool!(a <= b),
-
-                        BinaryOp::And => None,
-                        BinaryOp::Or => unreachable!(),
-                    },
-                    #[allow(clippy::float_cmp)]
-                    (Value::Float(a), Value::Float(b), op) => match op {
-                        BinaryOp::Add => float!(a + b),
-                        BinaryOp::Sub => float!(a - b),
-                        BinaryOp::Mul => float!(a * b),
-                        BinaryOp::Div => float!(a / b),
-                        BinaryOp::Pow => float!(a.powf(b)),
-
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-                        BinaryOp::Gt => bool!(a > b),
-                        BinaryOp::Ge => bool!(a >= b),
-                        BinaryOp::Lt => bool!(a < b),
-                        BinaryOp::Le => bool!(a <= b),
-
-                        BinaryOp::And => None,
-                        BinaryOp::Or => unreachable!(),
-                    },
-                    #[allow(clippy::bool_comparison)]
-                    (Value::Bool(a), Value::Bool(b), op) => match op {
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-                        BinaryOp::Gt => bool!(a > b),
-                        BinaryOp::Ge => bool!(a >= b),
-                        BinaryOp::Lt => bool!(a < b),
-                        BinaryOp::Le => bool!(a <= b),
-
-                        BinaryOp::And => bool!(a && b),
-                        BinaryOp::Or => unreachable!(),
-
-                        _ => None,
-                    },
-                    (Value::String(a), Value::String(b), op) => match op {
-                        BinaryOp::Add => string!(a + &b),
-
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-                        BinaryOp::Gt => bool!(a > b),
-                        BinaryOp::Ge => bool!(a >= b),
-                        BinaryOp::Lt => bool!(a < b),
-                        BinaryOp::Le => bool!(a <= b),
-
-                        _ => None,
-                    },
-                    (Value::Func(a), Value::Func(b), op) => match op {
-                        // TODO: composed func
-                        BinaryOp::Mul => todo!("func composition"),
-
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-
-                        _ => None,
-                    },
-                    (Value::Class(a), Value::Class(b), op) => match op {
-                        BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
-                        BinaryOp::Req => bool!(a == b),
-                        BinaryOp::Rne => bool!(a != b),
-
-                        BinaryOp::Eq => bool!(a == b),
-                        BinaryOp::Ne => bool!(a != b),
-
-                        _ => None,
-                    },
-
-                    (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
-                        float!(a.powi(b as i32))
-                    }
-
-                    (_, _, _) => None,
-                }
-                .ok_or_else(|| err!(ErrType::CannotApplyBinaryOp(op.clone(), l, r)))
+                self.eval_normal_binary_op(l, r, op)
             }
             Expr::Unary(op, val) => match (self.eval_expr(val)?, op) {
                 (Value::Int(x), UnaryOp::Neg) => Ok(Value::Int(-x)),
@@ -449,33 +280,7 @@ impl Env {
             }
             Expr::Cast(val, ident) => {
                 let val = self.eval_expr(val)?;
-                let tp = ident.0.as_str();
-                match tp {
-                    "Int" => match val {
-                        Value::Int(x) => Some(Value::Int(x as i64)),
-                        Value::Float(x) => Some(Value::Int(x as i64)),
-                        Value::Bool(x) => Some(Value::Int(x as i64)),
-                        Value::String(_)
-                        | Value::Nil(..)
-                        | Value::Func(..)
-                        | Value::Class(..)
-                        | Value::Object(..) => None,
-                    },
-                    "Float" => match val {
-                        Value::Int(x) => Some(Value::Float(x as f64)),
-                        Value::Float(x) => Some(Value::Float(x as f64)),
-                        Value::Bool(_) => None,
-                        Value::String(_)
-                        | Value::Nil(..)
-                        | Value::Func(..)
-                        | Value::Class(..)
-                        | Value::Object(..) => None,
-                    },
-                    "Bool" => None,
-                    "String" => Some(Value::String(format!("{}", val))),
-                    _ => None,
-                }
-                .ok_or_else(|| err!(ErrType::CannotCast(val, tp.to_owned())))
+                self.eval_cast(ident, val)
             }
             Expr::Block(stmts) => {
                 let new_env = Rc::new(Env::new(Rc::clone(&self)));
@@ -554,27 +359,19 @@ impl Env {
                 name: None,
             }))),
             Expr::Construct(ident, kvs) => {
-                // FIXME: nil safety
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
                 if let Value::Class(ByAddress(class)) = &v {
-                    let keys_set = kvs
-                        .iter()
-                        .map(|(k, _)| &k.0)
-                        .cloned()
-                        .collect::<HashSet<_>>();
-                    let expected_keys_set = class
-                        .borrow()
-                        .fields
-                        .iter()
-                        .cloned()
-                        .collect::<HashSet<_>>();
-
-                    if keys_set == expected_keys_set {
+                    if class.borrow().check_kvs(kvs) {
                         let mut values = vec![];
-                        for expr in kvs.iter().map(|(_, v)| v) {
-                            values.push(self.eval_expr(expr)?);
+                        for (ident, expr) in kvs.iter() {
+                            let v = self.eval_expr(expr)?;
+                            let k = &ident.0;
+                            if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+                                return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
+                            }
+                            values.push(v);
                         }
                         let fields = kvs
                             .iter()
@@ -598,61 +395,26 @@ impl Env {
                     return Ok(assoc);
                 }
                 match &v {
-                    Value::Class(class) => class.borrow().statics.get(&field.0).cloned(),
-                    Value::Object(obj) => {
-                        if let Some(field_val) = obj.borrow().fields.get(&field.0).cloned() {
-                            Some(field_val)
-                        } else if let Some(static_val) =
-                            obj.borrow().class.borrow().statics.get(&field.0).cloned()
-                        {
-                            if let Value::Func(func) = static_val {
-                                Some(Value::Func(ba_rc!(Func::new_parital_apply(
-                                    func.as_ref().clone(),
-                                    Value::Object(Rc::clone(obj))
-                                )?)))
-                            } else {
-                                Some(static_val)
-                            }
-                        } else {
-                            None
-                        }
-                    }
+                    Value::Class(class) => class.borrow().get_static(&field.0),
+                    Value::Object(obj) => obj.borrow().get_field(Rc::clone(obj), &field.0)?,
                     _ => None,
                 }
                 .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
             }
             Expr::Set(expr, field, val) => {
-                // FIXME: nil safety
                 let v = self.eval_expr(expr)?;
                 match &v {
                     Value::Class(class) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-
-                        let mut class = class.borrow_mut();
-                        let field = class.statics.get_mut(&field.0);
-                        match field {
-                            Some(field) => {
-                                *field = val.clone();
-                                Some(val)
-                            }
-                            None => None,
-                        }
+                        class.borrow_mut().set_static(&field.0, val.clone())?;
+                        Some(val)
                     }
                     Value::Object(obj) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-
-                        let mut obj = obj.borrow_mut();
-                        let field = obj.fields.get_mut(&field.0);
-                        match field {
-                            Some(field) => {
-                                *field = val.clone();
-                                Some(val)
-                            }
-                            None => None,
-                            // TODO: give clearer error reporting for setting a static field through object
-                        }
+                        obj.borrow_mut().set_field(&field.0, val.clone())?;
+                        Some(val)
                     }
                     _ => None,
                 }
@@ -677,5 +439,209 @@ impl Env {
                 }
             }
         }
+    }
+}
+
+impl Env {
+    fn is_truthy(self: &Rc<Self>, expr: &Expr) -> Result<bool> {
+        match self.eval_expr(expr)? {
+            Value::Bool(true) => Ok(true),
+            Value::Bool(false) => Ok(false),
+            v => Err(err!(ErrType::CannotBeCondition(v))),
+        }
+    }
+
+    fn eval_normal_binary_op(&self, l: Value, r: Value, op: &BinaryOp) -> Result<Value> {
+        macro_rules! int {
+            ($v:expr) => {
+                Some(Value::Int($v))
+            };
+        }
+        macro_rules! float {
+            ($v:expr) => {
+                Some(Value::Float($v))
+            };
+        }
+        macro_rules! bool {
+            ($v:expr) => {
+                Some(Value::Bool($v))
+            };
+        }
+        macro_rules! string {
+            ($v:expr) => {
+                Some(Value::String($v))
+            };
+        }
+        macro_rules! class_check {
+            ($a:expr, $b:expr, $v:expr) => {
+                if $a.borrow().class == $b.borrow().class {
+                    $v
+                } else {
+                    None
+                }
+            };
+            ($a:expr, $b:expr, $v1:expr, $v2:expr) => {
+                if $a.borrow().class == $b.borrow().class {
+                    $v1
+                } else {
+                    $v2
+                }
+            };
+        }
+
+        match (l.clone(), r.clone(), op) {
+            (Value::Object(a), Value::Object(b), op) => match op {
+                BinaryOp::Feq => class_check!(a, b, bool!(a == b), bool!(false)),
+                BinaryOp::Fne => class_check!(a, b, bool!(a != b), bool!(true)),
+                BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
+                BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
+
+                BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
+                BinaryOp::Ne => class_check!(a, b, bool!(a != b)),
+
+                _ => None,
+            },
+
+            (a, b, BinaryOp::Feq) => bool!(a == b),
+            (a, b, BinaryOp::Fne) => bool!(a != b),
+
+            (Value::Int(a), Value::Int(b), op) => match op {
+                BinaryOp::Add => int!(a + b),
+                BinaryOp::Sub => int!(a - b),
+                BinaryOp::Mul => int!(a * b),
+                BinaryOp::Div => int!(a / b),
+                BinaryOp::Pow => int!(a.pow(b as u32)),
+
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+                BinaryOp::Gt => bool!(a > b),
+                BinaryOp::Ge => bool!(a >= b),
+                BinaryOp::Lt => bool!(a < b),
+                BinaryOp::Le => bool!(a <= b),
+
+                BinaryOp::And => None,
+                BinaryOp::Or => unreachable!(),
+            },
+            #[allow(clippy::float_cmp)]
+            (Value::Float(a), Value::Float(b), op) => match op {
+                BinaryOp::Add => float!(a + b),
+                BinaryOp::Sub => float!(a - b),
+                BinaryOp::Mul => float!(a * b),
+                BinaryOp::Div => float!(a / b),
+                BinaryOp::Pow => float!(a.powf(b)),
+
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+                BinaryOp::Gt => bool!(a > b),
+                BinaryOp::Ge => bool!(a >= b),
+                BinaryOp::Lt => bool!(a < b),
+                BinaryOp::Le => bool!(a <= b),
+
+                BinaryOp::And => None,
+                BinaryOp::Or => unreachable!(),
+            },
+            #[allow(clippy::bool_comparison)]
+            (Value::Bool(a), Value::Bool(b), op) => match op {
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+                BinaryOp::Gt => bool!(a > b),
+                BinaryOp::Ge => bool!(a >= b),
+                BinaryOp::Lt => bool!(a < b),
+                BinaryOp::Le => bool!(a <= b),
+
+                BinaryOp::And => bool!(a && b),
+                BinaryOp::Or => unreachable!(),
+
+                _ => None,
+            },
+            (Value::String(a), Value::String(b), op) => match op {
+                BinaryOp::Add => string!(a + &b),
+
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+                BinaryOp::Gt => bool!(a > b),
+                BinaryOp::Ge => bool!(a >= b),
+                BinaryOp::Lt => bool!(a < b),
+                BinaryOp::Le => bool!(a <= b),
+
+                _ => None,
+            },
+            (Value::Func(a), Value::Func(b), op) => match op {
+                // TODO: composed func
+                BinaryOp::Mul => todo!("func composition"),
+
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+
+                _ => None,
+            },
+            (Value::Class(a), Value::Class(b), op) => match op {
+                BinaryOp::Feq | BinaryOp::Fne => unreachable!(),
+                BinaryOp::Req => bool!(a == b),
+                BinaryOp::Rne => bool!(a != b),
+
+                BinaryOp::Eq => bool!(a == b),
+                BinaryOp::Ne => bool!(a != b),
+
+                _ => None,
+            },
+
+            (Value::Float(a), Value::Int(b), BinaryOp::Pow) => {
+                float!(a.powi(b as i32))
+            }
+
+            (_, _, _) => None,
+        }
+        .ok_or_else(|| err!(ErrType::CannotApplyBinaryOp(op.clone(), l, r)))
+    }
+
+    fn eval_cast(&self, ident: &Ident, val: Value) -> Result<Value> {
+        let tp = ident.0.as_str();
+        match tp {
+            "Int" => match val {
+                Value::Int(x) => Some(Value::Int(x as i64)),
+                Value::Float(x) => Some(Value::Int(x as i64)),
+                Value::Bool(x) => Some(Value::Int(x as i64)),
+                Value::String(..)
+                | Value::Nil(..)
+                | Value::Func(..)
+                | Value::Class(..)
+                | Value::Object(..) => None,
+            },
+            "Float" => match val {
+                Value::Int(x) => Some(Value::Float(x as f64)),
+                Value::Float(x) => Some(Value::Float(x as f64)),
+                Value::Bool(..)
+                | Value::String(..)
+                | Value::Nil(..)
+                | Value::Func(..)
+                | Value::Class(..)
+                | Value::Object(..) => None,
+            },
+            "Bool" => None,
+            "String" => Some(Value::String(format!("{}", val))),
+            _ => None,
+        }
+        .ok_or_else(|| err!(ErrType::CannotCast(val, tp.to_owned())))
     }
 }

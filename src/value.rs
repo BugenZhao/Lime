@@ -3,14 +3,14 @@
 use crate::{
     env::Env,
     err,
-    parser::{Ident, Stmt},
+    parser::{Expr, Ident, Stmt},
     ErrType, Result,
 };
 use by_address::ByAddress;
 use itertools::Itertools;
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, HashMap},
+    collections::{hash_map::Entry, HashMap, HashSet},
     fmt::Display,
     ops::RangeInclusive,
     rc::Rc,
@@ -228,10 +228,43 @@ impl Class {
                         .clone()
                         .with_name(format!("{}.{}", self.name, k))))
                 }
+                if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+                    return Err(err!(ErrType::CannotHaveValue(k, v)));
+                }
                 e.insert(v);
                 Ok(())
             }
         }
+    }
+
+    pub fn set_static(&mut self, k: &str, v: Value) -> Result<()> {
+        if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+            return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
+        }
+
+        let entry = self.statics.get_mut(k);
+        match entry {
+            Some(field) => {
+                *field = v;
+                Ok(())
+            }
+            None => Err(err!(ErrType::NoFieldToSet(v, k.to_owned()))),
+        }
+    }
+
+    pub fn get_static(&self, k: &str) -> Option<Value> {
+        self.statics.get(k).cloned()
+    }
+
+    pub fn check_kvs(&self, kvs: &[(Ident, Expr)]) -> bool {
+        let keys_set = kvs
+            .iter()
+            .map(|(k, _)| &k.0)
+            .cloned()
+            .collect::<HashSet<_>>();
+        let expected_keys_set = self.fields.iter().cloned().collect::<HashSet<_>>();
+
+        keys_set == expected_keys_set
     }
 }
 
@@ -259,5 +292,41 @@ impl std::fmt::Debug for Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl Object {
+    pub fn set_field(&mut self, k: &str, v: Value) -> Result<()> {
+        if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+            return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
+        }
+
+        let entry = self.fields.get_mut(k);
+        match entry {
+            Some(field) => {
+                *field = v;
+                Ok(())
+            }
+            None => Err(err!(ErrType::NoFieldToSet(v, k.to_owned()))),
+        }
+    }
+
+    pub fn get_field(&self, rc_refcell_self: Rc<RefCell<Self>>, k: &str) -> Result<Option<Value>> {
+        let val = if let Some(field_val) = self.fields.get(k).cloned() {
+            Some(field_val)
+        } else if let Some(static_val) = self.class.borrow().statics.get(k).cloned() {
+            if let Value::Func(func) = static_val {
+                Some(Value::Func(ba_rc!(Func::new_parital_apply(
+                    func.as_ref().clone(),
+                    Value::Object(rc_refcell_self)
+                )?)))
+            } else {
+                Some(static_val)
+            }
+        } else {
+            None
+        };
+
+        Ok(val)
     }
 }
