@@ -1,9 +1,11 @@
-use crate::{interpreter::Interpreter, repl_helper::editor, Value};
+mod helper;
+
+use crate::{interpreter::Interpreter, Value};
 use colored::*;
 use rustyline::error::ReadlineError;
 
 pub fn repl(intp: Interpreter) {
-    let mut rl = editor();
+    let mut rl = helper::editor();
     let mut counter = 0u64;
 
     println!(
