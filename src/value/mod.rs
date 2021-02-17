@@ -1,8 +1,7 @@
-#![macro_use]
-
 mod class;
 mod func;
 mod object;
+mod utils;
 
 use by_address::ByAddress;
 use std::{cell::RefCell, fmt::Display, rc::Rc};
@@ -12,20 +11,6 @@ pub use func::*;
 pub use object::*;
 
 pub const N_MAX_ARGS: usize = 255;
-
-#[macro_export]
-macro_rules! ba_rc {
-    ($w:expr) => {
-        by_address::ByAddress(std::rc::Rc::new($w))
-    };
-}
-
-#[macro_export]
-macro_rules! rc_refcell {
-    ($w:expr) => {
-        std::rc::Rc::new(std::cell::RefCell::new($w))
-    };
-}
 
 pub type Ba<T> = ByAddress<T>;
 
