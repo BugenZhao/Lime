@@ -17,6 +17,7 @@ snailquote = "0.3"
 lazy_static = "1.4"
 itertools = "0.10"
 by_address = "1.0"
+uuid = { version = "0.8", features = ["v4"] }
 
 [dev-dependencies]
 rand = "0.7"

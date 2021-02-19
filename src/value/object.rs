@@ -2,11 +2,13 @@ use super::{Class, Func, Value};
 use crate::{ba_rc, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
+use uuid::Uuid;
 
 #[derive(Clone, PartialEq)]
 pub struct Object {
     pub class: Rc<RefCell<Class>>,
     pub fields: HashMap<String, Value>,
+    pub uuid: Uuid,
 }
 
 impl std::fmt::Debug for Object {
@@ -31,6 +33,14 @@ impl Display for Object {
 }
 
 impl Object {
+    pub fn new(class: Rc<RefCell<Class>>, fields: HashMap<String, Value>) -> Self {
+        Self {
+            class,
+            fields,
+            uuid: Uuid::new_v4(),
+        }
+    }
+
     pub fn set_field(&mut self, k: &str, v: Value) -> Result<()> {
         if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
             return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));

@@ -371,10 +371,10 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(rc_refcell!(Object {
-                            class: Rc::clone(class),
+                        Ok(Value::Object(rc_refcell!(Object::new(
+                            Rc::clone(class),
                             fields,
-                        })))
+                        ))))
                     } else {
                         Err(err!(ErrType::WrongFields(v)))
                     }
