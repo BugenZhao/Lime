@@ -158,5 +158,25 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
         }));
     }
 
+    {
+        let vec_map = Rc::clone(&vec_map);
+        vec_class.equals = Some(ba_rc!(move |this, that| {
+            vec_map
+                .borrow_mut()
+                .entry(this.uuid)
+                .or_insert_with(Vec::new);
+            vec_map
+                .borrow_mut()
+                .entry(that.uuid)
+                .or_insert_with(Vec::new);
+
+            let vec_map = vec_map.borrow();
+            let this_vec = vec_map.get(&this.uuid);
+            let that_vec = vec_map.get(&that.uuid);
+
+            this_vec == that_vec
+        }));
+    }
+
     Value::Class(ba_rc!(RefCell::new(vec_class)))
 }
