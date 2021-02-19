@@ -154,6 +154,7 @@ nil;
     - [ ] pattern match
 - [ ] string interpolation / runtime format
 - [ ] immutable value
+- [ ] trait / duck type
 
 
 
@@ -191,8 +192,9 @@ nil;
     - [ ] iterators
     - [ ] ...
 - [ ] higher-order funcs
-    - [ ] `map`
-    - [ ] `fold`
+    - [x] `map`
+    - [x] `fold`
+    - [ ] generic
     - [ ] ...
 - [ ] I/O
     - [x] `print` & `println`
