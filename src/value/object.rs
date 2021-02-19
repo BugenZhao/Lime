@@ -65,3 +65,12 @@ impl Object {
         Ok(val)
     }
 }
+
+impl Drop for Object {
+    fn drop(&mut self) {
+        let finalize = self.class.borrow().finalize.clone();
+        if let Some(finalize_func) = finalize {
+            finalize_func(self);
+        };
+    }
+}
