@@ -163,6 +163,6 @@ fn define_prelude(env: &Rc<Env>) {
 
 pub fn define_std(env: &Rc<Env>) {
     define_builtin(env);
-    define_prelude(env);
     define_std_class(env);
+    define_prelude(env);
 }
