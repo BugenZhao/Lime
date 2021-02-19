@@ -176,10 +176,12 @@ nil;
 ### Lime Standard Library
 
 - [ ] built-in collections
-    - [ ] `Vec`
+    - [x] `Vec`
     - [ ] `HashMap`
     - [ ] `HashSet`
     - [ ] string utilities
+    - [ ] literals
+    - [ ] iterators
     - [ ] ...
 - [ ] higher-order funcs
     - [ ] `map`
