@@ -1,8 +1,7 @@
 use super::Value;
 use crate::{
-    ba_rc, err,
     ast::{Expr, Ident},
-    ErrType, Result,
+    ba_rc, err, ErrType, Result,
 };
 use itertools::Itertools;
 use std::{
@@ -30,6 +29,14 @@ impl Display for Class {
 }
 
 impl Class {
+    pub fn new(name: String, fields: Vec<String>) -> Self {
+        Self {
+            name,
+            fields,
+            statics: HashMap::new(),
+        }
+    }
+
     pub fn decl_static(&mut self, k: String, mut v: Value) -> Result<()> {
         match self.statics.entry(k.clone()) {
             Entry::Occupied(_) => Err(err!(ErrType::DefinedMutlipleTimes(k))),
@@ -38,7 +45,7 @@ impl Class {
                     v = Value::Func(ba_rc!(func
                         .as_ref()
                         .clone()
-                        .with_name(format!("{}.{}", self.name, k))))
+                        .try_with_name(format!("{}.{}", self.name, k))))
                 }
                 if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
                     return Err(err!(ErrType::CannotHaveValue(k, v)));

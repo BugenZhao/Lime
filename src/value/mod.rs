@@ -56,3 +56,21 @@ impl Display for Value {
         }
     }
 }
+
+pub fn copy(v: Value) -> Value {
+    match v {
+        Value::Int(_) => v,
+        Value::Float(_) => v,
+        Value::Bool(_) => v,
+        Value::String(_) => v,
+        Value::Object(rc_obj) => {
+            let obj = (*rc_obj).clone();
+            for (_, v) in obj.borrow_mut().fields.iter_mut() {
+                *v = copy(v.clone());
+            }
+            Value::Object(Rc::new(obj))
+        }
+        Value::Nil(_) => v,
+        Value::Func(_) | Value::Class(_) => v,
+    }
+}

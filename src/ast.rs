@@ -59,6 +59,7 @@ pub enum Expr {
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
 }
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     VarDecl(Ident, Expr),

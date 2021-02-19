@@ -1,8 +1,8 @@
 use crate::{
+    ast::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     ba_rc, err,
     error::{ErrType, Result},
     lime_std::define_std,
-    ast::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
     rc_refcell,
     value::{Class, FuncType, Object},
     Func, Value,
@@ -81,7 +81,7 @@ impl Env {
 
         if let Value::Func(func) = &val {
             if func.name.is_none() {
-                val = Value::Func(ba_rc!(func.as_ref().clone().with_name(ident.0.clone())))
+                val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
             }
         }
         self.vars.borrow_mut().insert(ident.0, val);
@@ -106,7 +106,7 @@ impl Env {
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
             if let Value::Func(func) = &val {
                 if func.name.is_none() {
-                    val = Value::Func(ba_rc!(func.as_ref().clone().with_name(ident.0.clone())))
+                    val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
                 }
             }
             *v = val;
@@ -215,11 +215,10 @@ impl Env {
                 Err(err!(ErrType::Return(val)))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(ba_rc!(RefCell::new(Class {
-                    name: ident.0.clone(),
-                    fields: fields.iter().map(|i| i.0.to_owned()).collect(),
-                    statics: HashMap::new(),
-                })));
+                let val = Value::Class(ba_rc!(RefCell::new(Class::new(
+                    ident.0.clone(),
+                    fields.iter().map(|i| i.0.to_owned()).collect()
+                ))));
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
@@ -362,7 +361,7 @@ impl Env {
                         for (ident, expr) in kvs.iter() {
                             let v = self.eval_expr(expr)?;
                             let k = &ident.0;
-                            if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+                            if matches!(v, Value::Nil(..)) && !ident.can_hold_nil() {
                                 return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
                             }
                             values.push(v);
@@ -419,7 +418,6 @@ impl Env {
                 if !matches!(val, Value::Nil(..)) {
                     match then.as_ref() {
                         Expr::Block(stmts) => {
-                            // TODO: merge this with eval_expr(Expr::Block(..))
                             let new_env = Rc::new(Env::new(Rc::clone(&self)));
                             new_env.decl(ident.clone(), val)?;
                             new_env.eval_stmts(stmts)

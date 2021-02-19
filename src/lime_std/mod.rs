@@ -5,7 +5,7 @@ use crate::{
     ba_rc,
     env::Env,
     err, parse_and_resolve,
-    value::{FuncType, RustFn, N_MAX_ARGS},
+    value::{self, FuncType, RustFn, N_MAX_ARGS},
     ErrType, Func, Result, Value,
 };
 use itertools::Itertools;
@@ -48,23 +48,7 @@ fn panic(args: Vec<Value>) -> Result<Value> {
 
 fn copy(args: Vec<Value>) -> Result<Value> {
     let v = args.into_iter().next().unwrap();
-    match v {
-        Value::Int(_) => Ok(v),
-        Value::Float(_) => Ok(v),
-        Value::Bool(_) => Ok(v),
-        Value::String(_) => Ok(v),
-        Value::Object(rc_obj) => {
-            let obj = (*rc_obj).clone();
-            for (_, v) in obj.borrow_mut().fields.iter_mut() {
-                *v = copy(vec![v.clone()])?;
-            }
-            Ok(Value::Object(Rc::new(obj)))
-        }
-        Value::Nil(_) => Ok(v),
-        Value::Func(_) | Value::Class(_) => {
-            Err(err!(ErrType::LimePanic(format!("Cannot copy `{:?}`", v))))
-        }
-    }
+    Ok(value::copy(v))
 }
 
 fn __expect(mut args: Vec<Value>) -> Result<Value> {

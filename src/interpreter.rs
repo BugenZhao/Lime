@@ -31,7 +31,7 @@ impl Interpreter {
     pub fn hints(&self) -> Vec<String> {
         let mut r = self.env.names();
         r.append(&mut KEYWORDS.clone());
-        r.drain(..).filter(|n| !n.starts_with('_')).collect()
+        r.into_iter().filter(|n| !n.starts_with('_')).collect()
     }
 
     pub fn global_map(&self) -> HashMap<String, Value> {

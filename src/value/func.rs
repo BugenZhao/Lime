@@ -1,9 +1,8 @@
 use super::Value;
 use crate::{
-    env::Env,
-    err,
     ast::{Ident, Stmt},
-    ErrType, Result,
+    env::Env,
+    err, ErrType, Result,
 };
 use itertools::Itertools;
 use std::{fmt::Display, ops::RangeInclusive, rc::Rc};
@@ -59,15 +58,11 @@ impl Display for Func {
 }
 
 impl Func {
-    pub fn with_name(self, name: String) -> Self {
-        if self.name.is_some() {
-            panic!("Func's name is Some(..). Check in advance.")
-        } else {
-            Self {
-                name: Some(name),
-                ..self
-            }
+    pub fn try_with_name(mut self, name: String) -> Self {
+        if self.name.is_none() {
+            self.name = Some(name);
         }
+        self
     }
 
     pub fn call(&self, mut args: Vec<Value>) -> Result<Value> {
