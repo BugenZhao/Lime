@@ -430,6 +430,29 @@ impl Env {
                     Ok(Value::Nil(None))
                 }
             }
+            Expr::VecLiteral(exprs) => {
+                // TODO: more elegant
+                let vec_obj =
+                    self.eval_expr(&Expr::Construct(Ident("Vec".to_owned(), None), Vec::new()))?;
+
+                let mut push_expr = Expr::Call(
+                    box Expr::Get(
+                        box Expr::Literal(vec_obj.clone()),
+                        Ident("push".to_owned(), None),
+                    ),
+                    vec![],
+                );
+
+                for expr in exprs {
+                    match &mut push_expr {
+                        Expr::Call(_, args) => *args = vec![expr.clone()],
+                        _ => unreachable!(),
+                    }
+                    self.eval_expr(&push_expr)?;
+                }
+
+                Ok(vec_obj)
+            }
         }
     }
 }

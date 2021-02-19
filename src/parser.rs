@@ -94,9 +94,15 @@ peg::parser! {
             = quiet!{ i:$(!(kw_NORMAL() !aldig()) raw_ident()) { Ident(i.to_owned(), None) } }
             / expected!("type identifier")
 
+        rule comma_expr_list() -> Vec<Expr>
+            = exprs:(expr() ** (_ "," _)) (_ "," _)? { exprs }
+        rule vec_literal() -> Expr
+            = "[" _ es:comma_expr_list() _ "]" { Expr::VecLiteral(es) }
+
         rule primary() -> Expr
             = i:ident() { Expr::Variable(i) }
             / literal()
+            / vec_literal()
             / "(" _ e:expr() _ ")" { e }
 
 
