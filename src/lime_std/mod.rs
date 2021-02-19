@@ -1,5 +1,7 @@
 #![allow(clippy::unnecessary_wraps)]
 
+mod vec;
+
 use crate::{
     ast::Ident,
     ba_rc,
@@ -13,6 +15,7 @@ use std::{
     io::{stdout, Write},
     rc::Rc,
 };
+use vec::define_std_class;
 
 macro_rules! join {
     ($args:expr) => {
@@ -161,4 +164,5 @@ fn define_prelude(env: &Rc<Env>) {
 pub fn define_std(env: &Rc<Env>) {
     define_builtin(env);
     define_prelude(env);
+    define_std_class(env);
 }
