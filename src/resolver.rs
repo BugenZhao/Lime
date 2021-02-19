@@ -1,7 +1,7 @@
 use crate::{
+    ast::{Expr, Ident, Stmt},
     err,
     error::Result,
-    ast::{Expr, Ident, Stmt},
     ErrType,
 };
 use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
@@ -173,6 +173,11 @@ impl<'a> Resolver<'a> {
                 self.res_expr(t)?;
                 if let Some(el) = el.deref_mut() {
                     self.res_expr(el)?;
+                }
+            }
+            Expr::VecLiteral(es) => {
+                for e in es {
+                    self.res_expr(e)?;
                 }
             }
         }

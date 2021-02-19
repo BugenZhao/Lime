@@ -1,4 +1,4 @@
-use super::Value;
+use super::{Ba, Object, Value};
 use crate::{
     ast::{Expr, Ident},
     ba_rc, err, ErrType, Result,
@@ -7,13 +7,20 @@ use itertools::Itertools;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     fmt::Display,
+    rc::Rc,
 };
+
+type FinalizeFn = Ba<Rc<dyn Fn(&mut Object)>>;
+type EqualsFn = Ba<Rc<dyn Fn(&Object, &Object) -> bool>>;
 
 #[derive(PartialEq)]
 pub struct Class {
     pub name: String,
     pub fields: Vec<String>,
     pub statics: HashMap<String, Value>,
+
+    pub finalize: Option<FinalizeFn>,
+    pub equals: Option<EqualsFn>,
 }
 
 impl std::fmt::Debug for Class {
@@ -34,6 +41,8 @@ impl Class {
             name,
             fields,
             statics: HashMap::new(),
+            finalize: None,
+            equals: None,
         }
     }
 

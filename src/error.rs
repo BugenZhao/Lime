@@ -131,6 +131,8 @@ pub enum ErrType {
     NoField(Value, String),
     #[error("There's no settable field `{1}` in `{0:?}`")]
     NoFieldToSet(Value, String),
+    #[error("Type error: expect `{0}`, find `{1:?}`")]
+    TypeError(String, Value),
 
     #[error("Panic: {0}")]
     LimePanic(String),

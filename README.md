@@ -13,7 +13,7 @@ A Rust/Swift-like modern interpreted programming language, hosted by Rust.
 
 ```swift
 class Name { chn, eng }
-class Student { name, age, gpa }
+class Student { name, age, gpa, langs }
 
 impl Student {
     assoc org = "SJTU";
@@ -39,10 +39,13 @@ var i = Student {
     name: Name { chn: "zq", eng: "bugen" },
     age: 20.3 as Int,
     gpa: 1.7,
+    langs: ["Lime", "Rust"],
 };
 
 i.print_name();
 println("Is", i.name.eng, "a good student? =>", i.is_good());
+
+i.langs.map(|lang| { "Hello, " + lang + "!"; }).map(println);
 
 var money? = i.try_make_money();
 if var money = money? {
@@ -107,6 +110,10 @@ nil;
     - [ ] functional
         - [ ] composed
         - [x] partial-applied
+        - [ ] higher-order functions
+            - [x] map
+            - [x] fold
+            - [ ] ...
         - [ ] ...
     - [x] lime function (closure)
     - [x] `return` statement
@@ -176,10 +183,12 @@ nil;
 ### Lime Standard Library
 
 - [ ] built-in collections
-    - [ ] `Vec`
+    - [x] `Vec`
     - [ ] `HashMap`
     - [ ] `HashSet`
     - [ ] string utilities
+    - [ ] literals
+    - [ ] iterators
     - [ ] ...
 - [ ] higher-order funcs
     - [ ] `map`

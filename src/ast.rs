@@ -58,6 +58,7 @@ pub enum Expr {
     Construct(Ident, Vec<(Ident, Expr)>),
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
+    VecLiteral(Vec<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
