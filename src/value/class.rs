@@ -11,13 +11,16 @@ use std::{
 };
 
 type FinalizeFn = Ba<Rc<dyn Fn(&mut Object)>>;
+type EqualsFn = Ba<Rc<dyn Fn(&Object, &Object) -> bool>>;
 
 #[derive(PartialEq)]
 pub struct Class {
     pub name: String,
     pub fields: Vec<String>,
     pub statics: HashMap<String, Value>,
+
     pub finalize: Option<FinalizeFn>,
+    pub equals: Option<EqualsFn>,
 }
 
 impl std::fmt::Debug for Class {
@@ -39,6 +42,7 @@ impl Class {
             fields,
             statics: HashMap::new(),
             finalize: None,
+            equals: None,
         }
     }
 

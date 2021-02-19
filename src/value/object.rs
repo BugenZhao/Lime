@@ -4,7 +4,7 @@ use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 use uuid::Uuid;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Object {
     pub class: Rc<RefCell<Class>>,
     pub fields: HashMap<String, Value>,
@@ -29,6 +29,21 @@ impl std::fmt::Debug for Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        if self.class != other.class {
+            return false;
+        }
+
+        let equals = self.class.borrow().equals.clone();
+        if let Some(eq_func) = equals {
+            return eq_func(self, other);
+        }
+
+        self.fields == other.fields
     }
 }
 
