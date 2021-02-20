@@ -17,7 +17,6 @@ class Student { name, age, gpa, langs }
 
 impl Student {
     assoc org = "SJTU";
-
     assoc is_good = |self| { 
         self.gpa >= 4.29;
     };
