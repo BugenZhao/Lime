@@ -1,9 +1,7 @@
 mod class;
 mod func;
 mod object;
-mod utils;
 
-use by_address::ByAddress;
 use std::fmt::Display;
 
 pub use class::*;
@@ -11,8 +9,6 @@ pub use func::*;
 pub use object::*;
 
 pub const N_MAX_ARGS: usize = 255;
-
-pub type Ba<T> = ByAddress<T>;
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
@@ -64,7 +60,8 @@ pub fn copy(v: Value) -> Value {
         Value::Bool(_) => v,
         Value::String(_) => v,
         Value::Object(obj) => Value::Object(WrObject::new_copy(&obj)),
-        Value::Nil(_) => v, // FIXME: check this
-        Value::Func(_) | Value::Class(_) => v,
+        Value::Nil(_) => v,
+        Value::Func(_) => v,
+        Value::Class(_) => v,
     }
 }

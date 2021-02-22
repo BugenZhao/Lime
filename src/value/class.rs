@@ -1,4 +1,4 @@
-use super::{Ba, Object, Value};
+use super::Value;
 use crate::{
     ast::{CanHoldNil, Expr, Ident},
     err, ErrType, Result,
@@ -11,17 +11,11 @@ use std::{
     rc::Rc,
 };
 
-type FinalizeFn = Ba<Rc<dyn Fn(&Object)>>;
-type EqualsFn = Ba<Rc<dyn Fn(&Object, &Object) -> bool>>;
-
 #[derive(PartialEq)]
 struct Class {
     name: String,
     fields: Vec<String>,
     statics: HashMap<String, Value>,
-
-    finalize: Option<FinalizeFn>,
-    equals: Option<EqualsFn>,
 }
 
 impl std::fmt::Debug for Class {
@@ -57,8 +51,6 @@ impl WrClass {
             name,
             fields,
             statics: HashMap::new(),
-            finalize: None,
-            equals: None,
         };
 
         Self(Rc::new(RefCell::new(class)))
@@ -124,20 +116,12 @@ impl WrClass {
         self.0.borrow().name.clone()
     }
 
-    pub fn equals_fn(&self) -> Option<EqualsFn> {
-        self.0.borrow().equals.clone()
+    pub fn equals_fn(&self) -> Option<Value> {
+        self.get_static("equals")
     }
 
-    pub fn set_equals_fn(&self, new_fn: EqualsFn) {
-        self.0.borrow_mut().equals = Some(new_fn);
-    }
-
-    pub fn finalize_fn(&self) -> Option<FinalizeFn> {
-        self.0.borrow().finalize.clone()
-    }
-
-    pub fn set_finalize_fn(&self, new_fn: FinalizeFn) {
-        self.0.borrow_mut().finalize = Some(new_fn)
+    pub fn finalize_fn(&self) -> Option<Value> {
+        self.get_static("finalize")
     }
 }
 

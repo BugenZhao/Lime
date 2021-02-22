@@ -11,12 +11,6 @@ pub struct Object {
     uuid: Uuid,
 }
 
-impl Object {
-    pub fn uuid(&self) -> Uuid {
-        self.uuid
-    }
-}
-
 impl std::fmt::Debug for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -125,27 +119,35 @@ impl WrObject {
 
 impl PartialEq for WrObject {
     fn eq(&self, other: &Self) -> bool {
-        let this = self.0.borrow();
-        let that = other.0.borrow();
-
-        if this.class != that.class {
-            return false;
+        if !self.class_eq(other) {
+            false
+        } else if let Some(Value::Func(eq_func)) = self.0.borrow().class.equals_fn() {
+            match eq_func
+                .call(vec![
+                    Value::Object(self.clone()),
+                    Value::Object(other.clone()),
+                ])
+                .unwrap()
+            {
+                Value::Bool(v) => Ok(v),
+                v => Err(err!(ErrType::TypeError("Bool".to_owned(), v))),
+            }
+            .unwrap() // TODO: try not panicking
+        } else {
+            self.0.borrow().fields == other.0.borrow().fields
         }
-
-        let equals = this.class.equals_fn().clone();
-        if let Some(eq_func) = equals {
-            return eq_func(&this, &that);
-        }
-
-        this.fields == that.fields
     }
 }
 
-impl Drop for Object {
+impl Drop for WrObject {
     fn drop(&mut self) {
-        let finalize = self.class.finalize_fn().clone();
-        if let Some(finalize_func) = finalize {
-            finalize_func(self);
-        };
+        if Rc::strong_count(&self.0) == 1 {
+            let finalize = self.0.borrow().class.finalize_fn();
+            if let Some(Value::Func(finalize_func)) = finalize {
+                finalize_func
+                    .call(vec![Value::Object(self.clone())])
+                    .unwrap();
+            };
+        }
     }
 }
