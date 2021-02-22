@@ -142,6 +142,7 @@ fn define_builtin(env: &Rc<Env>) {
         "version",
         0..=0
     );
+    
     {
         use std::sync::atomic::{AtomicI64, Ordering};
         let v = AtomicI64::new(1);
