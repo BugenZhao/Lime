@@ -32,12 +32,34 @@ pub enum UnaryOp {
     Neg,
 }
 
+pub trait CanHoldNil {
+    fn can_hold_nil(&self) -> bool;
+}
+
+impl CanHoldNil for str {
+    fn can_hold_nil(&self) -> bool {
+        self.ends_with('?')
+    }
+}
+
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Ident(pub String, pub Option<usize>);
 
-impl Ident {
-    pub fn can_hold_nil(&self) -> bool {
+impl CanHoldNil for Ident {
+    fn can_hold_nil(&self) -> bool {
         self.0.ends_with('?')
+    }
+}
+
+impl From<&str> for Ident {
+    fn from(s: &str) -> Self {
+        Self(s.to_owned(), None)
+    }
+}
+
+impl From<String> for Ident {
+    fn from(s: String) -> Self {
+        Self(s, None)
     }
 }
 

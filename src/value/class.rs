@@ -1,6 +1,6 @@
 use super::{Ba, Object, Value};
 use crate::{
-    ast::{Expr, Ident},
+    ast::{CanHoldNil, Expr, Ident},
     ba_rc, err, ErrType, Result,
 };
 use itertools::Itertools;
@@ -56,7 +56,7 @@ impl Class {
                         .clone()
                         .try_with_name(format!("{}.{}", self.name, k))))
                 }
-                if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+                if matches!(v, Value::Nil(..)) && !k.can_hold_nil() {
                     return Err(err!(ErrType::CannotHaveValue(k, v)));
                 }
                 e.insert(v);
@@ -66,7 +66,7 @@ impl Class {
     }
 
     pub fn set_static(&mut self, k: &str, v: Value) -> Result<()> {
-        if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+        if matches!(v, Value::Nil(..)) && !k.can_hold_nil() {
             return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
         }
 

@@ -339,20 +339,20 @@ mod test {
                         box Expr::Call(
                             box Expr::Get(
                                 box Expr::Call(
-                                    box Expr::Variable(Ident("fn_gen".to_owned(), None)),
+                                    box Expr::Variable("fn_gen".into()),
                                     vec![Expr::Literal(Value::Bool(true))],
                                 ),
-                                Ident("first".to_owned(), None)
+                                "first".into()
                             ),
                             vec![Expr::Call(
-                                box Expr::Variable(Ident("add".to_owned(), None)),
+                                box Expr::Variable("add".into()),
                                 vec![Expr::Literal(Value::Int(1)), Expr::Literal(Value::Int(2))]
                             )],
                         ),
-                        Ident("second".to_owned(), None)
+                        "second".into()
                     )
                 ),
-                Ident("String".to_owned(), None),
+                "String".into(),
             ))
         );
     }

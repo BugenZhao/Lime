@@ -1,5 +1,5 @@
 use super::{Class, Func, Value};
-use crate::{ba_rc, err, ErrType, Result};
+use crate::{ast::CanHoldNil, ba_rc, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 use uuid::Uuid;
@@ -57,7 +57,7 @@ impl Object {
     }
 
     pub fn set_field(&mut self, k: &str, v: Value) -> Result<()> {
-        if matches!(v, Value::Nil(..)) && !k.ends_with('?') {
+        if matches!(v, Value::Nil(..)) && !k.can_hold_nil() {
             return Err(err!(ErrType::CannotHaveValue(k.to_owned(), v)));
         }
 

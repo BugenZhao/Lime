@@ -3,7 +3,6 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use uuid::Uuid;
 
 use crate::{
-    ast::Ident,
     ba_rc,
     env::Env,
     err,
@@ -12,8 +11,7 @@ use crate::{
 };
 
 pub fn define_std_class(env: &Rc<Env>) {
-    env.decl(Ident("Vec".to_owned(), None), build_vec_class(env))
-        .unwrap();
+    env.decl("Vec".into(), build_vec_class(env)).unwrap();
 }
 
 pub fn build_vec_class(env: &Rc<Env>) -> Value {

@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinaryOp, Expr, Ident, Stmt, UnaryOp},
+    ast::{BinaryOp, CanHoldNil, Expr, Ident, Stmt, UnaryOp},
     ba_rc, err,
     error::{ErrType, Result},
     lime_std::define_std,
@@ -432,14 +432,10 @@ impl Env {
             }
             Expr::VecLiteral(exprs) => {
                 // TODO: more elegant
-                let vec_obj =
-                    self.eval_expr(&Expr::Construct(Ident("Vec".to_owned(), None), Vec::new()))?;
+                let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), Vec::new()))?;
 
                 let mut push_expr = Expr::Call(
-                    box Expr::Get(
-                        box Expr::Literal(vec_obj.clone()),
-                        Ident("push".to_owned(), None),
-                    ),
+                    box Expr::Get(box Expr::Literal(vec_obj.clone()), "push".into()),
                     vec![],
                 );
 
@@ -458,14 +454,11 @@ impl Env {
                 let mut ret = Value::Nil(None);
                 let mut looped = false;
 
-                let iter_expr = Expr::Call(
-                    box Expr::Get(expr.clone(), Ident("iter".to_owned(), None)),
-                    vec![],
-                );
+                let iter_expr = Expr::Call(box Expr::Get(expr.clone(), "iter".into()), vec![]);
                 let iter = self.eval_expr(&iter_expr)?;
 
                 let next_expr = Expr::Call(
-                    box Expr::Get(box Expr::Literal(iter), Ident("next".to_owned(), None)),
+                    box Expr::Get(box Expr::Literal(iter), "next".into()),
                     vec![],
                 );
 
