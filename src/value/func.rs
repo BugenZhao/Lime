@@ -12,20 +12,20 @@ type RustFn = Rc<dyn Fn(Vec<Value>) -> Result<Value>>;
 #[derive(Clone)]
 pub enum FuncType {
     BuiltIn(RustFn),
-    Composed(Box<Func>, Box<Func>),
-    PartialApplied(Box<Func>, Value),
+    Composed(Box<WrFunc>, Box<WrFunc>),
+    PartialApplied(Box<WrFunc>, Value),
     Lime(Vec<Ident>, Vec<Stmt>),
 }
 
 #[derive(Clone)]
-struct RealFunc {
+struct Func {
     tp: FuncType,
     arity: RangeInclusive<usize>,
     env: Rc<Env>,
     name: Option<String>,
 }
 
-impl std::fmt::Debug for RealFunc {
+impl std::fmt::Debug for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.as_deref().unwrap_or("");
         match &self.tp {
@@ -44,28 +44,28 @@ impl std::fmt::Debug for RealFunc {
     }
 }
 
-impl Display for RealFunc {
+impl Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(self, f)
     }
 }
 
 #[derive(Clone)]
-pub struct Func(Rc<RealFunc>);
+pub struct WrFunc(Rc<Func>);
 
-impl std::fmt::Debug for Func {
+impl std::fmt::Debug for WrFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(&self.0, f)
     }
 }
 
-impl Display for Func {
+impl Display for WrFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
     }
 }
 
-impl Func {
+impl WrFunc {
     pub fn name(&self) -> &Option<String> {
         &self.0.name
     }
@@ -105,7 +105,7 @@ impl Func {
         arity: RangeInclusive<usize>,
         env: Rc<Env>,
     ) -> Self {
-        let func = RealFunc {
+        let func = Func {
             tp: FuncType::BuiltIn(rf),
             arity,
             env,
@@ -121,7 +121,7 @@ impl Func {
         arity: RangeInclusive<usize>,
         env: Rc<Env>,
     ) -> Self {
-        let func = RealFunc {
+        let func = Func {
             tp: FuncType::Lime(params, body),
             arity,
             env,
@@ -134,7 +134,7 @@ impl Func {
     pub fn new_compose(f: Self, g: Self) -> Result<Self> {
         let arity = g.0.arity.clone();
         let _ = f.check(1)?;
-        let func = RealFunc {
+        let func = Func {
             tp: FuncType::Composed(box f, box g),
             arity,
             env: Rc::new(Env::new_empty()),
@@ -152,7 +152,7 @@ impl Func {
             let env = f.0.env.clone();
             let name = f.0.name.clone();
 
-            let func = RealFunc {
+            let func = Func {
                 tp: FuncType::PartialApplied(box f, arg),
                 arity: min.saturating_sub(1)..=max.saturating_sub(1),
                 env,
@@ -177,7 +177,7 @@ impl Func {
     }
 }
 
-impl PartialEq for Func {
+impl PartialEq for WrFunc {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
     }

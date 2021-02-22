@@ -1,4 +1,4 @@
-use super::{Class, Func, Value};
+use super::{Class, WrFunc, Value};
 use crate::{ast::CanHoldNil, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
@@ -90,7 +90,7 @@ impl WrObject {
             Some(field_val)
         } else if let Some(static_val) = object.class.borrow().statics.get(k).cloned() {
             if let Value::Func(func) = static_val {
-                Some(Value::Func(Func::new_parital_apply(
+                Some(Value::Func(WrFunc::new_parital_apply(
                     func,
                     Value::Object(Self(Rc::clone(&self.0))),
                 )?))

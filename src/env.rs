@@ -3,7 +3,7 @@ use crate::{
     ba_rc, err,
     error::{ErrType, Result},
     lime_std::define_std,
-    value::{Class, Func, Value, WrObject},
+    value::{Class, WrFunc, Value, WrObject},
 };
 use by_address::ByAddress;
 use std::{
@@ -125,7 +125,7 @@ impl Env {
 
         if let Value::Func(func) = func {
             Some(Value::Func(
-                Func::new_parital_apply(func, obj.clone()).unwrap(),
+                WrFunc::new_parital_apply(func, obj.clone()).unwrap(),
             ))
         } else {
             // TODO: more types of assoc?
@@ -337,7 +337,7 @@ impl Env {
                 }
                 v => Err(err!(ErrType::NotCallable(v))),
             },
-            Expr::Func(params, body) => Ok(Value::Func(Func::new_lime(
+            Expr::Func(params, body) => Ok(Value::Func(WrFunc::new_lime(
                 params.clone(),
                 body.clone(),
                 params.len()..=params.len(),

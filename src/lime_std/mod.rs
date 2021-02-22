@@ -6,7 +6,7 @@ use crate::{
     ast::Ident,
     env::Env,
     err, parse_and_resolve,
-    value::{self, Func, N_MAX_ARGS},
+    value::{self, WrFunc, N_MAX_ARGS},
     ErrType, Result, Value,
 };
 use itertools::Itertools;
@@ -100,7 +100,7 @@ fn define_builtin(env: &Rc<Env>) {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
                 Ident($name.to_owned(), None),
-                Value::Func(Func::new_builtin(
+                Value::Func(WrFunc::new_builtin(
                     Some($name.to_owned()),
                     Rc::new($func),
                     $arity,

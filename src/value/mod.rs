@@ -20,7 +20,7 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
-    Func(Func),
+    Func(WrFunc),
     Class(Ba<Rc<RefCell<Class>>>),
     Object(WrObject),
     Nil(Option<String>),

@@ -1,14 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use uuid::Uuid;
-
 use crate::{
     ba_rc,
     env::Env,
     err,
-    value::{Class, Func},
+    value::{Class, WrFunc},
     ErrType, Result, Value,
 };
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use uuid::Uuid;
 
 pub fn define_std_class(env: &Rc<Env>) {
     env.decl("Vec".into(), build_vec_class(env)).unwrap();
@@ -17,7 +15,7 @@ pub fn define_std_class(env: &Rc<Env>) {
 pub fn build_vec_class(env: &Rc<Env>) -> Value {
     macro_rules! assoc_func {
         ($func:expr, $arity:expr) => {
-            Value::Func(Func::new_builtin(
+            Value::Func(WrFunc::new_builtin(
                 None,
                 Rc::new($func),
                 $arity,
