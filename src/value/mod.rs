@@ -4,7 +4,7 @@ mod object;
 mod utils;
 
 use by_address::ByAddress;
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::fmt::Display;
 
 pub use class::*;
 pub use func::*;
@@ -21,7 +21,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Func(WrFunc),
-    Class(Ba<Rc<RefCell<Class>>>),
+    Class(WrClass),
     Object(WrObject),
     Nil(Option<String>),
 }
@@ -34,7 +34,7 @@ impl std::fmt::Debug for Value {
             Value::Bool(v) => write!(f, "Bool({:?})", v),
             Value::String(v) => write!(f, "String({:?})", v),
             Value::Func(v) => write!(f, "Func({:?})", v),
-            Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
+            Value::Class(v) => write!(f, "Class({:?})", v),
             Value::Object(v) => write!(f, "Object({:?})", v),
             Value::Nil(c) => write!(f, "Nil({:?})", c),
         }
@@ -49,7 +49,7 @@ impl Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Func(v) => write!(f, "{}", v),
-            Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
+            Value::Class(v) => write!(f, "{}", v),
             Value::Object(v) => write!(f, "{}", v),
             Value::Nil(None) => write!(f, "nil"),
             Value::Nil(Some(cause)) => write!(f, "nil with cause `{}`", cause),

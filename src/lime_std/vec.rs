@@ -2,7 +2,7 @@ use crate::{
     ba_rc,
     env::Env,
     err,
-    value::{Class, WrFunc},
+    value::{WrClass, WrFunc},
     ErrType, Result, Value,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -37,7 +37,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     type VecMap = HashMap<Uuid, Vec<Value>>;
     let vec_map = Rc::new(RefCell::new(VecMap::new()));
 
-    let mut vec_class = Class::new("Vec".to_owned(), Vec::new());
+    let vec_class = WrClass::new("Vec".to_owned(), Vec::new());
 
     {
         let vec_map = Rc::clone(&vec_map);
@@ -149,14 +149,14 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
 
     {
         let vec_map = Rc::clone(&vec_map);
-        vec_class.finalize = Some(ba_rc!(move |obj| {
+        vec_class.set_finalize_fn(ba_rc!(move |obj| {
             vec_map.borrow_mut().remove(&obj.uuid());
         }));
     }
 
     {
         let vec_map = Rc::clone(&vec_map);
-        vec_class.equals = Some(ba_rc!(move |this, that| {
+        vec_class.set_equals_fn(ba_rc!(move |this, that| {
             vec_map
                 .borrow_mut()
                 .entry(this.uuid())
@@ -174,5 +174,5 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
         }));
     }
 
-    Value::Class(ba_rc!(RefCell::new(vec_class)))
+    Value::Class(vec_class)
 }

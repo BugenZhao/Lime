@@ -1,11 +1,10 @@
 use crate::{
     ast::{BinaryOp, CanHoldNil, Expr, Ident, Stmt, UnaryOp},
-    ba_rc, err,
+    err,
     error::{ErrType, Result},
     lime_std::define_std,
-    value::{Class, WrFunc, Value, WrObject},
+    value::{Value, WrClass, WrFunc, WrObject},
 };
-use by_address::ByAddress;
 use std::{
     cell::RefCell,
     collections::{hash_map::Entry, HashMap},
@@ -207,10 +206,10 @@ impl Env {
                 Err(err!(ErrType::Return(val)))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(ba_rc!(RefCell::new(Class::new(
+                let val = Value::Class(WrClass::new(
                     ident.0.clone(),
-                    fields.iter().map(|i| i.0.to_owned()).collect()
-                ))));
+                    fields.iter().map(|i| i.0.to_owned()).collect(),
+                ));
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
@@ -220,9 +219,7 @@ impl Env {
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
                 if let Value::Class(class) = &v {
                     for (i, e) in assocs.iter() {
-                        class
-                            .borrow_mut()
-                            .decl_static(i.0.clone(), self.eval_expr(e)?)?;
+                        class.decl_static(i.0.clone(), self.eval_expr(e)?)?;
                     }
                     Ok(Value::Nil(None))
                 } else {
@@ -347,8 +344,8 @@ impl Env {
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
-                if let Value::Class(ByAddress(class)) = &v {
-                    if class.borrow().check_kvs(kvs) {
+                if let Value::Class(class) = &v {
+                    if class.check_kvs(kvs) {
                         let mut values = vec![];
                         for (ident, expr) in kvs.iter() {
                             let v = self.eval_expr(expr)?;
@@ -363,7 +360,7 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(WrObject::new(Rc::clone(class), fields)))
+                        Ok(Value::Object(WrObject::new(class.clone(), fields)))
                     } else {
                         Err(err!(ErrType::WrongFields(v)))
                     }
@@ -377,7 +374,7 @@ impl Env {
                     return Ok(assoc);
                 }
                 match &v {
-                    Value::Class(class) => class.borrow().get_static(&field.0),
+                    Value::Class(class) => class.get_static(&field.0),
                     Value::Object(obj) => obj.get_field(&field.0)?,
                     _ => None,
                 }
@@ -389,7 +386,7 @@ impl Env {
                     Value::Class(class) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-                        class.borrow_mut().set_static(&field.0, val.clone())?;
+                        class.set_static(&field.0, val.clone())?;
                         Some(val)
                     }
                     Value::Object(mut obj) => {

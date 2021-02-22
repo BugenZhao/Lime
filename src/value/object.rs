@@ -1,14 +1,20 @@
-use super::{Class, WrFunc, Value};
+use super::{Value, WrClass, WrFunc};
 use crate::{ast::CanHoldNil, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 use uuid::Uuid;
 
 #[derive(Clone)]
-struct Object {
-    class: Rc<RefCell<Class>>,
+pub struct Object {
+    class: WrClass,
     fields: HashMap<String, Value>,
     uuid: Uuid,
+}
+
+impl Object {
+    pub fn uuid(&self) -> Uuid {
+        self.uuid
+    }
 }
 
 impl std::fmt::Debug for Object {
@@ -16,7 +22,7 @@ impl std::fmt::Debug for Object {
         write!(
             f,
             "{}{{{}}}",
-            self.class.borrow().name,
+            self.class.name(),
             self.fields
                 .iter()
                 .sorted_by_key(|p| p.0)
@@ -48,7 +54,7 @@ impl Display for WrObject {
 }
 
 impl WrObject {
-    pub fn new(class: Rc<RefCell<Class>>, fields: HashMap<String, Value>) -> Self {
+    pub fn new(class: WrClass, fields: HashMap<String, Value>) -> Self {
         let object = Object {
             class,
             fields,
@@ -88,7 +94,7 @@ impl WrObject {
 
         let val = if let Some(field_val) = object.fields.get(k).cloned() {
             Some(field_val)
-        } else if let Some(static_val) = object.class.borrow().statics.get(k).cloned() {
+        } else if let Some(static_val) = object.class.get_static(k) {
             if let Value::Func(func) = static_val {
                 Some(Value::Func(WrFunc::new_parital_apply(
                     func,
@@ -126,9 +132,9 @@ impl PartialEq for WrObject {
             return false;
         }
 
-        let equals = this.class.borrow().equals.clone();
+        let equals = this.class.equals_fn().clone();
         if let Some(eq_func) = equals {
-            return eq_func(self, other);
+            return eq_func(&this, &that);
         }
 
         this.fields == that.fields
@@ -137,10 +143,9 @@ impl PartialEq for WrObject {
 
 impl Drop for Object {
     fn drop(&mut self) {
-        let finalize = self.class.borrow().finalize.clone();
-        if let Some(_finalize_func) = finalize {
-            // finalize_func(self);
-            // FIXME: finalize
+        let finalize = self.class.finalize_fn().clone();
+        if let Some(finalize_func) = finalize {
+            finalize_func(self);
         };
     }
 }
