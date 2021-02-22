@@ -85,13 +85,12 @@ nil;
 - [x] more binary and unary ops
 - [x] `print` & `assert` statements
 - [x] block expression and scope
-- [ ] control flow
+- [x] control flow
     - [x] `if`
     - [x] `while`
         - [x] default branch
         - [x] continue & break with values
-    - [ ] `for`
-    - [ ] `for in`
+    - [x] `for in`
     - [x] make them expressions
 - [x] `nil` and `nil` safety
     - [x] `nil`...
@@ -182,13 +181,14 @@ nil;
 
 ### Lime Standard Library
 
-- [ ] built-in collections
+- [ ] built-in classes
     - [x] `Vec`
+    - [ ] `Range`
     - [ ] `HashMap`
     - [ ] `HashSet`
     - [ ] string utilities
-    - [ ] literals
-    - [ ] iterators
+    - [x] literals
+    - [x] iterators
     - [ ] ...
 - [ ] higher-order funcs
     - [x] `map`

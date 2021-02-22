@@ -17,32 +17,28 @@ var assert_eq = |a, b| {
 class Pair { a, b }
 
 impl Vec {
-    assoc map = |self, fn| {
-        var ret = [];
-        var i = 0;
-        while i < self.len() {
-            ret.push(fn(self.get(i)));
-            i = i + 1;
-        }
-        ret;
-    };
-
-    assoc fold = |self, initial, fn| {
-        var acc = initial;
-        var i = 0;
-        while i < self.len() {
-            acc = fn(acc, self.get(i));
-            i = i + 1;
-        }
-        acc;
-    };
-
     assoc iter = |self| {
         VecIter {
             vec: self,
             curr: 0,
             len: self.len(),
         };
+    };
+
+    assoc map = |self, fn| {
+        var ret = [];
+        for e in self {
+            ret.push(fn(e));
+        }
+        ret;
+    };
+
+    assoc fold = |self, initial, fn| {
+        var acc = initial;
+        for e in self {
+            acc = fn(acc, e);
+        }
+        acc;
     };
 }
 
