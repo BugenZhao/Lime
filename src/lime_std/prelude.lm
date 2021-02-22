@@ -36,4 +36,27 @@ impl Vec {
         }
         acc;
     };
+
+    assoc iter = |self| {
+        VecIter {
+            vec: self,
+            curr: 0,
+            len: self.len(),
+        };
+    };
+}
+
+class VecIter { vec, curr, len }
+
+impl VecIter {
+    assoc iter = |self| { self; };
+
+    assoc next = |self| {
+        if self.curr >= self.len { nil.expect("stop iteration"); }
+        else {
+            var ans = self.vec.get(self.curr);
+            self.curr = self.curr + 1;
+            ans;
+        }
+    };
 }

@@ -37,6 +37,8 @@ peg::parser! {
         rule kw_impl() = "impl"
         rule kw_assoc() = "assoc"
         rule kw_nil() = "nil"
+        rule kw_for() = "for"
+        rule kw_in() = "in"
 
         rule kw_int() = "Int"
         rule kw_float() = "Float"
@@ -48,7 +50,7 @@ peg::parser! {
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                          / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
-                         / kw_class() / kw_assoc() / kw_nil()
+                         / kw_class() / kw_assoc() / kw_nil() / kw_for() / kw_in()
         rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_big_class() / kw_object() / kw_big_nil()
         pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
 
@@ -177,10 +179,16 @@ peg::parser! {
                 Expr::IfVar(i, box e, box then, box else_)
             }
 
-        rule while_default() -> Expr
+        rule loop_default() -> Expr
             = _ kw_default() _ default:expr() { default }
         rule expr_while() -> Expr
-            = kw_while() __ cond:expr() _ body:block() default:while_default()? { Expr::While(box cond, box body, box default) }
+            = kw_while() __ cond:expr() _ body:block() default:loop_default()? { Expr::While(box cond, box body, box default) }
+        rule expr_for() -> Expr
+            = kw_for() __ ident:ident() __ kw_in() __ expr:expr() _ body:block() default:loop_default()? {
+                Expr::For(ident, box expr, box body, box default)
+            }
+        rule expr_loop() -> Expr
+            = expr_while() / expr_for()
 
         rule param_list() -> Vec<Ident>
             = params:(ident() ** (_ "," _)) (_ "," _)? {?
@@ -218,7 +226,7 @@ peg::parser! {
             = block()
             / expr_if()
             / expr_if_var()
-            / expr_while()
+            / expr_loop()
 
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()
 

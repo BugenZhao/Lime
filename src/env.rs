@@ -453,6 +453,58 @@ impl Env {
 
                 Ok(vec_obj)
             }
+
+            Expr::For(ident, expr, body, default) => {
+                let mut ret = Value::Nil(None);
+                let mut looped = false;
+
+                let iter_expr = Expr::Call(
+                    box Expr::Get(expr.clone(), Ident("iter".to_owned(), None)),
+                    vec![],
+                );
+                let iter = self.eval_expr(&iter_expr)?;
+
+                let next_expr = Expr::Call(
+                    box Expr::Get(box Expr::Literal(iter), Ident("next".to_owned(), None)),
+                    vec![],
+                );
+
+                loop {
+                    match self.eval_expr(&next_expr)? {
+                        Value::Nil(Some(cause)) if cause == "stop iteration" => {
+                            break;
+                        }
+                        val => match body.as_ref() {
+                            Expr::Block(stmts) => {
+                                looped = true;
+                                let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                                new_env.decl(ident.clone(), val)?;
+
+                                match new_env.eval_stmts(stmts) {
+                                    Ok(v) => ret = v,
+                                    Err(e) => match e.tp {
+                                        ErrType::Continue(v) => ret = v,
+                                        ErrType::Break(v) => {
+                                            ret = v;
+                                            break;
+                                        }
+                                        _ => return Err(e),
+                                    },
+                                }
+                            }
+                            _ => unreachable!(),
+                        },
+                    }
+                }
+
+                if looped {
+                    Ok(ret)
+                } else if let Some(default) = default.deref() {
+                    self.eval_expr(default)
+                } else {
+                    Ok(Value::Nil(None))
+                }
+            }
         }
     }
 }
