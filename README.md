@@ -153,6 +153,7 @@ nil;
 - [ ] string interpolation / runtime format
 - [ ] immutable value
 - [ ] trait / duck type
+- [ ] fix potential cyclic references
 
 
 

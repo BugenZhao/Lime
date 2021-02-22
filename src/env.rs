@@ -133,6 +133,15 @@ impl Env {
     }
 }
 
+macro_rules! assoc_call {
+    ($obj:expr, $assoc:expr) => {
+        Expr::Call(
+            box Expr::Get(box Expr::Literal($obj), $assoc.into()),
+            vec![],
+        )
+    };
+}
+
 impl Env {
     pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
         let mut ret = Value::Nil(None);
@@ -418,12 +427,8 @@ impl Env {
             }
             Expr::VecLiteral(exprs) => {
                 // TODO: more elegant
-                let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), Vec::new()))?;
-
-                let mut push_expr = Expr::Call(
-                    box Expr::Get(box Expr::Literal(vec_obj.clone()), "push".into()),
-                    vec![],
-                );
+                let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), vec![]))?;
+                let mut push_expr = assoc_call!(vec_obj.clone(), "push");
 
                 for expr in exprs {
                     match &mut push_expr {
@@ -440,13 +445,10 @@ impl Env {
                 let mut ret = Value::Nil(None);
                 let mut looped = false;
 
-                let iter_expr = Expr::Call(box Expr::Get(expr.clone(), "iter".into()), vec![]);
+                let obj = self.eval_expr(expr)?;
+                let iter_expr = assoc_call!(obj, "iter");
                 let iter = self.eval_expr(&iter_expr)?;
-
-                let next_expr = Expr::Call(
-                    box Expr::Get(box Expr::Literal(iter), "next".into()),
-                    vec![],
-                );
+                let next_expr = assoc_call!(iter, "next");
 
                 loop {
                     match self.eval_expr(&next_expr)? {
