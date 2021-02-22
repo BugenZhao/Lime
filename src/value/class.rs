@@ -1,4 +1,4 @@
-use super::{Ba, Object, Value};
+use super::{Ba, WrObject, Value};
 use crate::{
     ast::{CanHoldNil, Expr, Ident},
     err, ErrType, Result,
@@ -10,8 +10,8 @@ use std::{
     rc::Rc,
 };
 
-type FinalizeFn = Ba<Rc<dyn Fn(&mut Object)>>;
-type EqualsFn = Ba<Rc<dyn Fn(&Object, &Object) -> bool>>;
+type FinalizeFn = Ba<Rc<dyn Fn(&mut WrObject)>>;
+type EqualsFn = Ba<Rc<dyn Fn(&WrObject, &WrObject) -> bool>>;
 
 #[derive(PartialEq)]
 pub struct Class {

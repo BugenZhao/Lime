@@ -22,7 +22,7 @@ pub enum Value {
     String(String),
     Func(Func),
     Class(Ba<Rc<RefCell<Class>>>),
-    Object(Rc<RefCell<Object>>),
+    Object(WrObject),
     Nil(Option<String>),
 }
 
@@ -35,7 +35,7 @@ impl std::fmt::Debug for Value {
             Value::String(v) => write!(f, "String({:?})", v),
             Value::Func(v) => write!(f, "Func({:?})", v),
             Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
-            Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
+            Value::Object(v) => write!(f, "Object({:?})", v),
             Value::Nil(c) => write!(f, "Nil({:?})", c),
         }
     }
@@ -50,7 +50,7 @@ impl Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Func(v) => write!(f, "{}", v),
             Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
-            Value::Object(v) => write!(f, "{}", v.borrow()),
+            Value::Object(v) => write!(f, "{}", v),
             Value::Nil(None) => write!(f, "nil"),
             Value::Nil(Some(cause)) => write!(f, "nil with cause `{}`", cause),
         }
@@ -63,14 +63,8 @@ pub fn copy(v: Value) -> Value {
         Value::Float(_) => v,
         Value::Bool(_) => v,
         Value::String(_) => v,
-        Value::Object(rc_obj) => {
-            let obj = (*rc_obj).clone();
-            for (_, v) in obj.borrow_mut().fields.iter_mut() {
-                *v = copy(v.clone());
-            }
-            Value::Object(Rc::new(obj))
-        }
-        Value::Nil(_) => v,
+        Value::Object(obj) => Value::Object(WrObject::new_copy(&obj)),
+        Value::Nil(_) => v, // FIXME: check this
         Value::Func(_) | Value::Class(_) => v,
     }
 }

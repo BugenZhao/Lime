@@ -3,8 +3,7 @@ use crate::{
     ba_rc, err,
     error::{ErrType, Result},
     lime_std::define_std,
-    rc_refcell,
-    value::{Class, Object, Value, Func},
+    value::{Class, Func, Value, WrObject},
 };
 use by_address::ByAddress;
 use std::{
@@ -364,10 +363,7 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(rc_refcell!(Object::new(
-                            Rc::clone(class),
-                            fields,
-                        ))))
+                        Ok(Value::Object(WrObject::new(Rc::clone(class), fields)))
                     } else {
                         Err(err!(ErrType::WrongFields(v)))
                     }
@@ -382,24 +378,24 @@ impl Env {
                 }
                 match &v {
                     Value::Class(class) => class.borrow().get_static(&field.0),
-                    Value::Object(obj) => obj.borrow().get_field(Rc::clone(obj), &field.0)?,
+                    Value::Object(obj) => obj.get_field(&field.0)?,
                     _ => None,
                 }
                 .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
             }
             Expr::Set(expr, field, val) => {
                 let v = self.eval_expr(expr)?;
-                match &v {
+                match v.clone() {
                     Value::Class(class) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
                         class.borrow_mut().set_static(&field.0, val.clone())?;
                         Some(val)
                     }
-                    Value::Object(obj) => {
+                    Value::Object(mut obj) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-                        obj.borrow_mut().set_field(&field.0, val.clone())?;
+                        obj.set_field(&field.0, val.clone())?;
                         Some(val)
                     }
                     _ => None,
@@ -527,14 +523,14 @@ impl Env {
         }
         macro_rules! class_check {
             ($a:expr, $b:expr, $v:expr) => {
-                if $a.borrow().class == $b.borrow().class {
+                if $a.class_eq(&$b) {
                     $v
                 } else {
                     None
                 }
             };
             ($a:expr, $b:expr, $v1:expr, $v2:expr) => {
-                if $a.borrow().class == $b.borrow().class {
+                if $a.class_eq(&$b) {
                     $v1
                 } else {
                     $v2
@@ -546,8 +542,8 @@ impl Env {
             (Value::Object(a), Value::Object(b), op) => match op {
                 BinaryOp::Feq => class_check!(a, b, bool!(a == b), bool!(false)),
                 BinaryOp::Fne => class_check!(a, b, bool!(a != b), bool!(true)),
-                BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
-                BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
+                BinaryOp::Req => class_check!(a, b, bool!(a.ref_eq(&b))),
+                BinaryOp::Rne => class_check!(a, b, bool!(!a.ref_eq(&b))),
 
                 BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
                 BinaryOp::Ne => class_check!(a, b, bool!(a != b)),

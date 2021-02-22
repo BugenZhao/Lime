@@ -29,7 +29,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     macro_rules! uuid {
         ($args:expr) => {
             if let Value::Object(obj) = $args.get(0).unwrap() {
-                obj.borrow().uuid
+                obj.uuid()
             } else {
                 unreachable!()
             }
@@ -152,7 +152,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     {
         let vec_map = Rc::clone(&vec_map);
         vec_class.finalize = Some(ba_rc!(move |obj| {
-            vec_map.borrow_mut().remove(&obj.uuid);
+            vec_map.borrow_mut().remove(&obj.uuid());
         }));
     }
 
@@ -161,16 +161,16 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
         vec_class.equals = Some(ba_rc!(move |this, that| {
             vec_map
                 .borrow_mut()
-                .entry(this.uuid)
+                .entry(this.uuid())
                 .or_insert_with(Vec::new);
             vec_map
                 .borrow_mut()
-                .entry(that.uuid)
+                .entry(that.uuid())
                 .or_insert_with(Vec::new);
 
             let vec_map = vec_map.borrow();
-            let this_vec = vec_map.get(&this.uuid);
-            let that_vec = vec_map.get(&that.uuid);
+            let this_vec = vec_map.get(&this.uuid());
+            let that_vec = vec_map.get(&that.uuid());
 
             this_vec == that_vec
         }));
