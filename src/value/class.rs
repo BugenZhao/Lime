@@ -1,4 +1,4 @@
-use super::{Ba, WrObject, Value};
+use super::{Ba, Value, WrObject};
 use crate::{
     ast::{CanHoldNil, Expr, Ident},
     err, ErrType, Result,

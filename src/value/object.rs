@@ -6,9 +6,9 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 struct Object {
-    pub class: Rc<RefCell<Class>>,
-    pub fields: HashMap<String, Value>,
-    pub uuid: Uuid,
+    class: Rc<RefCell<Class>>,
+    fields: HashMap<String, Value>,
+    uuid: Uuid,
 }
 
 impl std::fmt::Debug for Object {

@@ -178,6 +178,7 @@ impl WrFunc {
 }
 
 impl PartialEq for WrFunc {
+    // by address
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
     }
