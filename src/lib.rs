@@ -15,4 +15,4 @@ pub use error::{ErrType, Result};
 pub use interpreter::Interpreter;
 pub use parser::{parse_and_resolve, KEYWORDS};
 pub use repl::repl;
-pub use value::{Func, Value};
+pub use value::Value;

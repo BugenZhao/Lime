@@ -4,8 +4,7 @@ use crate::{
     error::{ErrType, Result},
     lime_std::define_std,
     rc_refcell,
-    value::{Class, FuncType, Object},
-    Func, Value,
+    value::{Class, Object, Value, Func},
 };
 use by_address::ByAddress;
 use std::{
@@ -79,10 +78,8 @@ impl Env {
             return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
         }
 
-        if let Value::Func(func) = &val {
-            if func.name.is_none() {
-                val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
-            }
+        if let Value::Func(func) = val.clone() {
+            val = Value::Func(func.try_with_name(ident.0.clone()))
         }
         self.vars.borrow_mut().insert(ident.0, val);
         Ok(())
@@ -104,10 +101,8 @@ impl Env {
             return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
-            if let Value::Func(func) = &val {
-                if func.name.is_none() {
-                    val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
-                }
+            if let Value::Func(func) = val.clone() {
+                val = Value::Func(func.try_with_name(ident.0.clone()))
             }
             *v = val;
             Ok(())
@@ -130,11 +125,9 @@ impl Env {
         let func = self.get_raw(&format!("__{}", name))?;
 
         if let Value::Func(func) = func {
-            Some(Value::Func(ba_rc!(Func::new_parital_apply(
-                func.as_ref().clone(),
-                obj.clone()
-            )
-            .unwrap())))
+            Some(Value::Func(
+                Func::new_parital_apply(func, obj.clone()).unwrap(),
+            ))
         } else {
             // TODO: more types of assoc?
             None
@@ -337,7 +330,7 @@ impl Env {
                             ErrType::Return(v) | ErrType::ErrorReturn(v) => Ok(v),
                             ErrType::Expect(v) => Err(err!(ErrType::ErrorReturn(v))),
                             _ => {
-                                e.push(lime_f.as_ref());
+                                e.push(&lime_f);
                                 Err(e)
                             }
                         },
@@ -345,12 +338,12 @@ impl Env {
                 }
                 v => Err(err!(ErrType::NotCallable(v))),
             },
-            Expr::Func(params, body) => Ok(Value::Func(ba_rc!(Func {
-                tp: FuncType::Lime(params.clone(), body.clone()),
-                arity: params.len()..=params.len(),
-                env: Rc::clone(&self),
-                name: None,
-            }))),
+            Expr::Func(params, body) => Ok(Value::Func(Func::new_lime(
+                params.clone(),
+                body.clone(),
+                params.len()..=params.len(),
+                Rc::clone(&self),
+            ))),
             Expr::Construct(ident, kvs) => {
                 let v = self
                     .get(ident)

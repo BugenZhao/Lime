@@ -1,6 +1,7 @@
 use crate::{
     ast::{BinaryOp, UnaryOp},
-    Func, Value,
+    value::Func,
+    Value,
 };
 use itertools::Itertools;
 use std::ops::RangeInclusive;
@@ -34,9 +35,11 @@ impl Error {
     }
 
     pub fn push(&mut self, func: &Func) {
-        self.bt
-            .0
-            .push(func.name.clone().unwrap_or_else(|| "<unknown>".to_owned()))
+        self.bt.0.push(
+            func.name()
+                .clone()
+                .unwrap_or_else(|| "<unknown>".to_owned()),
+        )
     }
 }
 

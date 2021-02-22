@@ -1,7 +1,7 @@
 use super::{Ba, Object, Value};
 use crate::{
     ast::{CanHoldNil, Expr, Ident},
-    ba_rc, err, ErrType, Result,
+    err, ErrType, Result,
 };
 use itertools::Itertools;
 use std::{
@@ -50,11 +50,8 @@ impl Class {
         match self.statics.entry(k.clone()) {
             Entry::Occupied(_) => Err(err!(ErrType::DefinedMutlipleTimes(k))),
             Entry::Vacant(e) => {
-                if let Value::Func(func) = &v {
-                    v = Value::Func(ba_rc!(func
-                        .as_ref()
-                        .clone()
-                        .try_with_name(format!("{}.{}", self.name, k))))
+                if let Value::Func(func) = v {
+                    v = Value::Func(func.try_with_name(format!("{}.{}", self.name, k)))
                 }
                 if matches!(v, Value::Nil(..)) && !k.can_hold_nil() {
                     return Err(err!(ErrType::CannotHaveValue(k, v)));

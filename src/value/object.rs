@@ -1,5 +1,5 @@
-use super::{Class, Func, Value};
-use crate::{ast::CanHoldNil, ba_rc, err, ErrType, Result};
+use super::{Class, Value, Func};
+use crate::{ast::CanHoldNil, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 use uuid::Uuid;
@@ -76,10 +76,10 @@ impl Object {
             Some(field_val)
         } else if let Some(static_val) = self.class.borrow().statics.get(k).cloned() {
             if let Value::Func(func) = static_val {
-                Some(Value::Func(ba_rc!(Func::new_parital_apply(
-                    func.as_ref().clone(),
-                    Value::Object(rc_refcell_self)
-                )?)))
+                Some(Value::Func(Func::new_parital_apply(
+                    func,
+                    Value::Object(rc_refcell_self),
+                )?))
             } else {
                 Some(static_val)
             }

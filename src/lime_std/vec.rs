@@ -6,8 +6,8 @@ use crate::{
     ba_rc,
     env::Env,
     err,
-    value::{Class, FuncType, RustFn},
-    ErrType, Func, Result, Value,
+    value::{Class, Func},
+    ErrType, Result, Value,
 };
 
 pub fn define_std_class(env: &Rc<Env>) {
@@ -17,12 +17,12 @@ pub fn define_std_class(env: &Rc<Env>) {
 pub fn build_vec_class(env: &Rc<Env>) -> Value {
     macro_rules! assoc_func {
         ($func:expr, $arity:expr) => {
-            Value::Func(ba_rc!(Func {
-                tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
-                arity: $arity,
-                env: Rc::clone(env),
-                name: None,
-            }))
+            Value::Func(Func::new_builtin(
+                None,
+                Rc::new($func),
+                $arity,
+                Rc::clone(env),
+            ))
         };
     }
 
