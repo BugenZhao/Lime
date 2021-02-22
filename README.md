@@ -131,6 +131,11 @@ nil;
         - [x] class-associated funcs
         - [x] class-associated fields
     - [x] `assoc` func call
+    - [ ] magic assocs
+        - [x] `iter` and `next`
+        - [x] `equals`
+        - [x] `finalize`
+        - [ ] ...
     - [ ] anonymous fields
     - [ ] casting
     - [ ] indexing `[]`
