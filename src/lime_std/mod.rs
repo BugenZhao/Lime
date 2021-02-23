@@ -4,11 +4,10 @@ mod vec;
 
 use crate::{
     ast::Ident,
-    ba_rc,
     env::Env,
     err, parse_and_resolve,
-    value::{self, FuncType, RustFn, N_MAX_ARGS},
-    ErrType, Func, Result, Value,
+    value::{self, WrFunc, N_MAX_ARGS},
+    ErrType, Result, Value,
 };
 use itertools::Itertools;
 use std::{
@@ -101,12 +100,12 @@ fn define_builtin(env: &Rc<Env>) {
         ($func:expr, $name:expr, $arity:expr) => {
             env.decl(
                 Ident($name.to_owned(), None),
-                Value::Func(ba_rc!(Func {
-                    tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
-                    arity: $arity,
-                    env: Rc::clone(env),
-                    name: Some($name.to_owned()),
-                })),
+                Value::Func(WrFunc::new_builtin(
+                    Some($name.to_owned()),
+                    Rc::new($func),
+                    $arity,
+                    Rc::clone(env),
+                )),
             )
             .unwrap();
         };
@@ -143,6 +142,7 @@ fn define_builtin(env: &Rc<Env>) {
         "version",
         0..=0
     );
+    
     {
         use std::sync::atomic::{AtomicI64, Ordering};
         let v = AtomicI64::new(1);

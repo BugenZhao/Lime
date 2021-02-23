@@ -1,0 +1,15 @@
+class MyInt { i }
+
+var abs = |x| {
+    if x > 0 { x; } else { -x; }
+};
+
+class MyAbs { i }
+impl MyAbs {
+    assoc equals = |self, other| {
+        abs(self.i) == abs(other.i);
+    };
+}
+
+assert_ne(MyInt{i: 3}, MyInt{i: -3});
+assert_eq(MyAbs{i: 3}, MyAbs{i: -3});

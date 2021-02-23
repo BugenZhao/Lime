@@ -1,10 +1,8 @@
 mod class;
 mod func;
 mod object;
-mod utils;
 
-use by_address::ByAddress;
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::fmt::Display;
 
 pub use class::*;
 pub use func::*;
@@ -12,17 +10,15 @@ pub use object::*;
 
 pub const N_MAX_ARGS: usize = 255;
 
-pub type Ba<T> = ByAddress<T>;
-
 #[derive(Clone, PartialEq)]
 pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
-    Func(Ba<Rc<Func>>),
-    Class(Ba<Rc<RefCell<Class>>>),
-    Object(Rc<RefCell<Object>>),
+    Func(WrFunc),
+    Class(WrClass),
+    Object(WrObject),
     Nil(Option<String>),
 }
 
@@ -33,9 +29,9 @@ impl std::fmt::Debug for Value {
             Value::Float(v) => write!(f, "Float({:?})", v),
             Value::Bool(v) => write!(f, "Bool({:?})", v),
             Value::String(v) => write!(f, "String({:?})", v),
-            Value::Func(ByAddress(v)) => write!(f, "Func({:?})", v),
-            Value::Class(ByAddress(v)) => write!(f, "Class({:?})", v.borrow()),
-            Value::Object(v) => write!(f, "Object({:?})", v.borrow()),
+            Value::Func(v) => write!(f, "Func({:?})", v),
+            Value::Class(v) => write!(f, "Class({:?})", v),
+            Value::Object(v) => write!(f, "Object({:?})", v),
             Value::Nil(c) => write!(f, "Nil({:?})", c),
         }
     }
@@ -48,9 +44,9 @@ impl Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::Func(ByAddress(v)) => write!(f, "{}", v),
-            Value::Class(ByAddress(v)) => write!(f, "{}", v.borrow()),
-            Value::Object(v) => write!(f, "{}", v.borrow()),
+            Value::Func(v) => write!(f, "{}", v),
+            Value::Class(v) => write!(f, "{}", v),
+            Value::Object(v) => write!(f, "{}", v),
             Value::Nil(None) => write!(f, "nil"),
             Value::Nil(Some(cause)) => write!(f, "nil with cause `{}`", cause),
         }
@@ -63,14 +59,9 @@ pub fn copy(v: Value) -> Value {
         Value::Float(_) => v,
         Value::Bool(_) => v,
         Value::String(_) => v,
-        Value::Object(rc_obj) => {
-            let obj = (*rc_obj).clone();
-            for (_, v) in obj.borrow_mut().fields.iter_mut() {
-                *v = copy(v.clone());
-            }
-            Value::Object(Rc::new(obj))
-        }
+        Value::Object(obj) => Value::Object(WrObject::new_copy(&obj)),
         Value::Nil(_) => v,
-        Value::Func(_) | Value::Class(_) => v,
+        Value::Func(_) => v,
+        Value::Class(_) => v,
     }
 }

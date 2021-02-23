@@ -1,6 +1,6 @@
 [package]
 name = "lime"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Bugen Zhao <i@bugenzhao.com>"]
 edition = "2018"
 
@@ -16,7 +16,6 @@ structopt = "0.3"
 snailquote = "0.3"
 lazy_static = "1.4"
 itertools = "0.10"
-by_address = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 
 [dev-dependencies]

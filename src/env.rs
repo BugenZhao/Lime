@@ -1,13 +1,10 @@
 use crate::{
     ast::{BinaryOp, CanHoldNil, Expr, Ident, Stmt, UnaryOp},
-    ba_rc, err,
+    err,
     error::{ErrType, Result},
     lime_std::define_std,
-    rc_refcell,
-    value::{Class, FuncType, Object},
-    Func, Value,
+    value::{Value, WrClass, WrFunc, WrObject},
 };
-use by_address::ByAddress;
 use std::{
     cell::RefCell,
     collections::{hash_map::Entry, HashMap},
@@ -79,10 +76,8 @@ impl Env {
             return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
         }
 
-        if let Value::Func(func) = &val {
-            if func.name.is_none() {
-                val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
-            }
+        if let Value::Func(func) = val.clone() {
+            val = Value::Func(func.try_with_name(ident.0.clone()))
         }
         self.vars.borrow_mut().insert(ident.0, val);
         Ok(())
@@ -104,10 +99,8 @@ impl Env {
             return Err(err!(ErrType::CannotHaveValue(ident.0.to_owned(), val)));
         }
         if let Some(v) = self.vars.borrow_mut().get_mut(&ident.0) {
-            if let Value::Func(func) = &val {
-                if func.name.is_none() {
-                    val = Value::Func(ba_rc!(func.as_ref().clone().try_with_name(ident.0.clone())))
-                }
+            if let Value::Func(func) = val.clone() {
+                val = Value::Func(func.try_with_name(ident.0.clone()))
             }
             *v = val;
             Ok(())
@@ -130,16 +123,23 @@ impl Env {
         let func = self.get_raw(&format!("__{}", name))?;
 
         if let Value::Func(func) = func {
-            Some(Value::Func(ba_rc!(Func::new_parital_apply(
-                func.as_ref().clone(),
-                obj.clone()
-            )
-            .unwrap())))
+            Some(Value::Func(
+                WrFunc::new_parital_apply(func, obj.clone()).unwrap(),
+            ))
         } else {
             // TODO: more types of assoc?
             None
         }
     }
+}
+
+macro_rules! assoc_call {
+    ($obj:expr, $assoc:expr) => {
+        Expr::Call(
+            box Expr::Get(box Expr::Literal($obj), $assoc.into()),
+            vec![],
+        )
+    };
 }
 
 impl Env {
@@ -215,10 +215,10 @@ impl Env {
                 Err(err!(ErrType::Return(val)))
             }
             Stmt::ClassDecl(ident, fields) => {
-                let val = Value::Class(ba_rc!(RefCell::new(Class::new(
+                let val = Value::Class(WrClass::new(
                     ident.0.clone(),
-                    fields.iter().map(|i| i.0.to_owned()).collect()
-                ))));
+                    fields.iter().map(|i| i.0.to_owned()).collect(),
+                ));
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
@@ -228,9 +228,7 @@ impl Env {
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
                 if let Value::Class(class) = &v {
                     for (i, e) in assocs.iter() {
-                        class
-                            .borrow_mut()
-                            .decl_static(i.0.clone(), self.eval_expr(e)?)?;
+                        class.decl_static(i.0.clone(), self.eval_expr(e)?)?;
                     }
                     Ok(Value::Nil(None))
                 } else {
@@ -337,7 +335,7 @@ impl Env {
                             ErrType::Return(v) | ErrType::ErrorReturn(v) => Ok(v),
                             ErrType::Expect(v) => Err(err!(ErrType::ErrorReturn(v))),
                             _ => {
-                                e.push(lime_f.as_ref());
+                                e.push(&lime_f);
                                 Err(e)
                             }
                         },
@@ -345,18 +343,18 @@ impl Env {
                 }
                 v => Err(err!(ErrType::NotCallable(v))),
             },
-            Expr::Func(params, body) => Ok(Value::Func(ba_rc!(Func {
-                tp: FuncType::Lime(params.clone(), body.clone()),
-                arity: params.len()..=params.len(),
-                env: Rc::clone(&self),
-                name: None,
-            }))),
+            Expr::Func(params, body) => Ok(Value::Func(WrFunc::new_lime(
+                params.clone(),
+                body.clone(),
+                params.len()..=params.len(),
+                Rc::clone(&self),
+            ))),
             Expr::Construct(ident, kvs) => {
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
-                if let Value::Class(ByAddress(class)) = &v {
-                    if class.borrow().check_kvs(kvs) {
+                if let Value::Class(class) = &v {
+                    if class.check_kvs(kvs) {
                         let mut values = vec![];
                         for (ident, expr) in kvs.iter() {
                             let v = self.eval_expr(expr)?;
@@ -371,10 +369,7 @@ impl Env {
                             .map(|(k, _)| k.0.to_owned())
                             .zip(values.into_iter())
                             .collect();
-                        Ok(Value::Object(rc_refcell!(Object::new(
-                            Rc::clone(class),
-                            fields,
-                        ))))
+                        Ok(Value::Object(WrObject::new(class.clone(), fields)))
                     } else {
                         Err(err!(ErrType::WrongFields(v)))
                     }
@@ -388,25 +383,25 @@ impl Env {
                     return Ok(assoc);
                 }
                 match &v {
-                    Value::Class(class) => class.borrow().get_static(&field.0),
-                    Value::Object(obj) => obj.borrow().get_field(Rc::clone(obj), &field.0)?,
+                    Value::Class(class) => class.get_static(&field.0),
+                    Value::Object(obj) => obj.get_field(&field.0)?,
                     _ => None,
                 }
                 .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
             }
             Expr::Set(expr, field, val) => {
                 let v = self.eval_expr(expr)?;
-                match &v {
+                match v.clone() {
                     Value::Class(class) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-                        class.borrow_mut().set_static(&field.0, val.clone())?;
+                        class.set_static(&field.0, val.clone())?;
                         Some(val)
                     }
-                    Value::Object(obj) => {
+                    Value::Object(mut obj) => {
                         // val may be related to obj, do not borrow mutably too early
                         let val = self.eval_expr(val)?;
-                        obj.borrow_mut().set_field(&field.0, val.clone())?;
+                        obj.set_field(&field.0, val.clone())?;
                         Some(val)
                     }
                     _ => None,
@@ -432,12 +427,8 @@ impl Env {
             }
             Expr::VecLiteral(exprs) => {
                 // TODO: more elegant
-                let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), Vec::new()))?;
-
-                let mut push_expr = Expr::Call(
-                    box Expr::Get(box Expr::Literal(vec_obj.clone()), "push".into()),
-                    vec![],
-                );
+                let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), vec![]))?;
+                let mut push_expr = assoc_call!(vec_obj.clone(), "push");
 
                 for expr in exprs {
                     match &mut push_expr {
@@ -454,13 +445,10 @@ impl Env {
                 let mut ret = Value::Nil(None);
                 let mut looped = false;
 
-                let iter_expr = Expr::Call(box Expr::Get(expr.clone(), "iter".into()), vec![]);
+                let obj = self.eval_expr(expr)?;
+                let iter_expr = assoc_call!(obj, "iter");
                 let iter = self.eval_expr(&iter_expr)?;
-
-                let next_expr = Expr::Call(
-                    box Expr::Get(box Expr::Literal(iter), "next".into()),
-                    vec![],
-                );
+                let next_expr = assoc_call!(iter, "next");
 
                 loop {
                     match self.eval_expr(&next_expr)? {
@@ -534,14 +522,14 @@ impl Env {
         }
         macro_rules! class_check {
             ($a:expr, $b:expr, $v:expr) => {
-                if $a.borrow().class == $b.borrow().class {
+                if $a.class_eq(&$b) {
                     $v
                 } else {
                     None
                 }
             };
             ($a:expr, $b:expr, $v1:expr, $v2:expr) => {
-                if $a.borrow().class == $b.borrow().class {
+                if $a.class_eq(&$b) {
                     $v1
                 } else {
                     $v2
@@ -553,8 +541,8 @@ impl Env {
             (Value::Object(a), Value::Object(b), op) => match op {
                 BinaryOp::Feq => class_check!(a, b, bool!(a == b), bool!(false)),
                 BinaryOp::Fne => class_check!(a, b, bool!(a != b), bool!(true)),
-                BinaryOp::Req => class_check!(a, b, bool!(Rc::ptr_eq(&a, &b))),
-                BinaryOp::Rne => class_check!(a, b, bool!(!Rc::ptr_eq(&a, &b))),
+                BinaryOp::Req => class_check!(a, b, bool!(a.ref_eq(&b))),
+                BinaryOp::Rne => class_check!(a, b, bool!(!a.ref_eq(&b))),
 
                 BinaryOp::Eq => class_check!(a, b, bool!(a == b)),
                 BinaryOp::Ne => class_check!(a, b, bool!(a != b)),

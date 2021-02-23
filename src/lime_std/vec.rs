@@ -1,14 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use uuid::Uuid;
-
 use crate::{
-    ba_rc,
     env::Env,
     err,
-    value::{Class, FuncType, RustFn},
-    ErrType, Func, Result, Value,
+    value::{WrClass, WrFunc},
+    ErrType, Result, Value,
 };
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use uuid::Uuid;
 
 pub fn define_std_class(env: &Rc<Env>) {
     env.decl("Vec".into(), build_vec_class(env)).unwrap();
@@ -17,19 +14,26 @@ pub fn define_std_class(env: &Rc<Env>) {
 pub fn build_vec_class(env: &Rc<Env>) -> Value {
     macro_rules! assoc_func {
         ($func:expr, $arity:expr) => {
-            Value::Func(ba_rc!(Func {
-                tp: FuncType::BuiltIn(RustFn(Rc::new($func))),
-                arity: $arity,
-                env: Rc::clone(env),
-                name: None,
-            }))
+            Value::Func(WrFunc::new_builtin(
+                None,
+                Rc::new($func),
+                $arity,
+                Rc::clone(env),
+            ))
         };
     }
 
-    macro_rules! uuid {
+    macro_rules! obj {
         ($args:expr) => {
             if let Value::Object(obj) = $args.get(0).unwrap() {
-                obj.borrow().uuid
+                obj
+            } else {
+                unreachable!()
+            }
+        };
+        ($args:expr, $n:expr) => {
+            if let Value::Object(obj) = $args.get($n).unwrap() {
+                obj
             } else {
                 unreachable!()
             }
@@ -39,12 +43,12 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     type VecMap = HashMap<Uuid, Vec<Value>>;
     let vec_map = Rc::new(RefCell::new(VecMap::new()));
 
-    let mut vec_class = Class::new("Vec".to_owned(), Vec::new());
+    let vec_class = WrClass::new("Vec".to_owned(), Vec::new());
 
     {
         let vec_map = Rc::clone(&vec_map);
         let get = move |args: Vec<Value>| -> Result<Value> {
-            let uuid = uuid!(args);
+            let uuid = obj!(args).uuid();
 
             let idx_v = args.get(1).unwrap();
             let idx = if let Value::Int(idx) = idx_v {
@@ -72,7 +76,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     {
         let vec_map = Rc::clone(&vec_map);
         let set = move |args: Vec<Value>| -> Result<Value> {
-            let uuid = uuid!(args);
+            let uuid = obj!(args).uuid();
 
             let idx_v = args.get(1).unwrap();
             let idx = if let Value::Int(idx) = idx_v {
@@ -101,7 +105,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     {
         let vec_map = Rc::clone(&vec_map);
         let len = move |args: Vec<Value>| -> Result<Value> {
-            let uuid = uuid!(args);
+            let uuid = obj!(args).uuid();
 
             let mut map = vec_map.borrow_mut();
             let entry = map.entry(uuid).or_insert_with(Vec::new);
@@ -116,7 +120,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     {
         let vec_map = Rc::clone(&vec_map);
         let push = move |args: Vec<Value>| -> Result<Value> {
-            let uuid = uuid!(args);
+            let uuid = obj!(args).uuid();
 
             let to_push = args.get(1).unwrap().clone();
 
@@ -135,7 +139,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
     {
         let vec_map = Rc::clone(&vec_map);
         let pop = move |args: Vec<Value>| -> Result<Value> {
-            let uuid = uuid!(args);
+            let uuid = obj!(args).uuid();
 
             let mut map = vec_map.borrow_mut();
             let entry = map.entry(uuid).or_insert_with(Vec::new);
@@ -151,30 +155,45 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
 
     {
         let vec_map = Rc::clone(&vec_map);
-        vec_class.finalize = Some(ba_rc!(move |obj| {
-            vec_map.borrow_mut().remove(&obj.uuid);
-        }));
+        let finalize = move |args: Vec<Value>| -> Result<Value> {
+            let uuid = obj!(args).uuid();
+
+            let mut map = vec_map.borrow_mut();
+            map.remove(&uuid);
+            // println!("finalized {}", uuid);
+
+            Ok(Value::Nil(None))
+        };
+        vec_class
+            .decl_static("finalize".to_owned(), assoc_func!(finalize, 1..=1))
+            .unwrap();
     }
 
     {
         let vec_map = Rc::clone(&vec_map);
-        vec_class.equals = Some(ba_rc!(move |this, that| {
+        let equals = move |args: Vec<Value>| -> Result<Value> {
+            let this = obj!(args, 0);
+            let that = obj!(args, 1);
+
             vec_map
                 .borrow_mut()
-                .entry(this.uuid)
+                .entry(this.uuid())
                 .or_insert_with(Vec::new);
             vec_map
                 .borrow_mut()
-                .entry(that.uuid)
+                .entry(that.uuid())
                 .or_insert_with(Vec::new);
 
             let vec_map = vec_map.borrow();
-            let this_vec = vec_map.get(&this.uuid);
-            let that_vec = vec_map.get(&that.uuid);
+            let this_vec = vec_map.get(&this.uuid());
+            let that_vec = vec_map.get(&that.uuid());
 
-            this_vec == that_vec
-        }));
+            Ok(Value::Bool(this_vec == that_vec))
+        };
+        vec_class
+            .decl_static("equals".to_owned(), assoc_func!(equals, 2..=2))
+            .unwrap();
     }
 
-    Value::Class(ba_rc!(RefCell::new(vec_class)))
+    Value::Class(vec_class)
 }

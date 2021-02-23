@@ -1,6 +1,7 @@
 use crate::{
     ast::{BinaryOp, UnaryOp},
-    Func, Value,
+    value::WrFunc,
+    Value,
 };
 use itertools::Itertools;
 use std::ops::RangeInclusive;
@@ -33,10 +34,12 @@ impl Error {
         }
     }
 
-    pub fn push(&mut self, func: &Func) {
-        self.bt
-            .0
-            .push(func.name.clone().unwrap_or_else(|| "<unknown>".to_owned()))
+    pub fn push(&mut self, func: &WrFunc) {
+        self.bt.0.push(
+            func.name()
+                .clone()
+                .unwrap_or_else(|| "<unknown>".to_owned()),
+        )
     }
 }
 
@@ -115,12 +118,12 @@ pub enum ErrType {
     NotCallable(Value),
     #[error("Function `{f:?}` takes {take:?} arguments but {supp} were supplied")]
     WrongArguments {
-        f: Func,
+        f: WrFunc,
         take: RangeInclusive<usize>,
         supp: usize,
     },
     #[error("Cannot partial apply function `{0:?}` since it takes fewer arguments")]
-    CannotPartialApply(Func),
+    CannotPartialApply(WrFunc),
     #[error("The name `{0}` is defined multiple times")]
     DefinedMutlipleTimes(String),
     #[error("`{0}` is not a class")]

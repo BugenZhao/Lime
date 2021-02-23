@@ -1,0 +1,26 @@
+var count = 0;
+
+class Flag {}
+impl Flag {
+    assoc finalize = |self| {
+        count = count + 1;
+        nil;
+    };
+}
+
+{
+    assert_eq(count, 0);
+    var foo = Flag {};
+    assert_eq(count, 0);
+}
+assert_eq(count, 1);
+
+var fn = {
+    var foo = Flag {};
+    var closure_capturing_foo = || {
+        foo;
+    };
+    assert_eq(count, 1);
+    closure_capturing_foo;
+};
+assert_eq(count, 1);
