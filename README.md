@@ -55,8 +55,7 @@ if var money = money? {
 }
 
 var rep = |n, fn| { || {
-    var i = n;
-    while (i = i - 1) >= 0 { fn(); }
+    for _ in 0..n { fn(); }
 }; };
 
 var i_get_older = i.get_older;
@@ -149,7 +148,9 @@ nil;
     - [x] recoverable Lime errors
         - [x] nil with cause design
             - [x] is_some, is_nil, cause, expect
-        - [x] sugars: if var
+        - [x] sugars
+            - [x] if var
+            - [x] while var
     - [ ] ...
 - [ ] pass-by-value `struct` object
     - [ ] refactor object clone logic
