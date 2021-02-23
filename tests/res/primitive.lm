@@ -1,0 +1,17 @@
+impl Int {
+    assoc name = "Int";
+
+    assoc twice = |self| {
+        self * 2;
+    };
+
+    assoc new_abs_of = |other| {
+        other.abs();
+    };
+}
+
+assert_eq(Int.name, "Int");
+assert_eq(5.name, "Int");
+assert_eq(5.twice(), 10);
+assert_eq(Int.twice(5), 10);
+assert_eq(Int.new_abs_of(-3), 3);
