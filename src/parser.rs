@@ -191,17 +191,23 @@ peg::parser! {
             = kw_if() __ kw_var() __ i:ident() _ "=" _ e:expr() _ then:block() else_:if_else()? {
                 Expr::IfVar(i, box e, box then, box else_)
             }
+        rule expr_cond() -> Expr
+            = expr_if() / expr_if_var()
 
         rule loop_default() -> Expr
             = _ kw_default() _ default:expr() { default }
         rule expr_while() -> Expr
             = kw_while() __ cond:expr() _ body:block() default:loop_default()? { Expr::While(box cond, box body, box default) }
+        rule expr_while_var() -> Expr
+            = kw_while() __ kw_var() __ i:ident() _ "=" _ e:expr() _ body:block() default:loop_default()? {
+                Expr::WhileVar(i, box e, box body, box default)
+            }
         rule expr_for() -> Expr
             = kw_for() __ ident:ident() __ kw_in() __ expr:expr() _ body:block() default:loop_default()? {
                 Expr::For(ident, box expr, box body, box default)
             }
         rule expr_loop() -> Expr
-            = expr_while() / expr_for()
+            = expr_while() / expr_while_var() / expr_for()
 
         rule param_list() -> Vec<Ident>
             = params:(ident() ** (_ "," _)) (_ "," _)? {?
@@ -237,8 +243,7 @@ peg::parser! {
 
         rule expr_BLOCK() -> Expr  // optional semicolon
             = block()
-            / expr_if()
-            / expr_if_var()
+            / expr_cond()
             / expr_loop()
 
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()

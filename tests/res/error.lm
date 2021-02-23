@@ -48,3 +48,20 @@ if var msg = try_pipe_recv(50) {
 } else {
     panic("msg must be some");
 }
+
+
+var count = 1;
+var next = || { 
+    if count == 10 { nil; }
+    else { 
+        var ret = count;
+        count = count + 1;
+        ret;
+    }
+};
+
+var sum = 0;
+while var num = next() {
+    sum = sum + num;
+}
+assert_eq(sum, 45);

@@ -75,6 +75,7 @@ pub enum Expr {
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     IfVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
+    WhileVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
     Func(Vec<Ident>, Vec<Stmt>),
     Construct(Ident, Vec<(Ident, Expr)>),

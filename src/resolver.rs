@@ -191,6 +191,13 @@ impl<'a> Resolver<'a> {
                 self.res_expr(lo)?;
                 self.res_expr(hi)?;
             }
+            Expr::WhileVar(_, c, b, d) => {
+                self.res_expr(c)?;
+                self.res_expr(b)?;
+                if let Some(d) = d.deref_mut() {
+                    self.res_expr(d)?;
+                }
+            }
         }
         Ok(())
     }

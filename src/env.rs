@@ -292,6 +292,23 @@ impl Env {
                     Ok(Value::Nil(None))
                 }
             }
+            Expr::IfVar(ident, expr, then, else_) => {
+                let val = self.eval_expr(expr)?;
+                if !matches!(val, Value::Nil(..)) {
+                    match then.as_ref() {
+                        Expr::Block(stmts) => {
+                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                            new_env.decl(ident.clone(), val)?;
+                            new_env.eval_stmts(stmts)
+                        }
+                        _ => unreachable!(),
+                    }
+                } else if let Some(else_) = else_.deref() {
+                    self.eval_expr(else_)
+                } else {
+                    Ok(Value::Nil(None))
+                }
+            }
             Expr::While(cond, body, default) => {
                 let mut ret = Value::Nil(None);
                 let mut looped = false;
@@ -299,6 +316,47 @@ impl Env {
                 while self.is_truthy(cond)? {
                     looped = true;
                     match self.eval_expr(body) {
+                        Ok(v) => ret = v,
+                        Err(e) => match e.tp {
+                            ErrType::Continue(v) => ret = v,
+                            ErrType::Break(v) => {
+                                ret = v;
+                                break;
+                            }
+                            _ => return Err(e),
+                        },
+                    }
+                }
+
+                if looped {
+                    Ok(ret)
+                } else if let Some(default) = default.deref() {
+                    self.eval_expr(default)
+                } else {
+                    Ok(Value::Nil(None))
+                }
+            }
+            Expr::WhileVar(ident, expr, body, default) => {
+                let mut ret = Value::Nil(None);
+                let mut looped = false;
+
+                loop {
+                    let val = self.eval_expr(expr)?;
+                    if matches!(val, Value::Nil(..)) {
+                        break;
+                    }
+                    looped = true;
+
+                    let result = match body.as_ref() {
+                        Expr::Block(stmts) => {
+                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                            new_env.decl(ident.clone(), val)?;
+                            new_env.eval_stmts(stmts)
+                        }
+                        _ => unreachable!(),
+                    };
+
+                    match result {
                         Ok(v) => ret = v,
                         Err(e) => match e.tp {
                             ErrType::Continue(v) => ret = v,
@@ -409,23 +467,6 @@ impl Env {
                 }
                 .ok_or_else(|| err!(ErrType::NoFieldToSet(v, field.0.clone())))
             }
-            Expr::IfVar(ident, expr, then, else_) => {
-                let val = self.eval_expr(expr)?;
-                if !matches!(val, Value::Nil(..)) {
-                    match then.as_ref() {
-                        Expr::Block(stmts) => {
-                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
-                            new_env.decl(ident.clone(), val)?;
-                            new_env.eval_stmts(stmts)
-                        }
-                        _ => unreachable!(),
-                    }
-                } else if let Some(else_) = else_.deref() {
-                    self.eval_expr(else_)
-                } else {
-                    Ok(Value::Nil(None))
-                }
-            }
             Expr::VecLiteral(exprs) => {
                 // TODO: more elegant
                 let vec_obj = self.eval_expr(&Expr::Construct("Vec".into(), vec![]))?;
@@ -451,7 +492,7 @@ impl Env {
                     ],
                 );
                 let range_obj = self.eval_expr(&construct_obj)?;
-                
+
                 Ok(range_obj)
             }
             Expr::For(ident, expr, body, default) => {
