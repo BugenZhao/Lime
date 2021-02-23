@@ -44,15 +44,17 @@ peg::parser! {
         rule kw_float() = "Float"
         rule kw_bool() = "Bool"
         rule kw_string() = "String"
-        rule kw_big_class() = "Class"
         rule kw_object() = "Object"
         rule kw_big_nil() = "Nil"
+        rule kw_big_class() = "Class"
+        rule kw_big_func() = "Func"
 
         rule kw_NORMAL() = kw_var() / kw_print() / kw_assert() / kw_as() / kw_true() / kw_false() / kw_or() / kw_and()
                          / kw_if() / kw_else() / kw_while() / kw_default() / kw_break() / kw_continue() / kw_return()
                          / kw_class() / kw_assoc() / kw_nil() / kw_for() / kw_in()
-        rule kw_TYPE() = kw_int() / kw_float() / kw_bool() / kw_string() / kw_big_class() / kw_object() / kw_big_nil()
-        pub rule kw_ALL() = kw_TYPE() / kw_NORMAL()
+        rule kw_TYPE()   = kw_int() / kw_float() / kw_bool() / kw_string() / kw_object() / kw_big_nil() / kw_big_class()
+                         / kw_big_func()
+        pub rule kw_ALL() = kw_NORMAL() / kw_TYPE()
 
 
         // For hinter
@@ -102,7 +104,7 @@ peg::parser! {
             = "[" _ es:comma_expr_list() _ "]" { Expr::VecLiteral(es) }
 
         rule primary() -> Expr
-            = i:ident() { Expr::Variable(i) }
+            = i:ident_type() { Expr::Variable(i) }
             / literal()
             / vec_literal()
             / "(" _ e:expr() _ ")" { e }
@@ -248,7 +250,7 @@ peg::parser! {
         rule assoc() -> (Ident, Expr)
             = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()+ { (i, e) }
         rule stmt_impl() -> Stmt
-            = kw_impl() __ i:ident() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
+            = kw_impl() __ i:ident_type() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
 
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }

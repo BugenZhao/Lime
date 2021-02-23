@@ -108,6 +108,10 @@ impl WrObject {
         self.0.borrow().uuid
     }
 
+    pub fn class_name(&self) -> String {
+        self.0.borrow().class.name()
+    }
+
     pub fn class_eq(&self, other: &Self) -> bool {
         self.0.borrow().class.eq(&other.0.borrow().class)
     }

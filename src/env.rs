@@ -385,6 +385,7 @@ impl Env {
                 match &v {
                     Value::Class(class) => class.get_static(&field.0),
                     Value::Object(obj) => obj.get_field(&field.0)?,
+                    v if v.is_primitive() => self.primitive_get_field(v.clone(), &field.0)?,
                     _ => None,
                 }
                 .ok_or_else(|| err!(ErrType::NoField(v.clone(), field.0.clone())))
@@ -691,5 +692,27 @@ impl Env {
             _ => None,
         }
         .ok_or_else(|| err!(ErrType::CannotCast(val, tp.to_owned())))
+    }
+
+    pub fn primitive_get_field(&self, v: Value, k: &str) -> Result<Option<Value>> {
+        if !v.is_primitive() {
+            panic!(format!("{} is not primitive", v));
+        }
+
+        let val = if let Some(Value::Class(class)) = self.get(&v.to_class_name().into()) {
+            if let Some(static_val) = class.get_static(k) {
+                if let Value::Func(func) = static_val {
+                    Some(Value::Func(WrFunc::new_parital_apply(func, v)?))
+                } else {
+                    Some(static_val)
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        Ok(val)
     }
 }

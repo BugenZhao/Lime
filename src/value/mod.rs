@@ -53,6 +53,32 @@ impl Display for Value {
     }
 }
 
+impl Value {
+    pub fn is_primitive(&self) -> bool {
+        matches!(
+            self,
+            Value::Int(..)
+                | Value::Float(..)
+                | Value::Bool(..)
+                | Value::String(..)
+                | Value::Nil(..)
+        )
+    }
+
+    pub fn to_class_name(&self) -> String {
+        match self {
+            Value::Int(..) => "Int".to_owned(),
+            Value::Float(..) => "Float".to_owned(),
+            Value::Bool(..) => "Bool".to_owned(),
+            Value::String(..) => "String".to_owned(),
+            Value::Func(..) => "".to_owned(), // FIXME: change this
+            Value::Class(class) => class.name(),
+            Value::Object(object) => object.class_name(),
+            Value::Nil(..) => "Nil".to_owned(),
+        }
+    }
+}
+
 pub fn copy(v: Value) -> Value {
     match v {
         Value::Int(_) => v,

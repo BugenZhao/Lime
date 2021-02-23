@@ -1,5 +1,6 @@
 #![allow(clippy::unnecessary_wraps)]
 
+mod primitive;
 mod vec;
 
 use crate::{
@@ -15,6 +16,8 @@ use std::{
     rc::Rc,
 };
 use vec::define_std_class;
+
+use self::primitive::define_primitive;
 
 macro_rules! join {
     ($args:expr) => {
@@ -142,7 +145,7 @@ fn define_builtin(env: &Rc<Env>) {
         "version",
         0..=0
     );
-    
+
     {
         use std::sync::atomic::{AtomicI64, Ordering};
         let v = AtomicI64::new(1);
@@ -162,6 +165,7 @@ fn define_prelude(env: &Rc<Env>) {
 }
 
 pub fn define_std(env: &Rc<Env>) {
+    define_primitive(env);
     define_builtin(env);
     define_std_class(env);
     define_prelude(env);
