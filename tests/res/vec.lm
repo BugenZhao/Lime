@@ -1,5 +1,6 @@
 var vec = [1, 2, 3];
 assert_eq(vec.len(), 3);
+assert_eq(vec.is_empty(), false);
 assert_eq(vec.get(0), 1);
 assert_eq(vec.get(1), 2);
 assert_eq(vec.get(100).is_nil(), true);
@@ -42,3 +43,7 @@ assert_eq(iter.next().is_nil(), true);
     var vec_copied = vec.fold([], |vec, e| { vec.push(e); vec; });
     assert_eq(vec, vec_copied);
 }
+
+vec.clear();
+assert_eq(vec.len(), 0);
+assert_eq(vec.is_empty(), true);
