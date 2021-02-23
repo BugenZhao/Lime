@@ -395,4 +395,9 @@ mod test {
                 let _ = tokens(&s);
             });
     }
+
+    #[test]
+    fn test_overflow() {
+        parse_and_resolve("1234567890987654321234567890987654321234567890;").unwrap_err();
+    }
 }
