@@ -135,10 +135,12 @@ nil;
         - [x] `iter` and `next`
         - [x] `equals`
         - [x] `finalize`
+        - [x] `to_string`
         - [ ] ...
     - [ ] anonymous fields
     - [ ] casting
     - [ ] indexing `[]`
+    - [x] primitive values as objects
     - [ ] ...
 - [x] error-handling
     - [x] panic
