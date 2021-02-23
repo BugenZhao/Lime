@@ -441,7 +441,19 @@ impl Env {
 
                 Ok(vec_obj)
             }
-
+            Expr::RangeLiteral(lo, hi, inclusive) => {
+                let construct_obj = Expr::Construct(
+                    "Range".into(),
+                    vec![
+                        ("lo".into(), lo.as_ref().clone()),
+                        ("hi".into(), hi.as_ref().clone()),
+                        ("inclusive".into(), Expr::Literal(Value::Bool(*inclusive))),
+                    ],
+                );
+                let range_obj = self.eval_expr(&construct_obj)?;
+                
+                Ok(range_obj)
+            }
             Expr::For(ident, expr, body, default) => {
                 let mut ret = Value::Nil(None);
                 let mut looped = false;

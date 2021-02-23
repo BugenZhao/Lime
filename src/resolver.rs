@@ -187,6 +187,10 @@ impl<'a> Resolver<'a> {
                     self.res_expr(d)?;
                 }
             }
+            Expr::RangeLiteral(lo, hi, _) => {
+                self.res_expr(lo)?;
+                self.res_expr(hi)?;
+            }
         }
         Ok(())
     }

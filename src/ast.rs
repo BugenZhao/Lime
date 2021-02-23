@@ -81,6 +81,7 @@ pub enum Expr {
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
     VecLiteral(Vec<Expr>),
+    RangeLiteral(Box<Expr>, Box<Expr>, bool),
     For(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
 }
 

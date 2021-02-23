@@ -1,0 +1,17 @@
+{
+    var vec = [];
+    for i in 1..10 {
+        vec.push(i);
+    }
+    assert_eq(vec.len(), 9);
+    assert_eq(vec.fold(0, add), 45);
+}
+
+{
+    var vec = [];
+    for i in 1..=10 {
+        vec.push(i);
+    }
+    assert_eq(vec.len(), 10);
+    assert_eq(vec.fold(0, add), 55);
+}

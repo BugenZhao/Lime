@@ -91,10 +91,38 @@ impl VecIter {
 
     assoc next = |self| {
         if self.curr >= self.len { nil.expect("stop iteration"); }
-        else {
-            var ans = self.vec.get(self.curr);
-            self.curr = self.curr + 1;
-            ans;
+
+        var ans = self.vec.get(self.curr);
+        self.curr = self.curr + 1;
+        ans;
+    };
+}
+
+
+class Range { lo, hi, inclusive }
+
+impl Range {
+    assoc iter = |self| {
+        RangeIter {
+            range: self,
+            curr: self.lo,
+        };
+    };
+}
+
+class RangeIter { range, curr }
+
+impl RangeIter {
+    assoc iter = |self| { self; };
+
+    assoc next = |self| {
+        if ( self.range.inclusive and self.curr  > self.range.hi) or
+           (!self.range.inclusive and self.curr >= self.range.hi) {
+            nil.expect("stop iteration");
         }
+
+        var ans = self.curr;
+        self.curr = self.curr + 1;
+        ans;
     };
 }

@@ -62,6 +62,7 @@ peg::parser! {
         pub rule tokens() -> Vec<(usize, &'input str)>
             = _ non_aldig()* ts:(token() ** (non_aldig()+)) non_aldig()* _ { ts }
 
+
         // Primary
         rule integer() -> Value
             = quiet!{ n:$(digit()+) { Value::Int(n.parse().unwrap()) } }
@@ -111,17 +112,21 @@ peg::parser! {
 
 
         // Expr
+        rule expr_range() -> Expr
+            = lo:primary() _ "..=" _ hi:primary() { Expr::RangeLiteral(box lo, box hi, true) }
+            / lo:primary() _ ".."  _ hi:primary() { Expr::RangeLiteral(box lo, box hi, false) }
+
         rule arg_list() -> Vec<Expr>
             = args:(expr() ** (_ "," _)) {?
                 if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer arguments") }
             }
-
         rule expr_call() -> Expr = precedence!{
             o:(@) _ "." _ f:ident() _ "=" _ v:expr() { Expr::Set(box o, f, box v) }
             --
             f:(@) _ "(" _ args:arg_list() _ ")" { Expr::Call(box f, args) }
             o:(@) _ "." _ f:ident() { Expr::Get(box o, f) }
             --
+            r:expr_range() { r }
             p:primary() { p }
         }
 
