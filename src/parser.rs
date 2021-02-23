@@ -65,11 +65,17 @@ peg::parser! {
 
         // Primary
         rule integer() -> Value
-            = quiet!{ n:$(digit()+) { Value::Int(n.parse().unwrap()) } }
+            = n:quiet!{ $(digit()+) } {?
+                if let Ok(int) = n.parse() { Ok(Value::Int(int)) }
+                else { Err("reasonable int") }
+            }
             / expected!("int")
 
         rule float() -> Value
-            = quiet!{ n:$(digit()+ "." digit()+) { Value::Float(n.parse().unwrap()) } }
+            = n:quiet!{ $(digit()+ "." digit()+) } {?
+                if let Ok(float) = n.parse() { Ok(Value::Float(float)) }
+                else { Err("reasonable float") }
+            }
             / expected!("float")
 
         rule true_false() -> Value

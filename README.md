@@ -81,7 +81,7 @@ nil;
 - [x] a basic calculator
 - [x] variable set and get
 - [x] primitive types and cast expression
-    - [ ] literal overflow handling
+    - [x] literal overflow handling
 - [x] more binary and unary ops
 - [x] `print` & `assert` statements
 - [x] block expression and scope
@@ -191,7 +191,7 @@ nil;
 
 - [ ] built-in classes
     - [x] `Vec`
-    - [ ] `Range`
+    - [x] `Range`
     - [ ] `HashMap`
     - [ ] `HashSet`
     - [ ] string utilities
