@@ -19,6 +19,18 @@ var assert_ne = |a, b| {
     true;
 };
 
+impl Int {
+    assoc abs = |self| {
+        if self >= 0 { self; } else { -self; }
+    };
+}
+
+impl Float {
+    assoc abs = |self| {
+        if self >= 0.0 { self; } else { -self; }
+    };
+}
+
 class Pair { a, b }
 
 impl Vec {
