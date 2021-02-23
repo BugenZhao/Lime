@@ -44,6 +44,13 @@ assert_eq(iter.next().is_nil(), true);
     assert_eq(vec, vec_copied);
 }
 
+for p in vec.enumerate() {
+    println(p.a, ":", p.b);
+}
+
+println(vec); // vec.to_string()
+
+
 vec.clear();
 assert_eq(vec.len(), 0);
 assert_eq(vec.is_empty(), true);

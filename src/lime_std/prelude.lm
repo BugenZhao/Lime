@@ -69,15 +69,21 @@ impl Vec {
         acc;
     };
 
+    assoc enumerate = |self| {
+        var ret = [];
+        for i in 0..self.len() {
+            ret.push(Pair { a: i, b: self.get(i) });
+        }
+        ret;
+    };
+
     assoc to_string = |self| {
         var ret = "[";
-        var i = 0;
-        while i < self.len() {
+        for i in 0..self.len() {
             ret = ret + self.get(i).to_string();
             if i != self.len() - 1 {
                 ret = ret + ", ";
             }
-            i = i + 1;
         }
         ret = ret + "]";
         ret;

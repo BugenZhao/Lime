@@ -112,10 +112,6 @@ peg::parser! {
 
 
         // Expr
-        rule expr_range() -> Expr
-            = lo:primary() _ "..=" _ hi:primary() { Expr::RangeLiteral(box lo, box hi, true) }
-            / lo:primary() _ ".."  _ hi:primary() { Expr::RangeLiteral(box lo, box hi, false) }
-
         rule arg_list() -> Vec<Expr>
             = args:(expr() ** (_ "," _)) {?
                 if args.len() <= N_MAX_ARGS { Ok(args) } else { Err("fewer arguments") }
@@ -126,15 +122,19 @@ peg::parser! {
             f:(@) _ "(" _ args:arg_list() _ ")" { Expr::Call(box f, args) }
             o:(@) _ "." _ f:ident() { Expr::Get(box o, f) }
             --
-            r:expr_range() { r }
             p:primary() { p }
         }
+
+        rule expr_range() -> Expr
+            = lo:expr_call() _ "..=" _ hi:expr_call() { Expr::RangeLiteral(box lo, box hi, true) }
+            / lo:expr_call() _ ".."  _ hi:expr_call() { Expr::RangeLiteral(box lo, box hi, false) }
+            / expr_call()
 
         rule expr_unary() -> Expr = precedence!{
             "!" _ x:@ { Expr::Unary(UnaryOp::Not, box x) }
             "-" _ x:@ { Expr::Unary(UnaryOp::Neg, box x) }
             --
-            p:expr_call() { p }
+            r:expr_range() { r }
         }
 
         rule expr_cast() -> Expr // TODO: type

@@ -157,8 +157,12 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
         let finalize = move |args: Vec<Value>| -> Result<Value> {
             let key = obj!(args).ptr();
 
-            let mut pool = pool.borrow_mut();
-            pool.remove(&key);
+            let removed = {
+                let mut pool = pool.borrow_mut();
+                pool.remove(&key)
+            };
+            drop(removed); // avoid `already borrowed`
+
             // println!("finalized {}", key);
 
             Ok(Value::Nil(None))
