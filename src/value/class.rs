@@ -123,6 +123,10 @@ impl WrClass {
     pub fn finalize_fn(&self) -> Option<Value> {
         self.get_static("finalize")
     }
+
+    pub fn to_string_fn(&self) -> Option<Value> {
+        self.get_static("to_string")
+    }
 }
 
 impl PartialEq for WrClass {

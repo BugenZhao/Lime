@@ -699,7 +699,7 @@ impl Env {
             panic!(format!("{} is not primitive", v));
         }
 
-        let val = if let Some(Value::Class(class)) = self.get(&v.to_class_name().into()) {
+        let val = if let Some(Value::Class(class)) = self.get(&v.class_name().into()) {
             if let Some(static_val) = class.get_static(k) {
                 if let Value::Func(func) = static_val {
                     Some(Value::Func(WrFunc::new_parital_apply(func, v)?))

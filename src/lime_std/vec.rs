@@ -146,7 +146,7 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
 
             Ok(entry
                 .pop()
-                .unwrap_or_else(|| Value::Nil(Some("No element to pop".to_owned()))))
+                .unwrap_or_else(|| Value::Nil(Some("no element".to_owned()))))
         };
         vec_class
             .decl_static("pop".to_owned(), assoc_func!(pop, 1..=1))

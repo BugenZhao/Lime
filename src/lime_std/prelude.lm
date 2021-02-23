@@ -57,6 +57,20 @@ impl Vec {
         }
         acc;
     };
+
+    assoc to_string = |self| {
+        var ret = "[";
+        var i = 0;
+        while i < self.len() {
+            ret = ret + self.get(i).to_string();
+            if i != self.len() - 1 {
+                ret = ret + ", ";
+            }
+            i = i + 1;
+        }
+        ret = ret + "]";
+        ret;
+    };
 }
 
 class VecIter { vec, curr, len }

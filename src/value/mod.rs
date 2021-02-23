@@ -31,7 +31,7 @@ impl std::fmt::Debug for Value {
             Value::String(v) => write!(f, "String({:?})", v),
             Value::Func(v) => write!(f, "Func({:?})", v),
             Value::Class(v) => write!(f, "Class({:?})", v),
-            Value::Object(v) => write!(f, "Object({:?})", v),
+            Value::Object(v) => write!(f, "Object({}, {})", v.class_name(), v.to_lime_string()),
             Value::Nil(c) => write!(f, "Nil({:?})", c),
         }
     }
@@ -46,7 +46,7 @@ impl Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Func(v) => write!(f, "{}", v),
             Value::Class(v) => write!(f, "{}", v),
-            Value::Object(v) => write!(f, "{}", v),
+            Value::Object(v) => write!(f, "{}", v.to_lime_string()),
             Value::Nil(None) => write!(f, "nil"),
             Value::Nil(Some(cause)) => write!(f, "nil with cause `{}`", cause),
         }
@@ -65,7 +65,7 @@ impl Value {
         )
     }
 
-    pub fn to_class_name(&self) -> String {
+    pub fn class_name(&self) -> String {
         match self {
             Value::Int(..) => "Int".to_owned(),
             Value::Float(..) => "Float".to_owned(),

@@ -121,6 +121,23 @@ impl WrObject {
     }
 }
 
+impl WrObject {
+    pub fn to_lime_string(&self) -> String {
+        if let Some(Value::Func(to_string_func)) = self.0.borrow().class.to_string_fn() {
+            match to_string_func
+                .call(vec![Value::Object(self.clone())])
+                .unwrap()
+            {
+                Value::String(v) => Ok(v),
+                v => Err(err!(ErrType::TypeError("String".to_owned(), v))),
+            }
+            .unwrap() // TODO: try not panicking
+        } else {
+            format!("{}", self)
+        }
+    }
+}
+
 impl PartialEq for WrObject {
     fn eq(&self, other: &Self) -> bool {
         if !self.class_eq(other) {

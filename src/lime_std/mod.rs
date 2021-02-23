@@ -98,6 +98,10 @@ fn __cause(args: Vec<Value>) -> Result<Value> {
     }
 }
 
+fn __to_string(args: Vec<Value>) -> Result<Value> {
+    Ok(Value::String(format!("{}", args[0])))
+}
+
 fn define_builtin(env: &Rc<Env>) {
     macro_rules! def {
         ($func:expr, $name:expr, $arity:expr) => {
@@ -123,6 +127,7 @@ fn define_builtin(env: &Rc<Env>) {
     def!(__is_some, "__is_some", 1..=1);
     def!(__is_nil, "__is_nil", 1..=1);
     def!(__cause, "__cause", 1..=1);
+    def!(__to_string, "__to_string", 1..=1);
 
     def!(
         |args| {
