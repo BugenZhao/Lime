@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expr, Ident, Stmt},
+    ast::{Expr, Ident, IdentExt, Stmt},
     err,
     error::Result,
     ErrType,
@@ -30,6 +30,9 @@ impl<'a> Resolver<'a> {
     }
 
     fn decl(&self, ident: &'a Ident) {
+        if ident.is_ignored() {
+            return;
+        }
         self.vars.borrow_mut().insert(&ident.0);
     }
 

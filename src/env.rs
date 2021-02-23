@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinaryOp, CanHoldNil, Expr, Ident, Stmt, UnaryOp},
+    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, UnaryOp},
     err,
     error::{ErrType, Result},
     lime_std::define_std,
@@ -74,6 +74,9 @@ impl Env {
     pub fn decl(&self, ident: Ident, mut val: Value) -> Result<()> {
         if matches!(val, Value::Nil(..)) && !ident.can_hold_nil() {
             return Err(err!(ErrType::CannotHaveValue(ident.0, val)));
+        }
+        if ident.is_ignored() {
+            return Ok(());
         }
 
         if let Value::Func(func) = val.clone() {

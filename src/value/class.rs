@@ -1,6 +1,6 @@
 use super::Value;
 use crate::{
-    ast::{CanHoldNil, Expr, Ident},
+    ast::{IdentExt, Expr, Ident},
     err, ErrType, Result,
 };
 use itertools::Itertools;

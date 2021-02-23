@@ -1,5 +1,5 @@
 use super::{Value, WrClass, WrFunc};
-use crate::{ast::CanHoldNil, err, ErrType, Result};
+use crate::{ast::IdentExt, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
