@@ -39,10 +39,7 @@ impl Vec {
     };
 
     assoc clear = |self| {
-        while !self.is_empty() {
-            self.pop();
-        }
-        nil;
+        while var _ = self.pop() {}
     };
 
     assoc iter = |self| {
