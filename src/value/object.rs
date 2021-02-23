@@ -2,13 +2,11 @@ use super::{Value, WrClass, WrFunc};
 use crate::{ast::CanHoldNil, err, ErrType, Result};
 use itertools::Itertools;
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
-use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct Object {
     class: WrClass,
     fields: HashMap<String, Value>,
-    uuid: Uuid,
 }
 
 impl std::fmt::Debug for Object {
@@ -49,11 +47,7 @@ impl Display for WrObject {
 
 impl WrObject {
     pub fn new(class: WrClass, fields: HashMap<String, Value>) -> Self {
-        let object = Object {
-            class,
-            fields,
-            uuid: Uuid::new_v4(),
-        };
+        let object = Object { class, fields };
 
         Self(Rc::new(RefCell::new(object)))
     }
@@ -104,10 +98,6 @@ impl WrObject {
         Ok(val)
     }
 
-    pub fn uuid(&self) -> Uuid {
-        self.0.borrow().uuid
-    }
-
     pub fn class_name(&self) -> String {
         self.0.borrow().class.name()
     }
@@ -118,6 +108,10 @@ impl WrObject {
 
     pub fn ref_eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
+    }
+
+    pub fn ptr(&self) -> usize {
+        self.0.as_ptr() as usize
     }
 }
 
