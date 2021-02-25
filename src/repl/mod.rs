@@ -12,7 +12,7 @@ pub fn repl(intp: Interpreter) {
         "{} {} ({})\nType `:help` for more information.\n",
         "Lime".bright_green().bold(),
         env!("CARGO_PKG_VERSION"),
-        env!("RUSTUP_TOOLCHAIN")
+        option_env!("RUSTUP_TOOLCHAIN").unwrap_or("?")
     );
 
     loop {

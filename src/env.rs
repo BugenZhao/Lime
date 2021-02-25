@@ -752,7 +752,7 @@ impl Env {
 
     pub fn primitive_get_field(&self, v: Value, k: &str) -> Result<Option<Value>> {
         if !v.is_primitive() {
-            panic!(format!("{} is not primitive", v));
+            panic!("call `primitive_get_field` on non-primitive value");
         }
 
         let val = if let Some(Value::Class(class)) = self.get(&v.class_name().into()) {
