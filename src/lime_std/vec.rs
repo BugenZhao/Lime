@@ -24,18 +24,10 @@ pub fn build_vec_class(env: &Rc<Env>) -> Value {
 
     macro_rules! obj {
         ($args:expr) => {
-            if let Value::Object(obj) = $args.get(0).unwrap() {
-                obj
-            } else {
-                unreachable!()
-            }
+            $args.get(0).unwrap().as_object().unwrap()
         };
         ($args:expr, $n:expr) => {
-            if let Value::Object(obj) = $args.get($n).unwrap() {
-                obj
-            } else {
-                unreachable!()
-            }
+            $args.get($n).unwrap().as_object().unwrap()
         };
     }
 

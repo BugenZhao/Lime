@@ -298,14 +298,10 @@ impl Env {
             Expr::IfVar(ident, expr, then, else_) => {
                 let val = self.eval_expr(expr)?;
                 if !matches!(val, Value::Nil(..)) {
-                    match then.as_ref() {
-                        Expr::Block(stmts) => {
-                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
-                            new_env.decl(ident.clone(), val)?;
-                            new_env.eval_stmts(stmts)
-                        }
-                        _ => unreachable!(),
-                    }
+                    let stmts = then.as_block().unwrap();
+                    let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                    new_env.decl(ident.clone(), val)?;
+                    new_env.eval_stmts(stmts)
                 } else if let Some(else_) = else_.deref() {
                     self.eval_expr(else_)
                 } else {
@@ -350,13 +346,11 @@ impl Env {
                     }
                     looped = true;
 
-                    let result = match body.as_ref() {
-                        Expr::Block(stmts) => {
-                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
-                            new_env.decl(ident.clone(), val)?;
-                            new_env.eval_stmts(stmts)
-                        }
-                        _ => unreachable!(),
+                    let result = {
+                        let stmts = body.as_block().unwrap();
+                        let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                        new_env.decl(ident.clone(), val)?;
+                        new_env.eval_stmts(stmts)
                     };
 
                     match result {
@@ -476,10 +470,9 @@ impl Env {
                 let mut push_expr = assoc_call!(vec_obj.clone(), "push");
 
                 for expr in exprs {
-                    match &mut push_expr {
-                        Expr::Call(_, args) => *args = vec![expr.clone()],
-                        _ => unreachable!(),
-                    }
+                    let (_, args) = push_expr.as_call_mut().unwrap();
+                    *args = vec![expr.clone()];
+
                     self.eval_expr(&push_expr)?;
                 }
 
@@ -512,26 +505,25 @@ impl Env {
                         Value::Nil(Some(cause)) if cause == "stop iteration" => {
                             break;
                         }
-                        val => match body.as_ref() {
-                            Expr::Block(stmts) => {
-                                looped = true;
-                                let new_env = Rc::new(Env::new(Rc::clone(&self)));
-                                new_env.decl(ident.clone(), val)?;
+                        val => {
+                            let stmts = body.as_block().unwrap();
 
-                                match new_env.eval_stmts(stmts) {
-                                    Ok(v) => ret = v,
-                                    Err(e) => match e.tp {
-                                        ErrType::Continue(v) => ret = v,
-                                        ErrType::Break(v) => {
-                                            ret = v;
-                                            break;
-                                        }
-                                        _ => return Err(e),
-                                    },
-                                }
+                            looped = true;
+                            let new_env = Rc::new(Env::new(Rc::clone(&self)));
+                            new_env.decl(ident.clone(), val)?;
+
+                            match new_env.eval_stmts(stmts) {
+                                Ok(v) => ret = v,
+                                Err(e) => match e.tp {
+                                    ErrType::Continue(v) => ret = v,
+                                    ErrType::Break(v) => {
+                                        ret = v;
+                                        break;
+                                    }
+                                    _ => return Err(e),
+                                },
                             }
-                            _ => unreachable!(),
-                        },
+                        }
                     }
                 }
 

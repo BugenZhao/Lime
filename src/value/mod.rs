@@ -2,6 +2,7 @@ mod class;
 mod func;
 mod object;
 
+use enum_as_inner::EnumAsInner;
 use std::fmt::Display;
 
 pub use class::*;
@@ -10,7 +11,7 @@ pub use object::*;
 
 pub const N_MAX_ARGS: usize = 255;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, EnumAsInner)]
 pub enum Value {
     Int(i64),
     Float(f64),
