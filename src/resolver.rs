@@ -157,7 +157,7 @@ impl<'a> Resolver<'a> {
                 for param in params.iter() {
                     fn_res.decl(param);
                 }
-                fn_res.res_stmts(body)?;
+                fn_res.res_stmts(body.as_block_mut().unwrap())?;  // DO NOT create new env
             }
             Expr::Construct(_, kvs) => {
                 for (_, e) in kvs.iter_mut() {

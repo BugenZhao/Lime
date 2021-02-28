@@ -1,4 +1,5 @@
 use crate::Value;
+use enum_as_inner::EnumAsInner;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -72,7 +73,7 @@ impl IdentExt for Ident {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, EnumAsInner)]
 pub enum Expr {
     Variable(Ident),
     Literal(Value),
@@ -86,7 +87,7 @@ pub enum Expr {
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     WhileVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
-    Func(Vec<Ident>, Vec<Stmt>),
+    Func(Vec<Ident>, Box<Expr>),  // must be Expr::Block
     Construct(Ident, Vec<(Ident, Expr)>),
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
@@ -95,7 +96,16 @@ pub enum Expr {
     For(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl Expr {
+    pub fn make_block(mut stmts: Vec<Stmt>, last: Option<Stmt>) -> Expr {
+        if let Some(e) = last {
+            stmts.push(e);
+        }
+        Self::Block(stmts)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, EnumAsInner)]
 pub enum Stmt {
     VarDecl(Ident, Expr),
     ClassDecl(Ident, Vec<Ident>),

@@ -181,7 +181,9 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" _ semi()* ss:(raw_stmt())* semi()* _ "}" { Expr::Block(ss) }
+            = "{" _ semi()* ss:(raw_stmt())* e:stmt_expr_optional_semi()? semi()* _ "}" {
+                Expr::make_block(ss, e)
+            }
 
         rule if_else() -> Expr
             = _ kw_else() _ else_:(expr_if() / expr_if_var() / block()) { else_ }
@@ -220,7 +222,7 @@ peg::parser! {
                 }
             }
         rule expr_func() -> Expr
-            = "|" _ p:param_list() _ "|" _ "{" _ body:stmt()* _ "}" { Expr::Func(p, body) }
+            = "|" _ p:param_list() _ "|" _ body:block() { Expr::Func(p, box body) }
 
         rule colon_kv() -> (Ident, Expr)
             = k:ident() _ ":" _ v:expr() { (k, v) }
@@ -271,6 +273,8 @@ peg::parser! {
         rule stmt_expr() -> Stmt
             = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
             / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
+        rule stmt_expr_optional_semi() -> Stmt
+            = e:(expr_NORMAL() / expr_BLOCK()) _ semi()* { Stmt::Expr(e) }
 
         rule stmt_print() -> Stmt
             = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }

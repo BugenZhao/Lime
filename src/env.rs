@@ -406,7 +406,7 @@ impl Env {
             },
             Expr::Func(params, body) => Ok(Value::Func(WrFunc::new_lime(
                 params.clone(),
-                body.clone(),
+                body.as_block().unwrap().clone(),
                 params.len()..=params.len(),
                 Rc::clone(&self),
             ))),
