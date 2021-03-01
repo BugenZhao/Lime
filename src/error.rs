@@ -4,6 +4,11 @@ use crate::{
     Value,
 };
 use itertools::Itertools;
+use peg::{str::LineCol, Parse};
+use source_span::{
+    fmt::{Formatter, Style},
+    Position, Span, DEFAULT_METRICS,
+};
 use std::ops::RangeInclusive;
 
 #[derive(Debug)]
@@ -25,6 +30,7 @@ pub struct Error {
     pub tp: ErrType,
     bt: LimeBacktrace,
     text: Option<String>,
+    pub span: (usize, usize),
 }
 
 impl Error {
@@ -33,6 +39,7 @@ impl Error {
             tp,
             bt: LimeBacktrace(vec![]),
             text: None,
+            span: (0, 0),
         }
     }
 
@@ -44,10 +51,44 @@ impl Error {
         )
     }
 
-    pub fn set_text(&mut self, text: String) {
+    pub fn set_text_span(&mut self, text: String, span: (usize, usize)) {
         if self.text.is_none() {
             self.text = Some(text);
+            self.span = span;
         }
+    }
+
+    pub fn error_fmt(&self, text: &str) -> String {
+        macro_rules! position {
+            ($offset:expr) => {{
+                let LineCol { line, column, .. } = Parse::position_repr(text, $offset);
+                Position::new(line - 1, column - 1)
+            }};
+        }
+
+        let start = position!(self.span.0);
+        let last = position!(self.span.1 - 1);
+        let end = position!(self.span.1);
+        let span = Span::new(start, last, end);
+
+        let text_start = position!(0);
+        let text_last = position!(text.len() - 1);
+        let text_end = position!(text.len());
+        let text_span = Span::new(text_start, text_last, text_end);
+
+        let mut fmt = Formatter::with_margin_color(source_span::fmt::Color::Blue);
+        fmt.add(span, Some(self.tp.to_string()), Style::Error);
+
+        let fmtted = fmt
+            .render(
+                text.chars()
+                    .map(|c| -> std::result::Result<char, ()> { Ok(c) }),
+                text_span,
+                &DEFAULT_METRICS,
+            )
+            .unwrap();
+
+        format!("{}", fmtted)
     }
 }
 

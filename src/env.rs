@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinaryOp, Expr, Ident, IdentExt, StmtKind, UnaryOp, Stmt},
+    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, StmtKind, UnaryOp},
     err,
     error::{ErrType, Result},
     lime_std::define_std,
@@ -156,7 +156,7 @@ impl Env {
                 }
                 Err(mut e) => {
                     if let Some(text) = stmt.text.clone() {
-                        e.set_text(text);
+                        e.set_text_span(text, stmt.span);
                     }
                     return Err(e);
                 }

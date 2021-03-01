@@ -15,9 +15,9 @@ impl Interpreter {
 }
 
 impl Interpreter {
-    pub fn eval_file<P: AsRef<Path>>(&self, path: P) -> Result<Value> {
-        self.eval(&read_to_string(path)?)
-    }
+    // pub fn eval_file<P: AsRef<Path>>(&self, path: P) -> Result<Value> {
+    //     self.eval(&read_to_string(path)?)
+    // }
 
     pub fn eval(&self, text: &str) -> Result<Value> {
         let stmts = parse_and_resolve(&text)?;

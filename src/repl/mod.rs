@@ -31,7 +31,7 @@ pub fn repl(intp: Interpreter) {
                 match intp.eval(&line) {
                     Ok(Value::Nil(None)) => println!(),
                     Ok(val) => println!("{:?}", val),
-                    Err(err) => println!("{}", err.to_string().red()),
+                    Err(err) => println!("{}", err.error_fmt(&line)),
                 }
             }
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
