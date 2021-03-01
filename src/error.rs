@@ -24,6 +24,7 @@ pub struct Error {
     #[source]
     pub tp: ErrType,
     bt: LimeBacktrace,
+    text: Option<String>,
 }
 
 impl Error {
@@ -31,20 +32,28 @@ impl Error {
         Self {
             tp,
             bt: LimeBacktrace(vec![]),
+            text: None,
         }
     }
 
-    pub fn push(&mut self, func: &WrFunc) {
+    pub fn push_func(&mut self, func: &WrFunc) {
         self.bt.0.push(
             func.name()
                 .clone()
                 .unwrap_or_else(|| "<unknown>".to_owned()),
         )
     }
+
+    pub fn set_text(&mut self, text: String) {
+        if self.text.is_none() {
+            self.text = Some(text);
+        }
+    }
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "In `{}`:", self.text.as_deref().unwrap_or("<unknown>"))?;
         write!(f, "{}", self.tp)?;
         if !self.bt.0.is_empty() {
             write!(f, "\nBacktrace:\n  {}", self.bt)?;

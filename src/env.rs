@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, WrStmt, UnaryOp},
+    ast::{BinaryOp, Expr, Ident, IdentExt, StmtKind, UnaryOp, Stmt},
     err,
     error::{ErrType, Result},
     lime_std::define_std,
@@ -146,7 +146,7 @@ macro_rules! assoc_call {
 }
 
 impl Env {
-    pub fn eval_stmts(self: &Rc<Self>, stmts: &[WrStmt]) -> Result<Value> {
+    pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
         let mut ret = Value::Nil(None);
 
         for stmt in stmts.iter() {
@@ -154,7 +154,10 @@ impl Env {
                 Ok(ov) => {
                     ret = ov;
                 }
-                Err(e) => {
+                Err(mut e) => {
+                    if let Some(text) = stmt.text.clone() {
+                        e.set_text(text);
+                    }
                     return Err(e);
                 }
             }
@@ -163,25 +166,25 @@ impl Env {
         Ok(ret)
     }
 
-    fn eval_stmt(self: &Rc<Self>, stmt: &WrStmt) -> Result<Value> {
+    fn eval_stmt(self: &Rc<Self>, stmt: &Stmt) -> Result<Value> {
         match &stmt.tp {
-            Stmt::VarDecl(ident, val) => {
+            StmtKind::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
                 self.decl(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
-            Stmt::Expr(expr) => match self.eval_expr(expr) {
+            StmtKind::Expr(expr) => match self.eval_expr(expr) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e),
             },
-            Stmt::Print(expr) => match self.eval_expr(expr) {
+            StmtKind::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
                     Ok(Value::Nil(None))
                 }
                 Err(e) => Err(e),
             },
-            Stmt::Assert(_, _, text, expr) => {
+            StmtKind::Assert(_, _, text, expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
                     Err(err!(ErrType::AssertionFailed(
@@ -193,7 +196,7 @@ impl Env {
                     Ok(Value::Nil(None))
                 }
             }
-            Stmt::Break(expr) => {
+            StmtKind::Break(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -201,7 +204,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Break(val)))
             }
-            Stmt::Continue(expr) => {
+            StmtKind::Continue(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -209,7 +212,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Continue(val)))
             }
-            Stmt::Return(expr) => {
+            StmtKind::Return(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -217,7 +220,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Return(val)))
             }
-            Stmt::ClassDecl(ident, fields) => {
+            StmtKind::ClassDecl(ident, fields) => {
                 let val = Value::Class(WrClass::new(
                     ident.0.clone(),
                     fields.iter().map(|i| i.0.to_owned()).collect(),
@@ -225,7 +228,7 @@ impl Env {
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
-            Stmt::Impl(ident, assocs) => {
+            StmtKind::Impl(ident, assocs) => {
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
@@ -390,7 +393,7 @@ impl Env {
                             ErrType::Return(v) | ErrType::ErrorReturn(v) => Ok(v),
                             ErrType::Expect(v) => Err(err!(ErrType::ErrorReturn(v))),
                             _ => {
-                                e.push(&lime_f);
+                                e.push_func(&lime_f);
                                 Err(e)
                             }
                         },

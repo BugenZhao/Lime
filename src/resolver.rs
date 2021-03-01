@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expr, Ident, IdentExt, Stmt, WrStmt},
+    ast::{Expr, Ident, IdentExt, StmtKind, Stmt},
     err,
     error::Result,
     ErrType,
@@ -54,49 +54,52 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [WrStmt]) -> Result<()> {
+    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [Stmt]) -> Result<()> {
         for stmt in stmts.iter_mut() {
             self.res_stmt(stmt)?;
         }
         Ok(())
     }
 
-    fn res_stmt(self: &Rc<Self>, stmt: &'a mut WrStmt) -> Result<()> {
+    fn res_stmt(self: &Rc<Self>, stmt: &'a mut Stmt) -> Result<()> {
+        let (start, end) = stmt.span;
+        stmt.text = Some(self.text.chars().skip(start).take(end - start).collect());
+
         match &mut stmt.tp {
-            Stmt::VarDecl(i, e) => {
+            StmtKind::VarDecl(i, e) => {
                 // this leaves functions that are recursive or calling each other UNresolved
                 // they will be resolved in runtime instead
                 self.res_expr(e)?;
                 self.decl(i);
             }
-            Stmt::Expr(e) => self.res_expr(e)?,
-            Stmt::Print(e) => self.res_expr(e)?,
-            Stmt::Assert(start, end, text, e) => {
+            StmtKind::Expr(e) => self.res_expr(e)?,
+            StmtKind::Print(e) => self.res_expr(e)?,
+            StmtKind::Assert(start, end, text, e) => {
                 *text = self.text.chars().skip(*start).take(*end - *start).collect();
                 self.res_expr(e)?;
             }
-            Stmt::Break(e) => {
+            StmtKind::Break(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::Continue(e) => {
+            StmtKind::Continue(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::Return(e) => {
+            StmtKind::Return(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::ClassDecl(i, _) => {
+            StmtKind::ClassDecl(i, _) => {
                 if self.enclosing.is_some() {
                     return Err(err!(ErrType::OnlyTopLevel("class".to_owned())));
                 }
                 self.decl(i);
             }
-            Stmt::Impl(i, afs) => {
+            StmtKind::Impl(i, afs) => {
                 if self.enclosing.is_some() {
                     return Err(err!(ErrType::OnlyTopLevel("impl".to_owned())));
                 }

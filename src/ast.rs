@@ -81,7 +81,7 @@ pub enum Expr {
     Unary(UnaryOp, Box<Expr>),
     Assign(Ident, Box<Expr>),
     Cast(Box<Expr>, Ident),
-    Block(Vec<WrStmt>),
+    Block(Vec<Stmt>),
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     IfVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
@@ -97,7 +97,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn make_block(mut stmts: Vec<WrStmt>, last: Option<WrStmt>) -> Expr {
+    pub fn make_block(mut stmts: Vec<Stmt>, last: Option<Stmt>) -> Expr {
         if let Some(e) = last {
             stmts.push(e);
         }
@@ -106,7 +106,7 @@ impl Expr {
 }
 
 #[derive(Debug, Clone, PartialEq, EnumAsInner)]
-pub enum Stmt {
+pub enum StmtKind {
     VarDecl(Ident, Expr),
     ClassDecl(Ident, Vec<Ident>),
     Impl(Ident, Vec<(Ident, Expr)>),
@@ -119,8 +119,8 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WrStmt {
-    pub tp: Stmt,
+pub struct Stmt {
+    pub tp: StmtKind,
     pub span: (usize, usize),
-    pub text: Option<&'static str>,
+    pub text: Option<String>,
 }
