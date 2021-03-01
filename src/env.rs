@@ -155,9 +155,7 @@ impl Env {
                     ret = ov;
                 }
                 Err(mut e) => {
-                    if let Some(text) = stmt.text.clone() {
-                        e.set_text_span(text, stmt.span);
-                    }
+                    e.set_span(stmt.span);
                     return Err(e);
                 }
             }

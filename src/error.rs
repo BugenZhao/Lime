@@ -29,8 +29,7 @@ pub struct Error {
     #[source]
     pub tp: ErrType,
     bt: LimeBacktrace,
-    text: Option<String>,
-    pub span: (usize, usize),
+    pub span: Option<(usize, usize)>,
 }
 
 impl Error {
@@ -38,8 +37,7 @@ impl Error {
         Self {
             tp,
             bt: LimeBacktrace(vec![]),
-            text: None,
-            span: (0, 0),
+            span: None,
         }
     }
 
@@ -51,10 +49,9 @@ impl Error {
         )
     }
 
-    pub fn set_text_span(&mut self, text: String, span: (usize, usize)) {
-        if self.text.is_none() {
-            self.text = Some(text);
-            self.span = span;
+    pub fn set_span(&mut self, span: (usize, usize)) {
+        if self.span.is_none() {
+            self.span = Some(span);
         }
     }
 
@@ -66,9 +63,14 @@ impl Error {
             }};
         }
 
-        let start = position!(self.span.0);
-        let last = position!(self.span.1 - 1);
-        let end = position!(self.span.1);
+        if self.span.is_none() {
+            return "".to_owned();
+        }
+        let self_span = self.span.unwrap();
+
+        let start = position!(self_span.0);
+        let last = position!(self_span.1 - 1);
+        let end = position!(self_span.1);
         let span = Span::new(start, last, end);
 
         let text_start = position!(0);
@@ -94,7 +96,7 @@ impl Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "In `{}`:", self.text.as_deref().unwrap_or("<unknown>"))?;
+        // writeln!(f, "In `{}`:", self.text.as_deref().unwrap_or("<unknown>"))?;
         write!(f, "{}", self.tp)?;
         if !self.bt.0.is_empty() {
             write!(f, "\nBacktrace:\n  {}", self.bt)?;

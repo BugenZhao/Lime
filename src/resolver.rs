@@ -62,9 +62,8 @@ impl<'a> Resolver<'a> {
     }
 
     fn res_stmt(self: &Rc<Self>, stmt: &'a mut Stmt) -> Result<()> {
-        let (start, end) = stmt.span;
-        stmt.text = Some(self.text.chars().skip(start).take(end - start).collect());
-
+        // let (start, end) = stmt.span;
+        // stmt.text = Some(self.text.chars().skip(start).take(end - start).collect());
         match &mut stmt.tp {
             StmtKind::VarDecl(i, e) => {
                 // this leaves functions that are recursive or calling each other UNresolved

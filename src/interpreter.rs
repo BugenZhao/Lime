@@ -21,7 +21,7 @@ impl Interpreter {
 
     pub fn eval(&self, text: &str) -> Result<Value> {
         let stmts = parse_and_resolve(&text)?;
-        self.env.eval_stmts(&stmts)
+        self.eval_stmts(&stmts)
     }
 
     pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {

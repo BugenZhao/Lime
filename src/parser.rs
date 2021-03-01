@@ -303,6 +303,7 @@ peg::parser! {
             / stmt_return()
             / stmt_expr()
 
+        // FIXME: there's too much redundant whitespaces in spans currently 
         rule raw_stmt() -> Stmt
             = _ start:position!() s:stmt() end:position!() _ { Stmt {
                 tp: s,
