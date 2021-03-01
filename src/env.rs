@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, UnaryOp},
+    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, WrStmt, UnaryOp},
     err,
     error::{ErrType, Result},
     lime_std::define_std,
@@ -146,7 +146,7 @@ macro_rules! assoc_call {
 }
 
 impl Env {
-    pub fn eval_stmts(self: &Rc<Self>, stmts: &[Stmt]) -> Result<Value> {
+    pub fn eval_stmts(self: &Rc<Self>, stmts: &[WrStmt]) -> Result<Value> {
         let mut ret = Value::Nil(None);
 
         for stmt in stmts.iter() {
@@ -163,8 +163,8 @@ impl Env {
         Ok(ret)
     }
 
-    fn eval_stmt(self: &Rc<Self>, stmt: &Stmt) -> Result<Value> {
-        match stmt {
+    fn eval_stmt(self: &Rc<Self>, stmt: &WrStmt) -> Result<Value> {
+        match &stmt.tp {
             Stmt::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
                 self.decl(ident.clone(), val)?;

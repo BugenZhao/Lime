@@ -81,13 +81,13 @@ pub enum Expr {
     Unary(UnaryOp, Box<Expr>),
     Assign(Ident, Box<Expr>),
     Cast(Box<Expr>, Ident),
-    Block(Vec<Stmt>),
+    Block(Vec<WrStmt>),
     If(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     IfVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     WhileVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
-    Func(Vec<Ident>, Box<Expr>),  // must be Expr::Block
+    Func(Vec<Ident>, Box<Expr>), // must be Expr::Block
     Construct(Ident, Vec<(Ident, Expr)>),
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
@@ -97,7 +97,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn make_block(mut stmts: Vec<Stmt>, last: Option<Stmt>) -> Expr {
+    pub fn make_block(mut stmts: Vec<WrStmt>, last: Option<WrStmt>) -> Expr {
         if let Some(e) = last {
             stmts.push(e);
         }
@@ -116,4 +116,11 @@ pub enum Stmt {
     Break(Option<Expr>),
     Continue(Option<Expr>),
     Return(Option<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WrStmt {
+    pub tp: Stmt,
+    pub span: (usize, usize),
+    pub text: Option<&'static str>,
 }

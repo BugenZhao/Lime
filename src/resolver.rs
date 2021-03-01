@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expr, Ident, IdentExt, Stmt},
+    ast::{Expr, Ident, IdentExt, Stmt, WrStmt},
     err,
     error::Result,
     ErrType,
@@ -54,15 +54,15 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [Stmt]) -> Result<()> {
+    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [WrStmt]) -> Result<()> {
         for stmt in stmts.iter_mut() {
             self.res_stmt(stmt)?;
         }
         Ok(())
     }
 
-    fn res_stmt(self: &Rc<Self>, stmt: &'a mut Stmt) -> Result<()> {
-        match stmt {
+    fn res_stmt(self: &Rc<Self>, stmt: &'a mut WrStmt) -> Result<()> {
+        match &mut stmt.tp {
             Stmt::VarDecl(i, e) => {
                 // this leaves functions that are recursive or calling each other UNresolved
                 // they will be resolved in runtime instead
@@ -157,7 +157,7 @@ impl<'a> Resolver<'a> {
                 for param in params.iter() {
                     fn_res.decl(param);
                 }
-                fn_res.res_stmts(body.as_block_mut().unwrap())?;  // DO NOT create new env
+                fn_res.res_stmts(body.as_block_mut().unwrap())?; // DO NOT create new env
             }
             Expr::Construct(_, kvs) => {
                 for (_, e) in kvs.iter_mut() {

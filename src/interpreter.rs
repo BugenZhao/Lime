@@ -1,4 +1,4 @@
-use crate::{ast::Stmt, env::Env, error::Result, parse_and_resolve, Value, KEYWORDS};
+use crate::{ast::WrStmt, env::Env, error::Result, parse_and_resolve, Value, KEYWORDS};
 use std::{collections::HashMap, fs::read_to_string, path::Path, rc::Rc};
 
 pub struct Interpreter {
@@ -20,11 +20,11 @@ impl Interpreter {
     }
 
     pub fn eval(&self, text: &str) -> Result<Value> {
-        let stmts = parse_and_resolve(text)?;
+        let stmts = parse_and_resolve(&text)?;
         self.env.eval_stmts(&stmts)
     }
 
-    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
+    pub fn eval_stmts(&self, stmts: &[WrStmt]) -> Result<Value> {
         self.env.eval_stmts(&stmts)
     }
 

@@ -1,6 +1,6 @@
 use super::Value;
 use crate::{
-    ast::{Ident, Stmt},
+    ast::{Ident, WrStmt},
     env::Env,
     err, ErrType, Result,
 };
@@ -14,7 +14,7 @@ pub enum FuncType {
     BuiltIn(RustFn),
     Composed(Box<WrFunc>, Box<WrFunc>),
     PartialApplied(Box<WrFunc>, Value),
-    Lime(Vec<Ident>, Vec<Stmt>),
+    Lime(Vec<Ident>, Vec<WrStmt>),
 }
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ impl WrFunc {
 
     pub fn new_lime(
         params: Vec<Ident>,
-        body: Vec<Stmt>,
+        body: Vec<WrStmt>,
         arity: RangeInclusive<usize>,
         env: Rc<Env>,
     ) -> Self {

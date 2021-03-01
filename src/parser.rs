@@ -181,7 +181,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" _ semi()* ss:(raw_stmt())* e:stmt_expr_optional_semi()? semi()* _ "}" {
+            = "{" _ semi()* ss:(raw_stmt())* e:raw_stmt_expr_optional_semi()? semi()* _ "}" {
                 Expr::make_block(ss, e)
             }
 
@@ -303,9 +303,20 @@ peg::parser! {
             / stmt_return()
             / stmt_expr()
 
-        rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
+        rule raw_stmt() -> WrStmt
+            = _ start:position!() s:stmt() end:position!() _ { WrStmt {
+                tp: s,
+                span: (start, end),
+                text: None,
+            } }
+        rule raw_stmt_expr_optional_semi() -> WrStmt
+            = _ start:position!() s:stmt_expr_optional_semi() end:position!() _ { WrStmt {
+                tp: s,
+                span: (start, end),
+                text: None,
+            } }
 
-        pub rule program() -> Vec<Stmt>
+        pub rule program() -> Vec<WrStmt>
             = _ semi()* ss:(raw_stmt())* semi()* ![_] { ss }
     }
 }
@@ -323,8 +334,8 @@ pub fn tokens(text: &str) -> Vec<(usize, &str)> {
     lime_parser::tokens(text).unwrap()
 }
 
-pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<Stmt>, _> = lime_parser::program(text);
+pub fn parse_and_resolve(text: &str) -> Result<Vec<WrStmt>> {
+    let result: std::result::Result<Vec<_>, _> = lime_parser::program(text);
     let mut stmts = result?;
     Resolver::new_global(text).res_stmts(&mut stmts)?;
     Ok(stmts)
@@ -353,7 +364,7 @@ mod test {
         let stmts = parse_and_resolve(text).unwrap();
 
         assert_eq!(
-            *stmts.first().unwrap(),
+            stmts.first().unwrap().tp,
             Stmt::Expr(Expr::Cast(
                 box Expr::Unary(
                     UnaryOp::Neg,
