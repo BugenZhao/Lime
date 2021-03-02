@@ -1,4 +1,4 @@
-use crate::{parse_and_resolve, parser};
+use crate::parser;
 use colored::Colorize;
 use itertools::Itertools;
 use rustyline::completion::Completer;
@@ -115,7 +115,7 @@ impl Validator for LimeHelper {
                 }
 
                 text.push(';');
-                if let Err(e) = parse_and_resolve(&text) {
+                if let Err(e) = parser::parse(&text) {
                     return Ok(ValidationResult::Invalid(Some(format!(
                         "\n{}",
                         e.to_string()

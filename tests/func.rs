@@ -40,7 +40,5 @@ fn test_static_resolving() {
         assert  show_block() == "block";
     }
     "#;
-    let stmts = lime::parse_and_resolve(text).unwrap();
-    println!("{:#?}", stmts);
-    Interpreter::new().eval_stmts(&stmts).unwrap();
+    Interpreter::new().eval(text).unwrap();
 }

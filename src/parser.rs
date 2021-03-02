@@ -1,4 +1,4 @@
-use crate::{ast::*, error::Result, resolver::Resolver, value::*};
+use crate::{ast::*, error::Result, value::*};
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 
@@ -303,7 +303,7 @@ peg::parser! {
             / stmt_return()
             / stmt_expr()
 
-        // FIXME: there's too much redundant whitespaces in spans currently 
+        // FIXME: there's too much redundant whitespaces in spans currently
         rule raw_stmt() -> Stmt
             = _ start:position!() s:stmt() end:position!() _ { Stmt {
                 tp: s,
@@ -331,15 +331,12 @@ lazy_static! {
         .collect();
 }
 
-pub fn tokens(text: &str) -> Vec<(usize, &str)> {
-    lime_parser::tokens(text).unwrap()
+pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+    Ok(lime_parser::program(text)?)
 }
 
-pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<_>, _> = lime_parser::program(text);
-    let mut stmts = result?;
-    Resolver::new_global(text).res_stmts(&mut stmts)?;
-    Ok(stmts)
+pub fn tokens(text: &str) -> Vec<(usize, &str)> {
+    lime_parser::tokens(text).unwrap()
 }
 
 #[cfg(test)]
@@ -354,7 +351,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         _print c + 3;
         "#;
-        let r = parse_and_resolve(text);
+        let r = parse(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }
@@ -362,7 +359,7 @@ mod test {
     #[test]
     fn test_call() {
         let text = "-fn_gen(true).first(add(1, 2)).second as String;";
-        let stmts = parse_and_resolve(text).unwrap();
+        let stmts = parse(text).unwrap();
 
         assert_eq!(
             stmts.first().unwrap().tp,
@@ -394,10 +391,10 @@ mod test {
     #[test]
     fn test_inline_closure_call() {
         let text = "|x|{x+1;}(3);";
-        parse_and_resolve(text).unwrap_err();
+        parse(text).unwrap_err();
 
         let text = "(|x|{x+1;})(3);";
-        parse_and_resolve(text).unwrap();
+        parse(text).unwrap();
     }
 
     #[test]
@@ -419,6 +416,6 @@ mod test {
 
     #[test]
     fn test_overflow() {
-        parse_and_resolve("1234567890987654321234567890987654321234567890;").unwrap_err();
+        parse("1234567890987654321234567890987654321234567890;").unwrap_err();
     }
 }

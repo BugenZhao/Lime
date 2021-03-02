@@ -1,4 +1,3 @@
-use colored::*;
 use lime::{repl, Interpreter};
 use std::{fs::read_to_string, path::PathBuf};
 use structopt::StructOpt;

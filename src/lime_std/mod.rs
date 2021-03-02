@@ -6,9 +6,9 @@ mod vec;
 use crate::{
     ast::Ident,
     env::Env,
-    err, parse_and_resolve,
+    err,
     value::{self, WrFunc, N_MAX_ARGS},
-    ErrType, Result, Value,
+    ErrType, Interpreter, Result, Value,
 };
 use itertools::Itertools;
 use std::{
@@ -162,16 +162,21 @@ fn define_builtin(env: &Rc<Env>) {
     }
 }
 
-fn define_prelude(env: &Rc<Env>) {
+fn define_prelude(intp: &mut Interpreter) {
     const PRELUDE_LM: &str = include_str!("prelude.lm");
-
-    let stmts = parse_and_resolve(PRELUDE_LM).unwrap();
-    env.eval_stmts(&stmts).unwrap();
+    intp.eval(PRELUDE_LM).unwrap();
 }
 
-pub fn define_std(env: &Rc<Env>) {
-    define_primitive(env);
-    define_builtin(env);
-    define_std_class(env);
-    define_prelude(env);
+pub trait IntpStdExt {
+    fn define_std(&mut self);
+}
+
+impl IntpStdExt for Interpreter {
+    fn define_std(&mut self) {
+        let env = self.env();
+        define_primitive(env);
+        define_builtin(env);
+        define_std_class(env);
+        define_prelude(self);
+    }
 }

@@ -1,5 +1,8 @@
-use crate::{ast::Stmt, env::Env, error::Result, parse_and_resolve, Value, KEYWORDS};
-use std::{collections::HashMap, fs::read_to_string, path::Path, rc::Rc};
+use crate::{
+    ast::Stmt, env::Env, error::Result, lime_std::IntpStdExt, parser, resolver::Resolver, Value,
+    KEYWORDS,
+};
+use std::{collections::HashMap, rc::Rc};
 
 pub struct Interpreter {
     env: Rc<Env>,
@@ -8,23 +11,28 @@ pub struct Interpreter {
 #[allow(clippy::new_without_default)]
 impl Interpreter {
     pub fn new() -> Self {
-        Self {
-            env: Env::new_global_std(),
-        }
+        let mut intp = Self {
+            env: Env::new_global(),
+        };
+        intp.define_std();
+        intp
+    }
+
+    pub fn env(&self) -> &Rc<Env> {
+        &self.env
     }
 }
 
 impl Interpreter {
-    // pub fn eval_file<P: AsRef<Path>>(&self, path: P) -> Result<Value> {
-    //     self.eval(&read_to_string(path)?)
-    // }
-
-    pub fn eval(&self, text: &str) -> Result<Value> {
-        let stmts = parse_and_resolve(&text)?;
-        self.eval_stmts(&stmts)
+    fn parse_and_resolve(&self, text: &str) -> Result<Vec<Stmt>> {
+        let result: std::result::Result<Vec<_>, _> = parser::parse(text);
+        let mut stmts = result?;
+        Resolver::new_global(text).res_stmts(&mut stmts)?;
+        Ok(stmts)
     }
 
-    pub fn eval_stmts(&self, stmts: &[Stmt]) -> Result<Value> {
+    pub fn eval(&self, text: &str) -> Result<Value> {
+        let stmts = self.parse_and_resolve(&text)?;
         self.env.eval_stmts(&stmts)
     }
 

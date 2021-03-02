@@ -2,7 +2,6 @@ use crate::{
     ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, StmtKind, UnaryOp},
     err,
     error::{ErrType, Result},
-    lime_std::define_std,
     value::{Value, WrClass, WrFunc, WrObject},
 };
 use std::{
@@ -18,13 +17,8 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new_global_std() -> Rc<Self> {
-        let env = Rc::new(Self {
-            vars: RefCell::new(HashMap::new()),
-            enclosing: None,
-        });
-        define_std(&env);
-        env
+    pub fn new_global() -> Rc<Self> {
+        Rc::new(Self::new_empty())
     }
 
     pub fn new(enclosing: Rc<Self>) -> Self {
