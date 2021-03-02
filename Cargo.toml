@@ -1,6 +1,6 @@
 [package]
 name = "lime"
-version = "0.2.8"
+version = "0.2.9"
 authors = ["Bugen Zhao <i@bugenzhao.com>"]
 edition = "2018"
 
@@ -17,7 +17,7 @@ snailquote = "0.3"
 lazy_static = "1.4"
 itertools = "0.10"
 enum-as-inner = "0.3"
-source-span = "*"
+source-span = "2.2"
 
 [dev-dependencies]
 rand = "0.7"
