@@ -42,3 +42,26 @@ fn test_static_resolving() {
     "#;
     eval!(text).unwrap();
 }
+
+#[test]
+fn test_static_resolving_in_different_sections() {
+    let text1 = r#"
+    var a = "global";
+    "#;
+
+    let text2 = r#"
+    {
+        var show_global = || { println(a); a; };
+        assert show_global() == "global";
+
+        var a = "block";
+        var show_block = || { println(a); a; };
+        assert show_global() == "global";
+        assert  show_block() == "block";
+    }
+    "#;
+
+    let mut intp = Interpreter::new();
+    intp.eval(text1).unwrap();
+    intp.eval(text2).unwrap();
+}
