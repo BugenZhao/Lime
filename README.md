@@ -141,7 +141,7 @@ nil;
     - [ ] indexing `[]`
     - [x] primitive values as objects
     - [ ] ...
-- [x] error-handling
+- [x] error handling
     - [x] panic
     - [x] backtrace for lime error
     - [x] backtrace for all error
@@ -152,6 +152,8 @@ nil;
             - [x] if var
             - [x] while var
     - [ ] ...
+- [x] error reporting
+    - [x] pre
 - [ ] pass-by-value `struct` object
     - [ ] refactor object clone logic
     - [ ] syntax

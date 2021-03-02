@@ -187,7 +187,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" ss:(raw_stmt())* e:raw_stmt_expr_optional_semi()? "}" {
+            = "{" ss:(raw_stmt())* e:raw_stmt_expr_no_semi()? "}" {
                 Expr::make_block(ss, e)
             }
 
@@ -281,8 +281,8 @@ peg::parser! {
         rule stmt_expr() -> StmtKind
             = e:expr_NORMAL() _ semi() { StmtKind::Expr(e) }
             / e:expr_BLOCK() _ semi()? { StmtKind::Expr(e) }
-        rule stmt_expr_optional_semi() -> StmtKind
-            = e:(expr_NORMAL() / expr_BLOCK()) _ semi()? { StmtKind::Expr(e) }
+        rule stmt_expr_no_semi() -> StmtKind
+            = e:(expr_NORMAL() / expr_BLOCK()) { StmtKind::Expr(e) }
 
         rule stmt_print() -> StmtKind
             = kw_print() __ e:expr() _ semi() { StmtKind::Print(e) }
@@ -320,8 +320,8 @@ peg::parser! {
                 },
                 text: None,
             } }
-        rule raw_stmt_expr_optional_semi() -> Stmt
-            = ___ start:position!() s:stmt_expr_optional_semi() end:position!() ___ { Stmt {
+        rule raw_stmt_expr_no_semi() -> Stmt
+            = ___ start:position!() s:stmt_expr_no_semi() end:position!() ___ { Stmt {
                 tp: s,
                 span: Span {
                     source_id: SOURCE_ID.load(SeqCst),
