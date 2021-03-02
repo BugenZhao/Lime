@@ -101,6 +101,9 @@ impl VecIter {
     };
 }
 
+var will_panic = || { 
+    panic("WILL PANIC");
+};
 
 class Range { lo, hi, inclusive }
 

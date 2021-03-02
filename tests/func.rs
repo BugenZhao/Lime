@@ -40,5 +40,5 @@ fn test_static_resolving() {
         assert  show_block() == "block";
     }
     "#;
-    Interpreter::new().eval(text).unwrap();
+    eval!(text).unwrap();
 }

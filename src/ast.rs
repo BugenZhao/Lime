@@ -112,7 +112,7 @@ pub enum StmtKind {
     Impl(Ident, Vec<(Ident, Expr)>),
     Expr(Expr),
     Print(Expr),
-    Assert(usize, usize, String, Expr),
+    Assert(Expr),
     Break(Option<Expr>),
     Continue(Option<Expr>),
     Return(Option<Expr>),
@@ -121,6 +121,12 @@ pub enum StmtKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stmt {
     pub tp: StmtKind,
-    pub span: (usize, usize),
+    pub span: Span,
     pub text: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Span {
+    pub source_id: usize,
+    pub pos: (usize, usize),
 }

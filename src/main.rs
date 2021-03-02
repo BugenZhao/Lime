@@ -11,12 +11,13 @@ struct Opt {
 }
 
 fn main() {
-    let intp = Interpreter::new();
+    let mut intp = Interpreter::new();
     let opt = Opt::from_args();
     if let Some(path) = opt.input {
+        let name = path.clone().into_os_string().into_string().unwrap();
         let text = read_to_string(path).unwrap();
-        if let Err(e) = intp.eval(&text) {
-            println!("{}", e.error_fmt(&text));
+        if let Err(e) = intp.eval_with_name(&name, &text) {
+            println!("{}", intp.fmt_error(e));
         }
         if opt.continue_ {
             repl(intp);

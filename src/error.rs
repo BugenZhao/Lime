@@ -1,13 +1,15 @@
 use crate::{
-    ast::{BinaryOp, UnaryOp},
+    ast::{BinaryOp, Span, UnaryOp},
+    interpreter::Source,
     value::WrFunc,
     Value,
 };
+use colored::Colorize;
 use itertools::Itertools;
 use peg::{str::LineCol, Parse};
 use source_span::{
     fmt::{Formatter, Style},
-    Position, Span, DEFAULT_METRICS,
+    Position, Span as SourceSpan, DEFAULT_METRICS,
 };
 use std::ops::RangeInclusive;
 
@@ -29,7 +31,7 @@ pub struct Error {
     #[source]
     pub tp: ErrType,
     bt: LimeBacktrace,
-    pub span: Option<(usize, usize)>,
+    pub span: Option<Span>,
 }
 
 impl Error {
@@ -49,13 +51,15 @@ impl Error {
         )
     }
 
-    pub fn set_span(&mut self, span: (usize, usize)) {
+    pub fn set_span(&mut self, span: Span) {
         if self.span.is_none() {
             self.span = Some(span);
         }
     }
 
-    pub fn error_fmt(&self, text: &str) -> String {
+    pub fn pretty_fmt(&self, source: &Source) -> String {
+        let text = source.text.as_str();
+
         macro_rules! position {
             ($offset:expr) => {{
                 let LineCol { line, column, .. } = Parse::position_repr(text, $offset);
@@ -64,19 +68,19 @@ impl Error {
         }
 
         if self.span.is_none() {
-            return "".to_owned();
+            return format!("{}", self);
         }
-        let self_span = self.span.unwrap();
+        let self_span = self.span.clone().unwrap();
 
-        let start = position!(self_span.0);
-        let last = position!(self_span.1 - 1);
-        let end = position!(self_span.1);
-        let span = Span::new(start, last, end);
+        let start = position!(self_span.pos.0);
+        let last = position!(self_span.pos.1 - 1);
+        let end = position!(self_span.pos.1);
+        let span = SourceSpan::new(start, last, end);
 
         let text_start = position!(0);
         let text_last = position!(text.len() - 1);
         let text_end = position!(text.len());
-        let text_span = Span::new(text_start, text_last, text_end);
+        let text_span = SourceSpan::new(text_start, text_last, text_end);
 
         let mut fmt = Formatter::with_margin_color(source_span::fmt::Color::Blue);
         fmt.add(span, Some(self.tp.to_string()), Style::Error);
@@ -90,18 +94,28 @@ impl Error {
             )
             .unwrap();
 
-        format!("{}", fmtted)
+        let first_line = format!(
+            "{} {}:{}:{}\n",
+            "-->".blue(),
+            source.name,
+            start.line + 1,
+            start.column + 1,
+        )
+        .bold();
+
+        let bt_line = if !self.bt.0.is_empty() {
+            format!("\n{}\n  {}\n", "Backtrace:".bold(), self.bt)
+        } else {
+            "".to_owned()
+        };
+
+        format!("{}{}{}", first_line, fmtted, bt_line)
     }
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // writeln!(f, "In `{}`:", self.text.as_deref().unwrap_or("<unknown>"))?;
-        write!(f, "{}", self.tp)?;
-        if !self.bt.0.is_empty() {
-            write!(f, "\nBacktrace:\n  {}", self.bt)?;
-        }
-        Ok(())
+        std::fmt::Debug::fmt(self, f)
     }
 }
 
@@ -162,8 +176,8 @@ pub enum ErrType {
     MismatchedTypes { expected: String, found: String },
     #[error("`{0:?}` cannot be a condition")]
     CannotBeCondition(Value),
-    #[error("Assertion failed: `{0}` is `{1:?}`, while `{2:?}` expected")]
-    AssertionFailed(String, Value, Value),
+    #[error("Assertion failed")]
+    AssertionFailed,
     #[error("Variable `{0}` cannot have the value `{1:?}`")]
     CannotHaveValue(String, Value),
     #[error("`{0:?}` is not callable")]

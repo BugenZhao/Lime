@@ -1,6 +1,11 @@
 use crate::{ast::*, error::Result, value::*};
 use lazy_static::lazy_static;
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    sync::atomic::{AtomicUsize, Ordering::SeqCst},
+};
+
+pub static SOURCE_ID: AtomicUsize = AtomicUsize::new(0);
 
 peg::parser! {
     grammar lime_parser() for str {
@@ -281,7 +286,7 @@ peg::parser! {
             / kw_print() _ "(" _ e:expr() _ ")" _ semi()+ { StmtKind::Print(e) }
 
         rule stmt_assert() -> StmtKind
-            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { StmtKind::Assert(start, end, "".to_owned(), e) }
+            = kw_assert() __ e:expr() _ semi()+ { StmtKind::Assert(e) }
 
         rule bcr_val() -> Expr
             = __ e:expr() { e }
@@ -307,13 +312,19 @@ peg::parser! {
         rule raw_stmt() -> Stmt
             = _ start:position!() s:stmt() end:position!() _ { Stmt {
                 tp: s,
-                span: (start, end),
+                span: Span {
+                    source_id: SOURCE_ID.load(SeqCst),
+                    pos: (start, end),
+                },
                 text: None,
             } }
         rule raw_stmt_expr_optional_semi() -> Stmt
             = _ start:position!() s:stmt_expr_optional_semi() end:position!() _ { Stmt {
                 tp: s,
-                span: (start, end),
+                span: Span {
+                    source_id: SOURCE_ID.load(SeqCst),
+                    pos: (start, end),
+                },
                 text: None,
             } }
 
@@ -331,8 +342,13 @@ lazy_static! {
         .collect();
 }
 
-pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+pub fn parse_with_id(text: &str, source_id: usize) -> Result<Vec<Stmt>> {
+    SOURCE_ID.store(source_id, SeqCst);
     Ok(lime_parser::program(text)?)
+}
+
+pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+    parse_with_id(text, 0)
 }
 
 pub fn tokens(text: &str) -> Vec<(usize, &str)> {

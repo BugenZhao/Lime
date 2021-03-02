@@ -164,7 +164,7 @@ fn define_builtin(env: &Rc<Env>) {
 
 fn define_prelude(intp: &mut Interpreter) {
     const PRELUDE_LM: &str = include_str!("prelude.lm");
-    intp.eval(PRELUDE_LM).unwrap();
+    intp.eval_with_name("prelude.lm", PRELUDE_LM).unwrap();
 }
 
 pub trait IntpStdExt {

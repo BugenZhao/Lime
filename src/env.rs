@@ -176,14 +176,10 @@ impl Env {
                 }
                 Err(e) => Err(e),
             },
-            StmtKind::Assert(_, _, text, expr) => {
+            StmtKind::Assert(expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
-                    Err(err!(ErrType::AssertionFailed(
-                        text.to_owned(),
-                        val,
-                        Value::Bool(true),
-                    )))
+                    Err(err!(ErrType::AssertionFailed))
                 } else {
                     Ok(Value::Nil(None))
                 }
