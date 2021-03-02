@@ -12,10 +12,11 @@ peg::parser! {
         // Lexical
         rule ws() = [' ' | '\t' | '\r' | '\n']
         rule comment() = "//" (!"\n" [_])* / "/*" (!"*/" [_])* "*/"
+        rule semi() = ";"
         rule _() = quiet!{ (ws() / comment())* }
         rule __() = quiet!{ (ws() / comment())+ }
+        rule ___() = _ ** semi()
 
-        rule semi() = (";" _)
         rule digit() = ['0'..='9']
         rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
         rule aldig() = alpha() / digit()
@@ -186,7 +187,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" _ semi()* ss:(raw_stmt())* e:raw_stmt_expr_optional_semi()? semi()* _ "}" {
+            = "{" ss:(raw_stmt())* e:raw_stmt_expr_optional_semi()? "}" {
                 Expr::make_block(ss, e)
             }
 
@@ -257,7 +258,7 @@ peg::parser! {
 
         // Stmt
         rule stmt_var_decl() -> StmtKind
-            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { StmtKind::VarDecl(i, e) }
+            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi() { StmtKind::VarDecl(i, e) }
 
         rule field_list() -> Vec<Ident>
             = fields:(ident() ** (_ "," _)) (_ "," _)? {?
@@ -268,34 +269,36 @@ peg::parser! {
                 }
             }
         rule stmt_class_decl() -> StmtKind
-            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { StmtKind::ClassDecl(i, f) }
+            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()? { StmtKind::ClassDecl(i, f) }
 
         rule assoc() -> (Ident, Expr)
-            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()+ { (i, e) }
+            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi() { (i, e) }
+        rule raw_assoc() -> (Ident, Expr)
+            = ___ ms:assoc() ___ { ms }
         rule stmt_impl() -> StmtKind
-            = kw_impl() __ i:ident_type() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { StmtKind::Impl(i, ms) }
+            = kw_impl() __ i:ident_type() _ "{" ms:raw_assoc()* "}" _ semi()? { StmtKind::Impl(i, ms) }
 
         rule stmt_expr() -> StmtKind
-            = e:expr_NORMAL() _ semi()+ { StmtKind::Expr(e) }
-            / e:expr_BLOCK() _ semi()* { StmtKind::Expr(e) }
+            = e:expr_NORMAL() _ semi() { StmtKind::Expr(e) }
+            / e:expr_BLOCK() _ semi()? { StmtKind::Expr(e) }
         rule stmt_expr_optional_semi() -> StmtKind
-            = e:(expr_NORMAL() / expr_BLOCK()) _ semi()* { StmtKind::Expr(e) }
+            = e:(expr_NORMAL() / expr_BLOCK()) _ semi()? { StmtKind::Expr(e) }
 
         rule stmt_print() -> StmtKind
-            = kw_print() __ e:expr() _ semi()+ { StmtKind::Print(e) }
-            / kw_print() _ "(" _ e:expr() _ ")" _ semi()+ { StmtKind::Print(e) }
+            = kw_print() __ e:expr() _ semi() { StmtKind::Print(e) }
+            / kw_print() _ "(" _ e:expr() _ ")" _ semi() { StmtKind::Print(e) }
 
         rule stmt_assert() -> StmtKind
-            = kw_assert() __ e:expr() _ semi()+ { StmtKind::Assert(e) }
+            = kw_assert() __ e:expr() _ semi() { StmtKind::Assert(e) }
 
         rule bcr_val() -> Expr
             = __ e:expr() { e }
         rule stmt_break() -> StmtKind
-            = kw_break() e:bcr_val()? _ semi()+ { StmtKind::Break(e) }
+            = kw_break() e:bcr_val()? _ semi() { StmtKind::Break(e) }
         rule stmt_continue() -> StmtKind
-            = kw_continue() e:bcr_val()? _ semi()+ { StmtKind::Continue(e) }
+            = kw_continue() e:bcr_val()? _ semi() { StmtKind::Continue(e) }
         rule stmt_return() -> StmtKind
-            = kw_return() e:bcr_val()? _ semi()+ { StmtKind::Return(e) }
+            = kw_return() e:bcr_val()? _ semi() { StmtKind::Return(e) }
 
         rule stmt() -> StmtKind
             = stmt_var_decl()
@@ -308,9 +311,8 @@ peg::parser! {
             / stmt_return()
             / stmt_expr()
 
-        // FIXME: there's too much redundant whitespaces in spans currently
         rule raw_stmt() -> Stmt
-            = _ start:position!() s:stmt() end:position!() _ { Stmt {
+            = ___ start:position!() s:stmt() end:position!() ___ { Stmt {
                 tp: s,
                 span: Span {
                     source_id: SOURCE_ID.load(SeqCst),
@@ -319,7 +321,7 @@ peg::parser! {
                 text: None,
             } }
         rule raw_stmt_expr_optional_semi() -> Stmt
-            = _ start:position!() s:stmt_expr_optional_semi() end:position!() _ { Stmt {
+            = ___ start:position!() s:stmt_expr_optional_semi() end:position!() ___ { Stmt {
                 tp: s,
                 span: Span {
                     source_id: SOURCE_ID.load(SeqCst),
@@ -329,7 +331,7 @@ peg::parser! {
             } }
 
         pub rule program() -> Vec<Stmt>
-            = _ semi()* ss:(raw_stmt())* semi()* ![_] { ss }
+            = ss:(raw_stmt())* ![_] { ss }
     }
 }
 
