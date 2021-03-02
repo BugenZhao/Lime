@@ -8,7 +8,7 @@ A Rust/Swift-like modern interpreted programming language, hosted by Rust.
 - First-class functions with Rust's closure style
 - Functional techniques, like currying, composing, and higher-order function [WIP]
 - "nil with cause" error handling design and nil safety
-- REPL with auto-completer, syntax checker, history recorder included
+- REPL with friendly error reporting, auto-completer, syntax checker included
 - ...
 
 ```swift
@@ -67,10 +67,13 @@ assert_eq(i.age, 30);
 nil;
 ```
 
-## REPL Demo
+## Demos
 
+### REPL
 [![asciicast](https://asciinema.org/a/xp5O4UQEfQCDT1ZePhdR219gi.svg)](https://asciinema.org/a/xp5O4UQEfQCDT1ZePhdR219gi)
 
+### Error Reporting
+![error-reporting](docs/error-reporting.png)
 
 ## Roadmap
 
@@ -141,7 +144,7 @@ nil;
     - [ ] indexing `[]`
     - [x] primitive values as objects
     - [ ] ...
-- [x] error-handling
+- [x] error handling
     - [x] panic
     - [x] backtrace for lime error
     - [x] backtrace for all error
@@ -152,6 +155,8 @@ nil;
             - [x] if var
             - [x] while var
     - [ ] ...
+- [x] friendly error reporting
+    - [ ] ... with backtrace
 - [ ] pass-by-value `struct` object
     - [ ] refactor object clone logic
     - [ ] syntax

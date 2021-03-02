@@ -1,6 +1,5 @@
-use colored::*;
 use lime::{repl, Interpreter};
-use std::path::PathBuf;
+use std::{fs::read_to_string, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, structopt::StructOpt)]
@@ -12,11 +11,13 @@ struct Opt {
 }
 
 fn main() {
-    let intp = Interpreter::new();
+    let mut intp = Interpreter::new();
     let opt = Opt::from_args();
     if let Some(path) = opt.input {
-        if let Err(e) = intp.eval_file(path) {
-            println!("{}", e.to_string().red());
+        let name = path.clone().into_os_string().into_string().unwrap();
+        let text = read_to_string(path).unwrap();
+        if let Err(e) = intp.eval_with_name(&name, &text) {
+            println!("{}", intp.fmt_error(e));
         }
         if opt.continue_ {
             repl(intp);

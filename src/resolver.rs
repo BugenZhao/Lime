@@ -1,21 +1,19 @@
 use crate::{
-    ast::{Expr, Ident, IdentExt, Stmt},
+    ast::{Expr, Ident, IdentExt, Stmt, StmtKind},
     err,
     error::Result,
     ErrType,
 };
 use std::{cell::RefCell, collections::HashSet, ops::DerefMut, rc::Rc};
 
-pub struct Resolver<'a> {
-    text: &'a str,
-    vars: RefCell<HashSet<&'a str>>,
+pub struct Resolver {
+    vars: RefCell<HashSet<String>>,
     enclosing: Option<Rc<Self>>,
 }
 
-impl<'a> Resolver<'a> {
-    pub fn new_global(text: &'a str) -> Rc<Self> {
+impl Resolver {
+    pub fn new_global() -> Rc<Self> {
         Rc::new(Self {
-            text,
             vars: RefCell::new(HashSet::new()),
             enclosing: None,
         })
@@ -23,17 +21,16 @@ impl<'a> Resolver<'a> {
 
     fn new(enclosing: Rc<Self>) -> Self {
         Self {
-            text: enclosing.text,
             vars: RefCell::new(HashSet::new()),
             enclosing: Some(enclosing),
         }
     }
 
-    fn decl(&self, ident: &'a Ident) {
+    fn decl(&self, ident: &Ident) {
         if ident.is_ignored() {
             return;
         }
-        self.vars.borrow_mut().insert(&ident.0);
+        self.vars.borrow_mut().insert(ident.0.clone());
     }
 
     fn get_step(&self, id_name: &str) -> Option<usize> {
@@ -53,50 +50,47 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> Resolver<'a> {
-    pub fn res_stmts(self: &Rc<Self>, stmts: &'a mut [Stmt]) -> Result<()> {
+impl Resolver {
+    pub fn res_stmts(self: &Rc<Self>, stmts: &mut [Stmt]) -> Result<()> {
         for stmt in stmts.iter_mut() {
             self.res_stmt(stmt)?;
         }
         Ok(())
     }
 
-    fn res_stmt(self: &Rc<Self>, stmt: &'a mut Stmt) -> Result<()> {
-        match stmt {
-            Stmt::VarDecl(i, e) => {
+    fn res_stmt(self: &Rc<Self>, stmt: &mut Stmt) -> Result<()> {
+        match &mut stmt.tp {
+            StmtKind::VarDecl(i, e) => {
                 // this leaves functions that are recursive or calling each other UNresolved
                 // they will be resolved in runtime instead
                 self.res_expr(e)?;
                 self.decl(i);
             }
-            Stmt::Expr(e) => self.res_expr(e)?,
-            Stmt::Print(e) => self.res_expr(e)?,
-            Stmt::Assert(start, end, text, e) => {
-                *text = self.text.chars().skip(*start).take(*end - *start).collect();
-                self.res_expr(e)?;
-            }
-            Stmt::Break(e) => {
+            StmtKind::Expr(e) => self.res_expr(e)?,
+            StmtKind::Print(e) => self.res_expr(e)?,
+            StmtKind::Assert(e) => self.res_expr(e)?,
+            StmtKind::Break(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::Continue(e) => {
+            StmtKind::Continue(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::Return(e) => {
+            StmtKind::Return(e) => {
                 if let Some(e) = e {
                     self.res_expr(e)?
                 }
             }
-            Stmt::ClassDecl(i, _) => {
+            StmtKind::ClassDecl(i, _) => {
                 if self.enclosing.is_some() {
                     return Err(err!(ErrType::OnlyTopLevel("class".to_owned())));
                 }
                 self.decl(i);
             }
-            Stmt::Impl(i, afs) => {
+            StmtKind::Impl(i, afs) => {
                 if self.enclosing.is_some() {
                     return Err(err!(ErrType::OnlyTopLevel("impl".to_owned())));
                 }
@@ -109,7 +103,7 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn res_expr(self: &Rc<Self>, expr: &'a mut Expr) -> Result<()> {
+    fn res_expr(self: &Rc<Self>, expr: &mut Expr) -> Result<()> {
         match expr {
             Expr::Variable(Ident(id_name, step)) => {
                 *step = self.get_step(id_name);
@@ -157,7 +151,7 @@ impl<'a> Resolver<'a> {
                 for param in params.iter() {
                     fn_res.decl(param);
                 }
-                fn_res.res_stmts(body.as_block_mut().unwrap())?;  // DO NOT create new env
+                fn_res.res_stmts(body.as_block_mut().unwrap())?; // DO NOT create new env
             }
             Expr::Construct(_, kvs) => {
                 for (_, e) in kvs.iter_mut() {

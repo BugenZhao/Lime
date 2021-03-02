@@ -1,16 +1,22 @@
-use crate::{ast::*, error::Result, resolver::Resolver, value::*};
+use crate::{ast::*, error::Result, value::*};
 use lazy_static::lazy_static;
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    sync::atomic::{AtomicUsize, Ordering::SeqCst},
+};
+
+pub static SOURCE_ID: AtomicUsize = AtomicUsize::new(0);
 
 peg::parser! {
     grammar lime_parser() for str {
         // Lexical
         rule ws() = [' ' | '\t' | '\r' | '\n']
         rule comment() = "//" (!"\n" [_])* / "/*" (!"*/" [_])* "*/"
+        rule semi() = ";"
         rule _() = quiet!{ (ws() / comment())* }
         rule __() = quiet!{ (ws() / comment())+ }
+        rule ___() = _ ** semi()
 
-        rule semi() = (";" _)
         rule digit() = ['0'..='9']
         rule alpha() = ['a'..='z' | 'A'..='Z' | '_']
         rule aldig() = alpha() / digit()
@@ -181,7 +187,7 @@ peg::parser! {
             = i:ident() _ "=" _ e:expr() { Expr::Assign(i, box e) }
 
         rule block() -> Expr
-            = "{" _ semi()* ss:(raw_stmt())* e:stmt_expr_optional_semi()? semi()* _ "}" {
+            = "{" ss:(raw_stmt())* e:raw_stmt_expr_no_semi()? "}" {
                 Expr::make_block(ss, e)
             }
 
@@ -251,8 +257,8 @@ peg::parser! {
         rule expr() -> Expr = expr_BLOCK() / expr_NORMAL()
 
         // Stmt
-        rule stmt_var_decl() -> Stmt
-            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi()+ { Stmt::VarDecl(i, e) }
+        rule stmt_var_decl() -> StmtKind
+            = kw_var() __ i:ident() _ "=" _ e:expr() _ semi() { StmtKind::VarDecl(i, e) }
 
         rule field_list() -> Vec<Ident>
             = fields:(ident() ** (_ "," _)) (_ "," _)? {?
@@ -262,37 +268,39 @@ peg::parser! {
                     Ok(fields)
                 }
             }
-        rule stmt_class_decl() -> Stmt
-            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()* { Stmt::ClassDecl(i, f) }
+        rule stmt_class_decl() -> StmtKind
+            = kw_class() __ i:ident() _ "{" _ f:field_list() _ "}" _ semi()? { StmtKind::ClassDecl(i, f) }
 
         rule assoc() -> (Ident, Expr)
-            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi()+ { (i, e) }
-        rule stmt_impl() -> Stmt
-            = kw_impl() __ i:ident_type() _ "{" _ semi()* ms:assoc()* semi()* _ "}" _ semi()* { Stmt::Impl(i, ms) }
+            = kw_assoc() __ i:ident() _ "=" _ e:expr() _ semi() { (i, e) }
+        rule raw_assoc() -> (Ident, Expr)
+            = ___ ms:assoc() ___ { ms }
+        rule stmt_impl() -> StmtKind
+            = kw_impl() __ i:ident_type() _ "{" ms:raw_assoc()* "}" _ semi()? { StmtKind::Impl(i, ms) }
 
-        rule stmt_expr() -> Stmt
-            = e:expr_NORMAL() _ semi()+ { Stmt::Expr(e) }
-            / e:expr_BLOCK() _ semi()* { Stmt::Expr(e) }
-        rule stmt_expr_optional_semi() -> Stmt
-            = e:(expr_NORMAL() / expr_BLOCK()) _ semi()* { Stmt::Expr(e) }
+        rule stmt_expr() -> StmtKind
+            = e:expr_NORMAL() _ semi() { StmtKind::Expr(e) }
+            / e:expr_BLOCK() _ semi()? { StmtKind::Expr(e) }
+        rule stmt_expr_no_semi() -> StmtKind
+            = e:(expr_NORMAL() / expr_BLOCK()) { StmtKind::Expr(e) }
 
-        rule stmt_print() -> Stmt
-            = kw_print() __ e:expr() _ semi()+ { Stmt::Print(e) }
-            / kw_print() _ "(" _ e:expr() _ ")" _ semi()+ { Stmt::Print(e) }
+        rule stmt_print() -> StmtKind
+            = kw_print() __ e:expr() _ semi() { StmtKind::Print(e) }
+            / kw_print() _ "(" _ e:expr() _ ")" _ semi() { StmtKind::Print(e) }
 
-        rule stmt_assert() -> Stmt
-            = kw_assert() __ start:position!() e:expr() end:position!() _ semi()+ { Stmt::Assert(start, end, "".to_owned(), e) }
+        rule stmt_assert() -> StmtKind
+            = kw_assert() __ e:expr() _ semi() { StmtKind::Assert(e) }
 
         rule bcr_val() -> Expr
             = __ e:expr() { e }
-        rule stmt_break() -> Stmt
-            = kw_break() e:bcr_val()? _ semi()+ { Stmt::Break(e) }
-        rule stmt_continue() -> Stmt
-            = kw_continue() e:bcr_val()? _ semi()+ { Stmt::Continue(e) }
-        rule stmt_return() -> Stmt
-            = kw_return() e:bcr_val()? _ semi()+ { Stmt::Return(e) }
+        rule stmt_break() -> StmtKind
+            = kw_break() e:bcr_val()? _ semi() { StmtKind::Break(e) }
+        rule stmt_continue() -> StmtKind
+            = kw_continue() e:bcr_val()? _ semi() { StmtKind::Continue(e) }
+        rule stmt_return() -> StmtKind
+            = kw_return() e:bcr_val()? _ semi() { StmtKind::Return(e) }
 
-        rule stmt() -> Stmt
+        rule stmt() -> StmtKind
             = stmt_var_decl()
             / stmt_class_decl()
             / stmt_impl()
@@ -303,10 +311,27 @@ peg::parser! {
             / stmt_return()
             / stmt_expr()
 
-        rule raw_stmt() -> Stmt = _ s:stmt() _ { s }
+        rule raw_stmt() -> Stmt
+            = ___ start:position!() s:stmt() end:position!() ___ { Stmt {
+                tp: s,
+                span: Span {
+                    source_id: SOURCE_ID.load(SeqCst),
+                    pos: (start, end),
+                },
+                text: None,
+            } }
+        rule raw_stmt_expr_no_semi() -> Stmt
+            = ___ start:position!() s:stmt_expr_no_semi() end:position!() ___ { Stmt {
+                tp: s,
+                span: Span {
+                    source_id: SOURCE_ID.load(SeqCst),
+                    pos: (start, end),
+                },
+                text: None,
+            } }
 
         pub rule program() -> Vec<Stmt>
-            = _ semi()* ss:(raw_stmt())* semi()* ![_] { ss }
+            = ss:(raw_stmt())* ![_] { ss }
     }
 }
 
@@ -319,15 +344,17 @@ lazy_static! {
         .collect();
 }
 
-pub fn tokens(text: &str) -> Vec<(usize, &str)> {
-    lime_parser::tokens(text).unwrap()
+pub fn parse_with_id(text: &str, source_id: usize) -> Result<Vec<Stmt>> {
+    SOURCE_ID.store(source_id, SeqCst);
+    Ok(lime_parser::program(text)?)
 }
 
-pub fn parse_and_resolve(text: &str) -> Result<Vec<Stmt>> {
-    let result: std::result::Result<Vec<Stmt>, _> = lime_parser::program(text);
-    let mut stmts = result?;
-    Resolver::new_global(text).res_stmts(&mut stmts)?;
-    Ok(stmts)
+pub fn parse(text: &str) -> Result<Vec<Stmt>> {
+    parse_with_id(text, 0)
+}
+
+pub fn tokens(text: &str) -> Vec<(usize, &str)> {
+    lime_parser::tokens(text).unwrap()
 }
 
 #[cfg(test)]
@@ -342,7 +369,7 @@ mod test {
         var /* comment /* here */ c = 6;;  ; ; // or here ; /*
         _print c + 3;
         "#;
-        let r = parse_and_resolve(text);
+        let r = parse(text);
         println!("{:#?}", r);
         assert!(r.is_ok())
     }
@@ -350,11 +377,11 @@ mod test {
     #[test]
     fn test_call() {
         let text = "-fn_gen(true).first(add(1, 2)).second as String;";
-        let stmts = parse_and_resolve(text).unwrap();
+        let stmts = parse(text).unwrap();
 
         assert_eq!(
-            *stmts.first().unwrap(),
-            Stmt::Expr(Expr::Cast(
+            stmts.first().unwrap().tp,
+            StmtKind::Expr(Expr::Cast(
                 box Expr::Unary(
                     UnaryOp::Neg,
                     box Expr::Get(
@@ -382,10 +409,10 @@ mod test {
     #[test]
     fn test_inline_closure_call() {
         let text = "|x|{x+1;}(3);";
-        parse_and_resolve(text).unwrap_err();
+        parse(text).unwrap_err();
 
         let text = "(|x|{x+1;})(3);";
-        parse_and_resolve(text).unwrap();
+        parse(text).unwrap();
     }
 
     #[test]
@@ -407,6 +434,6 @@ mod test {
 
     #[test]
     fn test_overflow() {
-        parse_and_resolve("1234567890987654321234567890987654321234567890;").unwrap_err();
+        parse("1234567890987654321234567890987654321234567890;").unwrap_err();
     }
 }

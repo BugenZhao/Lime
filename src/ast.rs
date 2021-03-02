@@ -87,7 +87,7 @@ pub enum Expr {
     While(Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     WhileVar(Ident, Box<Expr>, Box<Expr>, Box<Option<Expr>>),
     Call(Box<Expr>, Vec<Expr>),
-    Func(Vec<Ident>, Box<Expr>),  // must be Expr::Block
+    Func(Vec<Ident>, Box<Expr>), // must be Expr::Block
     Construct(Ident, Vec<(Ident, Expr)>),
     Get(Box<Expr>, Ident),
     Set(Box<Expr>, Ident, Box<Expr>),
@@ -106,14 +106,27 @@ impl Expr {
 }
 
 #[derive(Debug, Clone, PartialEq, EnumAsInner)]
-pub enum Stmt {
+pub enum StmtKind {
     VarDecl(Ident, Expr),
     ClassDecl(Ident, Vec<Ident>),
     Impl(Ident, Vec<(Ident, Expr)>),
     Expr(Expr),
     Print(Expr),
-    Assert(usize, usize, String, Expr),
+    Assert(Expr),
     Break(Option<Expr>),
     Continue(Option<Expr>),
     Return(Option<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Stmt {
+    pub tp: StmtKind,
+    pub span: Span,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Span {
+    pub source_id: usize,
+    pub pos: (usize, usize),
 }

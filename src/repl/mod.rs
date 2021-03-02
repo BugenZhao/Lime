@@ -4,7 +4,7 @@ use crate::{interpreter::Interpreter, Value};
 use colored::*;
 use rustyline::error::ReadlineError;
 
-pub fn repl(intp: Interpreter) {
+pub fn repl(mut intp: Interpreter) {
     let mut rl = helper::editor();
     let mut counter = 0u64;
 
@@ -28,10 +28,10 @@ pub fn repl(intp: Interpreter) {
             },
             Ok(mut line) => {
                 line.push(';');
-                match intp.eval(&line) {
+                match intp.eval_with_name(&format!("<repl:{}>", counter), &line) {
                     Ok(Value::Nil(None)) => println!(),
                     Ok(val) => println!("{:?}", val),
-                    Err(err) => println!("{}", err.to_string().red()),
+                    Err(err) => println!("{}", intp.fmt_error(err)),
                 }
             }
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {

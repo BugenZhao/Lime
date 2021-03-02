@@ -1,8 +1,7 @@
 use crate::{
-    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, UnaryOp},
+    ast::{BinaryOp, Expr, Ident, IdentExt, Stmt, StmtKind, UnaryOp},
     err,
     error::{ErrType, Result},
-    lime_std::define_std,
     value::{Value, WrClass, WrFunc, WrObject},
 };
 use std::{
@@ -18,13 +17,8 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new_global_std() -> Rc<Self> {
-        let env = Rc::new(Self {
-            vars: RefCell::new(HashMap::new()),
-            enclosing: None,
-        });
-        define_std(&env);
-        env
+    pub fn new_global() -> Rc<Self> {
+        Rc::new(Self::new_empty())
     }
 
     pub fn new(enclosing: Rc<Self>) -> Self {
@@ -154,7 +148,8 @@ impl Env {
                 Ok(ov) => {
                     ret = ov;
                 }
-                Err(e) => {
+                Err(mut e) => {
+                    e.set_span(stmt.span);
                     return Err(e);
                 }
             }
@@ -164,36 +159,32 @@ impl Env {
     }
 
     fn eval_stmt(self: &Rc<Self>, stmt: &Stmt) -> Result<Value> {
-        match stmt {
-            Stmt::VarDecl(ident, val) => {
+        match &stmt.tp {
+            StmtKind::VarDecl(ident, val) => {
                 let val = self.eval_expr(val)?;
                 self.decl(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
-            Stmt::Expr(expr) => match self.eval_expr(expr) {
+            StmtKind::Expr(expr) => match self.eval_expr(expr) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e),
             },
-            Stmt::Print(expr) => match self.eval_expr(expr) {
+            StmtKind::Print(expr) => match self.eval_expr(expr) {
                 Ok(v) => {
                     println!("{}", v);
                     Ok(Value::Nil(None))
                 }
                 Err(e) => Err(e),
             },
-            Stmt::Assert(_, _, text, expr) => {
+            StmtKind::Assert(expr) => {
                 let val = self.eval_expr(expr)?;
                 if val != Value::Bool(true) {
-                    Err(err!(ErrType::AssertionFailed(
-                        text.to_owned(),
-                        val,
-                        Value::Bool(true),
-                    )))
+                    Err(err!(ErrType::AssertionFailed))
                 } else {
                     Ok(Value::Nil(None))
                 }
             }
-            Stmt::Break(expr) => {
+            StmtKind::Break(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -201,7 +192,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Break(val)))
             }
-            Stmt::Continue(expr) => {
+            StmtKind::Continue(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -209,7 +200,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Continue(val)))
             }
-            Stmt::Return(expr) => {
+            StmtKind::Return(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e)?
                 } else {
@@ -217,7 +208,7 @@ impl Env {
                 };
                 Err(err!(ErrType::Return(val)))
             }
-            Stmt::ClassDecl(ident, fields) => {
+            StmtKind::ClassDecl(ident, fields) => {
                 let val = Value::Class(WrClass::new(
                     ident.0.clone(),
                     fields.iter().map(|i| i.0.to_owned()).collect(),
@@ -225,7 +216,7 @@ impl Env {
                 self.decl_class(ident.clone(), val)?;
                 Ok(Value::Nil(None))
             }
-            Stmt::Impl(ident, assocs) => {
+            StmtKind::Impl(ident, assocs) => {
                 let v = self
                     .get(ident)
                     .ok_or_else(|| err!(ErrType::CannotFindValue(ident.0.to_owned())))?;
@@ -390,7 +381,7 @@ impl Env {
                             ErrType::Return(v) | ErrType::ErrorReturn(v) => Ok(v),
                             ErrType::Expect(v) => Err(err!(ErrType::ErrorReturn(v))),
                             _ => {
-                                e.push(&lime_f);
+                                e.push_func(&lime_f);
                                 Err(e)
                             }
                         },
